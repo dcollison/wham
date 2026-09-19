@@ -11,8 +11,9 @@ import { AreaResetModal } from './components/boulders/AreaResetModal';
 import { StatsDashboard } from './components/stats/StatsDashboard';
 import { BetaDiscussionView } from './components/beta/BetaDiscussionView';
 import { SettingsModal } from './components/settings/SettingsModal';
-import { Boulder } from './types';
-import { Plus, Compass, Sparkles, Filter } from 'lucide-react';
+import { BoulderFilters, BoulderFiltersState } from './components/boulders/BoulderFilters';
+import { Boulder, GRADES } from './types';
+import { Plus, Compass, Sparkles, Filter, RotateCcw } from 'lucide-react';
 
 export function App() {
   const {
@@ -81,20 +82,157 @@ export function App() {
     return Boolean(localStorage.getItem('wham_active_profile_id'));
   });
 
-  // Filter climbs by "Hide Sent" if enabled
+  // Boulder filters state (Grade Range, Status, Hold Colour, Climber, Search, Sort)
+  const [boulderFilters, setBoulderFilters] = useState<BoulderFiltersState>(() => ({
+    minGrade: null,
+    maxGrade: null,
+    statusFilter: hideSent ? 'unsent' : 'all',
+    selectedColour: null,
+    targetClimberId: currentUser?.id || '',
+    searchQuery: '',
+    sortBy: 'position'
+  }));
+
+  // Sync targetClimberId with currentUser when available
+  useEffect(() => {
+    if (currentUser?.id) {
+      setBoulderFilters((prev) => {
+        if (!prev.targetClimberId) {
+          return { ...prev, targetClimberId: currentUser.id };
+        }
+        return prev;
+      });
+    }
+  }, [currentUser?.id]);
+
+  // Sync statusFilter when hideSent is toggled from Header
+  useEffect(() => {
+    if (hideSent) {
+      setBoulderFilters((prev) => (prev.statusFilter === 'unsent' ? prev : { ...prev, statusFilter: 'unsent' }));
+    } else {
+      setBoulderFilters((prev) => (prev.statusFilter === 'unsent' ? { ...prev, statusFilter: 'all' } : prev));
+    }
+  }, [hideSent]);
+
+  const handleUpdateFilters = (updater: (prev: BoulderFiltersState) => BoulderFiltersState) => {
+    setBoulderFilters((prev) => {
+      const next = updater(prev);
+      if (next.statusFilter === 'unsent' && !hideSent) {
+        setHideSent(true);
+      } else if (next.statusFilter !== 'unsent' && hideSent) {
+        setHideSent(false);
+      }
+      return next;
+    });
+  };
+
+  const handleResetFilters = () => {
+    setHideSent(false);
+    setBoulderFilters({
+      minGrade: null,
+      maxGrade: null,
+      statusFilter: 'all',
+      selectedColour: null,
+      targetClimberId: currentUser?.id || '',
+      searchQuery: '',
+      sortBy: 'position'
+    });
+  };
+
+  // Compute available colours and counts for current area
+  const { availableColours, colourCounts } = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const coloursSet = new Set<string>();
+
+    orderedActiveBouldersInCurrentArea.forEach((b) => {
+      counts[b.hold_colour] = (counts[b.hold_colour] || 0) + 1;
+      coloursSet.add(b.hold_colour);
+    });
+
+    const sortedColours = Array.from(coloursSet).sort();
+    return { availableColours: sortedColours, colourCounts: counts };
+  }, [orderedActiveBouldersInCurrentArea]);
+
+  // Filter and sort climbs based on BoulderFiltersState
   const visibleBoulders = useMemo(() => {
-    if (!hideSent || !currentUser) {
-      return orderedActiveBouldersInCurrentArea;
+    const targetId = boulderFilters.targetClimberId || currentUser?.id;
+
+    // 1. Filter
+    const filtered = orderedActiveBouldersInCurrentArea.filter((boulder) => {
+      // Grade filtering
+      const boulderGradeIdx = GRADES.indexOf(boulder.grade);
+      if (boulderFilters.minGrade) {
+        const minIdx = GRADES.indexOf(boulderFilters.minGrade);
+        if (boulderGradeIdx < minIdx) return false;
+      }
+      if (boulderFilters.maxGrade) {
+        const maxIdx = GRADES.indexOf(boulderFilters.maxGrade);
+        if (boulderGradeIdx > maxIdx) return false;
+      }
+
+      // Status filtering (Done / Not Done / Projecting / Untouched)
+      if (boulderFilters.statusFilter !== 'all') {
+        const userAttempt = attempts.find(
+          (a) => a.boulder_id === boulder.id && a.user_id === targetId
+        );
+        const isCompleted = userAttempt && (userAttempt.status === 'flashed' || userAttempt.status === 'sent');
+        const isProject = userAttempt && userAttempt.status === 'attempted';
+
+        if (boulderFilters.statusFilter === 'unsent') {
+          // Boulders target climber hasn't done yet (not sent and not flashed)
+          if (isCompleted) return false;
+        } else if (boulderFilters.statusFilter === 'sent') {
+          // Only boulders target climber has sent or flashed
+          if (!isCompleted) return false;
+        } else if (boulderFilters.statusFilter === 'projecting') {
+          // Only boulders target climber has attempted without sending
+          if (!isProject) return false;
+        } else if (boulderFilters.statusFilter === 'untouched') {
+          // Completely unattempted by target climber
+          if (userAttempt) return false;
+        }
+      }
+
+      // Hold Colour filtering
+      if (boulderFilters.selectedColour) {
+        if (boulder.hold_colour.toLowerCase() !== boulderFilters.selectedColour.toLowerCase()) {
+          return false;
+        }
+      }
+
+      // Search Query
+      if (boulderFilters.searchQuery.trim()) {
+        const q = boulderFilters.searchQuery.toLowerCase().trim();
+        const matchesNotes = boulder.notes?.toLowerCase().includes(q) || false;
+        const matchesColour = boulder.hold_colour.toLowerCase().includes(q);
+        const matchesGrade = boulder.grade.toLowerCase().includes(q);
+        if (!matchesNotes && !matchesColour && !matchesGrade) return false;
+      }
+
+      return true;
+    });
+
+    // 2. Sort
+    if (boulderFilters.sortBy === 'position') {
+      // Keep natural wall flow order
+      return filtered;
     }
 
-    return orderedActiveBouldersInCurrentArea.filter((boulder) => {
-      const userAttempt = attempts.find(
-        (a) => a.boulder_id === boulder.id && a.user_id === currentUser.id
-      );
-      // Hide if already flashed or sent
-      return !(userAttempt && (userAttempt.status === 'flashed' || userAttempt.status === 'sent'));
+    return [...filtered].sort((a, b) => {
+      if (boulderFilters.sortBy === 'grade-asc') {
+        return GRADES.indexOf(a.grade) - GRADES.indexOf(b.grade);
+      }
+      if (boulderFilters.sortBy === 'grade-desc') {
+        return GRADES.indexOf(b.grade) - GRADES.indexOf(a.grade);
+      }
+      if (boulderFilters.sortBy === 'most-sent' || boulderFilters.sortBy === 'least-sent') {
+        const aSends = attempts.filter((att) => att.boulder_id === a.id && (att.status === 'sent' || att.status === 'flashed')).length;
+        const bSends = attempts.filter((att) => att.boulder_id === b.id && (att.status === 'sent' || att.status === 'flashed')).length;
+        return boulderFilters.sortBy === 'most-sent' ? bSends - aSends : aSends - bSends;
+      }
+      return 0;
     });
-  }, [orderedActiveBouldersInCurrentArea, hideSent, currentUser, attempts]);
+  }, [orderedActiveBouldersInCurrentArea, boulderFilters, currentUser, attempts]);
 
   // Existing attempt for quick log modal
   const activeBoulderAttempt = useMemo(() => {
@@ -145,17 +283,25 @@ export function App() {
                   <span>{currentArea?.name || `${currentGym?.name || 'Gym'} • All Areas`}</span>
                 </h1>
                 <p className="text-xs text-slate-400 font-mono">
-                  {visibleBoulders.length} {visibleBoulders.length === 1 ? 'boulder' : 'boulders'} • {currentArea ? 'Clockwise flow' : 'All wall sectors'}
+                  {orderedActiveBouldersInCurrentArea.length}{' '}
+                  {orderedActiveBouldersInCurrentArea.length === 1 ? 'boulder' : 'boulders'} •{' '}
+                  {currentArea ? 'Clockwise wall sequence' : 'All wall sectors'}
                 </p>
               </div>
-
-              {hideSent && (
-                <div className="flex items-center gap-1 text-[11px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
-                  <Filter className="w-3 h-3" />
-                  <span>"Needs Sending" filtered</span>
-                </div>
-              )}
             </div>
+
+            {/* Boulder Filters: Grade Range, Status, Hold Colour, Search */}
+            <BoulderFilters
+              filters={boulderFilters}
+              onUpdateFilters={handleUpdateFilters}
+              onResetFilters={handleResetFilters}
+              availableColours={availableColours}
+              colourCounts={colourCounts}
+              climbers={climbers}
+              currentUserId={currentUser?.id}
+              totalBouldersCount={orderedActiveBouldersInCurrentArea.length}
+              filteredBouldersCount={visibleBoulders.length}
+            />
 
             {/* Boulders List */}
             {visibleBoulders.length > 0 ? (
@@ -180,6 +326,28 @@ export function App() {
                   );
                 })}
               </div>
+            ) : orderedActiveBouldersInCurrentArea.length > 0 ? (
+              <div className="flex flex-col items-center justify-center p-8 bg-slate-900/60 border border-slate-800 rounded-2xl text-center gap-3 my-4">
+                <div className="p-3 bg-slate-800 text-amber-400 rounded-2xl">
+                  <Filter className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-200">
+                    No matching boulders found
+                  </h3>
+                  <p className="text-xs text-slate-400 max-w-xs mt-1">
+                    No climbs matched your filter criteria. Try adjusting your grade range or switching status to "All".
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  className="mt-2 flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black active-press shadow"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>Reset All Filters</span>
+                </button>
+              </div>
             ) : (
               <div className="flex flex-col items-center justify-center p-8 bg-slate-900/60 border border-slate-800 rounded-2xl text-center gap-3 my-6">
                 <div className="p-3 bg-slate-800 text-amber-400 rounded-2xl">
@@ -187,12 +355,10 @@ export function App() {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-200">
-                    {hideSent ? 'All Active Problems Sent!' : 'No climbs here yet'}
+                    No climbs here yet
                   </h3>
                   <p className="text-xs text-slate-400 max-w-xs mt-1">
-                    {hideSent
-                      ? 'You crushed everything in this area! Disable "Hide Sent" to review them.'
-                      : 'Be the first to log a new problem in this sector.'}
+                    Be the first to log a new problem in this sector.
                   </p>
                 </div>
                 <button
