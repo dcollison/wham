@@ -29,6 +29,19 @@ export const GRADES: Grade[] = [
 
 export type AttemptStatus = 'flashed' | 'sent' | 'attempted';
 
+/**
+ * Automatically determine attempt status from whether it was sent and the number of tries:
+ * - Sent + 1 try  -> flashed
+ * - Sent + 2+ tries -> sent
+ * - Not sent      -> attempted (projecting)
+ */
+export function determineAttemptStatus(isSent: boolean, tries: number): AttemptStatus {
+  if (isSent) {
+    return tries <= 1 ? 'flashed' : 'sent';
+  }
+  return 'attempted';
+}
+
 export interface Profile {
   id: string;
   display_name: string;

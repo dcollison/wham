@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Boulder, Attempt, AttemptStatus } from '../../types';
+import { Boulder, Attempt, AttemptStatus, determineAttemptStatus } from '../../types';
 import { HoldBadge } from './HoldBadge';
-import { Zap, Check, Clock, X, Trash2, Plus, Minus } from 'lucide-react';
+import { Zap, Check, Clock, X, Trash2, Plus, Minus, CheckCircle2, CircleDashed } from 'lucide-react';
 
 interface QuickLogModalProps {
   boulder: Boulder | null;
@@ -22,38 +22,36 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
   onDelete,
   climberName
 }) => {
-  const [selectedStatus, setSelectedStatus] = useState<AttemptStatus>('flashed');
+  // Core user inputs:
+  // 1. Did you send it?
+  // 2. How many attempts / tries?
+  const [isSent, setIsSent] = useState<boolean>(true);
   const [attemptCount, setAttemptCount] = useState<number>(1);
   const [saving, setSaving] = useState<boolean>(false);
 
+  // Pre-fill state when opening
   useEffect(() => {
     if (existingAttempt) {
-      setSelectedStatus(existingAttempt.status);
+      setIsSent(existingAttempt.status === 'flashed' || existingAttempt.status === 'sent');
       setAttemptCount(existingAttempt.attempt_count);
     } else {
-      setSelectedStatus('flashed');
+      // Default for a new log: sent on 1st try (Flash)
+      setIsSent(true);
       setAttemptCount(1);
     }
   }, [existingAttempt, boulder, isOpen]);
 
   if (!isOpen || !boulder) return null;
 
-  const handleSelectStatus = (status: AttemptStatus) => {
-    setSelectedStatus(status);
-    if (status === 'flashed') {
-      setAttemptCount(1);
-    } else if (status === 'sent' && attemptCount === 1) {
-      setAttemptCount(2); // Sends are usually >= 2 attempts (otherwise it's a flash)
-    }
-  };
+  // Automatically determine if it is a flash, sent, or projecting from isSent + attemptCount
+  const computedStatus: AttemptStatus = determineAttemptStatus(isSent, attemptCount);
 
   const handleIncrement = () => {
-    setAttemptCount(prev => Math.min(prev + 1, 99));
+    setAttemptCount((prev) => Math.min(prev + 1, 99));
   };
 
   const handleDecrement = () => {
-    const min = selectedStatus === 'flashed' ? 1 : 1;
-    setAttemptCount(prev => Math.max(prev - 1, min));
+    setAttemptCount((prev) => Math.max(prev - 1, 1));
   };
 
   const handleSubmit = async () => {
@@ -61,7 +59,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
     try {
       await onSave({
         boulderId: boulder.id,
-        status: selectedStatus,
+        status: computedStatus,
         attemptCount
       });
       onClose();
@@ -83,20 +81,21 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
       <div
-        className="w-full max-w-lg bg-slate-900 border-t sm:border border-slate-700/80 rounded-t-3xl sm:rounded-2xl p-5 shadow-2xl flex flex-col gap-5 max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-lg bg-slate-900 border-t sm:border border-slate-700/80 rounded-t-3xl sm:rounded-2xl p-5 shadow-2xl flex flex-col gap-4 max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div className="flex items-center gap-3">
             <HoldBadge color={boulder.hold_colour} grade={boulder.grade} size="md" />
-            <span className="text-xs font-mono text-slate-400">
+            <span className="text-xs font-mono text-slate-400 bg-slate-800 px-2 py-0.5 rounded">
               #{Math.round(boulder.position_order)}
             </span>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
           >
@@ -105,119 +104,154 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
         </div>
 
         {/* Climber context */}
-        <div className="flex items-center justify-between text-xs text-slate-400 bg-slate-800/50 px-3 py-2 rounded-lg">
-          <span>Logging as: <strong className="text-amber-400 font-semibold">{climberName}</strong></span>
+        <div className="flex items-center justify-between text-xs text-slate-400 bg-slate-800/50 px-3 py-2 rounded-xl border border-slate-800">
+          <span>
+            Climber: <strong className="text-amber-400 font-semibold">{climberName}</strong>
+          </span>
           {existingAttempt && (
             <span className="text-slate-400">
-              Current: <span className="uppercase font-mono text-slate-200">{existingAttempt.status} ({existingAttempt.attempt_count}t)</span>
+              Previous log:{' '}
+              <strong className="uppercase font-mono text-slate-200">
+                {existingAttempt.status} ({existingAttempt.attempt_count}t)
+              </strong>
             </span>
           )}
         </div>
 
-        {/* Status Selection Buttons - Tactile for Chalky Fingers */}
-        <div className="grid grid-cols-3 gap-2.5">
-          {/* Flash */}
-          <button
-            type="button"
-            onClick={() => handleSelectStatus('flashed')}
-            className={`flex flex-col items-center justify-center p-3.5 rounded-xl border-2 transition-all active-press ${
-              selectedStatus === 'flashed'
-                ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-lg shadow-amber-500/10'
-                : 'bg-slate-800/60 border-slate-700/60 text-slate-400 hover:border-slate-600'
-            }`}
-          >
-            <Zap className={`w-7 h-7 mb-1.5 ${selectedStatus === 'flashed' ? 'text-amber-400 fill-amber-400' : 'text-slate-400'}`} />
-            <span className="font-bold text-sm">Flash</span>
-            <span className="text-[10px] opacity-75 font-mono">1st Try Send</span>
-          </button>
+        {/* Question 1: Did you send/top it? */}
+        <div className="flex flex-col gap-2">
+          <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between">
+            <span>Did you send it?</span>
+            <span className="text-[11px] font-normal text-slate-400">Topped vs Working</span>
+          </label>
+          <div className="grid grid-cols-2 gap-2.5">
+            {/* Sent / Topped */}
+            <button
+              type="button"
+              onClick={() => setIsSent(true)}
+              className={`p-3.5 rounded-xl border-2 flex items-center justify-center gap-2.5 transition-all active-press ${
+                isSent
+                  ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 shadow-md ring-1 ring-emerald-400/40'
+                  : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:border-slate-600'
+              }`}
+            >
+              <CheckCircle2 className={`w-5 h-5 ${isSent ? 'text-emerald-400 stroke-[2.5]' : 'text-slate-500'}`} />
+              <div className="text-left">
+                <span className="font-bold text-sm block">Sent / Topped</span>
+                <span className="text-[10px] opacity-75">Completed boulder</span>
+              </div>
+            </button>
 
-          {/* Send */}
-          <button
-            type="button"
-            onClick={() => handleSelectStatus('sent')}
-            className={`flex flex-col items-center justify-center p-3.5 rounded-xl border-2 transition-all active-press ${
-              selectedStatus === 'sent'
-                ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 shadow-lg shadow-emerald-500/10'
-                : 'bg-slate-800/60 border-slate-700/60 text-slate-400 hover:border-slate-600'
-            }`}
-          >
-            <Check className={`w-7 h-7 mb-1.5 ${selectedStatus === 'sent' ? 'text-emerald-400 stroke-[3]' : 'text-slate-400'}`} />
-            <span className="font-bold text-sm">Send</span>
-            <span className="text-[10px] opacity-75 font-mono">2+ Tries</span>
-          </button>
-
-          {/* Project / Attempt */}
-          <button
-            type="button"
-            onClick={() => handleSelectStatus('attempted')}
-            className={`flex flex-col items-center justify-center p-3.5 rounded-xl border-2 transition-all active-press ${
-              selectedStatus === 'attempted'
-                ? 'bg-blue-500/20 border-blue-400 text-blue-300 shadow-lg shadow-blue-500/10'
-                : 'bg-slate-800/60 border-slate-700/60 text-slate-400 hover:border-slate-600'
-            }`}
-          >
-            <Clock className={`w-7 h-7 mb-1.5 ${selectedStatus === 'attempted' ? 'text-blue-400' : 'text-slate-400'}`} />
-            <span className="font-bold text-sm">Project</span>
-            <span className="text-[10px] opacity-75 font-mono">Attempts</span>
-          </button>
+            {/* Still Projecting */}
+            <button
+              type="button"
+              onClick={() => setIsSent(false)}
+              className={`p-3.5 rounded-xl border-2 flex items-center justify-center gap-2.5 transition-all active-press ${
+                !isSent
+                  ? 'bg-blue-500/20 border-blue-400 text-blue-300 shadow-md ring-1 ring-blue-400/40'
+                  : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:border-slate-600'
+              }`}
+            >
+              <CircleDashed className={`w-5 h-5 ${!isSent ? 'text-blue-400 stroke-[2.5]' : 'text-slate-500'}`} />
+              <div className="text-left">
+                <span className="font-bold text-sm block">Still Projecting</span>
+                <span className="text-[10px] opacity-75">Work in progress</span>
+              </div>
+            </button>
+          </div>
         </div>
 
-        {/* Attempt Stepper (Hidden for Flash as Flash is inherently 1 try) */}
-        {selectedStatus !== 'flashed' && (
-          <div className="bg-slate-800/60 border border-slate-700/70 rounded-xl p-4 flex flex-col items-center gap-3">
-            <span className="text-xs uppercase font-bold tracking-wider text-slate-400">
-              Total Attempts / Tries
-            </span>
-            <div className="flex items-center gap-5">
-              <button
-                type="button"
-                onClick={handleDecrement}
-                disabled={attemptCount <= (selectedStatus === 'sent' ? 2 : 1)}
-                className="w-12 h-12 rounded-xl bg-slate-700/80 border border-slate-600 flex items-center justify-center text-slate-200 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-transform"
-              >
-                <Minus className="w-6 h-6" />
-              </button>
+        {/* Question 2: How many tries? */}
+        <div className="bg-slate-800/50 border border-slate-700/70 rounded-2xl p-4 flex flex-col items-center gap-3">
+          <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+            How many tries?
+          </label>
 
-              <div className="flex flex-col items-center min-w-[70px]">
-                <span className="font-mono text-3xl font-black text-white">
-                  {attemptCount}
-                </span>
-                <span className="text-[11px] text-slate-400">
-                  {attemptCount === 1 ? 'try' : 'tries'}
-                </span>
-              </div>
+          {/* Stepper */}
+          <div className="flex items-center gap-6">
+            <button
+              type="button"
+              onClick={handleDecrement}
+              disabled={attemptCount <= 1}
+              className="w-12 h-12 rounded-xl bg-slate-700/80 border border-slate-600 flex items-center justify-center text-slate-200 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-transform"
+            >
+              <Minus className="w-6 h-6" />
+            </button>
 
-              <button
-                type="button"
-                onClick={handleIncrement}
-                className="w-12 h-12 rounded-xl bg-slate-700/80 border border-slate-600 flex items-center justify-center text-slate-200 active:scale-95 transition-transform"
-              >
-                <Plus className="w-6 h-6" />
-              </button>
+            <div className="flex flex-col items-center min-w-[70px]">
+              <span className="font-mono text-4xl font-black text-white">
+                {attemptCount}
+              </span>
+              <span className="text-[11px] text-slate-400 font-medium">
+                {attemptCount === 1 ? 'try' : 'tries'}
+              </span>
             </div>
 
-            {/* Quick try presets */}
-            <div className="flex items-center gap-2 mt-1">
-              {[2, 3, 4, 5, 8].map(num => (
-                <button
-                  key={num}
-                  type="button"
-                  onClick={() => setAttemptCount(num)}
-                  className={`px-2.5 py-1 rounded-md text-xs font-mono font-medium transition-all ${
-                    attemptCount === num
-                      ? 'bg-amber-500 text-black font-bold'
-                      : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'
-                  }`}
-                >
-                  {num}t
-                </button>
-              ))}
-            </div>
+            <button
+              type="button"
+              onClick={handleIncrement}
+              className="w-12 h-12 rounded-xl bg-slate-700/80 border border-slate-600 flex items-center justify-center text-slate-200 active:scale-95 transition-transform"
+            >
+              <Plus className="w-6 h-6" />
+            </button>
           </div>
-        )}
+
+          {/* Quick Preset Buttons */}
+          <div className="flex items-center gap-2 mt-1 flex-wrap justify-center">
+            {[1, 2, 3, 4, 5, 6].map((num) => (
+              <button
+                key={num}
+                type="button"
+                onClick={() => setAttemptCount(num)}
+                className={`px-3 py-1 rounded-lg text-xs font-mono font-bold transition-all ${
+                  attemptCount === num
+                    ? 'bg-amber-400 text-black shadow'
+                    : 'bg-slate-700/60 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                {num === 1 ? '1st try' : `${num}t`}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Automatic Status Resolution Banner */}
+        <div
+          className={`p-3.5 rounded-xl border flex items-center gap-3 transition-all ${
+            computedStatus === 'flashed'
+              ? 'bg-amber-500/15 border-amber-400/60 text-amber-300'
+              : computedStatus === 'sent'
+              ? 'bg-emerald-500/15 border-emerald-400/60 text-emerald-300'
+              : 'bg-blue-500/15 border-blue-400/60 text-blue-300'
+          }`}
+        >
+          <div className="shrink-0 p-2 rounded-lg bg-black/30">
+            {computedStatus === 'flashed' && <Zap className="w-6 h-6 text-amber-400 fill-amber-400" />}
+            {computedStatus === 'sent' && <Check className="w-6 h-6 text-emerald-400 stroke-[3]" />}
+            {computedStatus === 'attempted' && <Clock className="w-6 h-6 text-blue-400" />}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] uppercase font-mono font-bold px-1.5 py-0.5 rounded bg-black/40">
+                Auto-Detected
+              </span>
+              <h4 className="font-bold text-sm tracking-tight text-white">
+                {computedStatus === 'flashed' && '⚡ FLASH'}
+                {computedStatus === 'sent' && '✅ SENT'}
+                {computedStatus === 'attempted' && '⏳ PROJECTING'}
+              </h4>
+            </div>
+            <p className="text-xs opacity-90 mt-0.5">
+              {computedStatus === 'flashed' && 'Topped on 1st attempt with no prior falls.'}
+              {computedStatus === 'sent' && `Sent successfully in ${attemptCount} attempts.`}
+              {computedStatus === 'attempted' && `Currently projecting with ${attemptCount} attempts logged.`}
+            </p>
+          </div>
+        </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-3 pt-2">
+        <div className="flex items-center gap-3 pt-1">
           {existingAttempt && onDelete && (
             <button
               type="button"
@@ -235,22 +269,22 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
             onClick={handleSubmit}
             disabled={saving}
             className={`flex-1 py-3.5 px-4 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-all active-press ${
-              selectedStatus === 'flashed'
+              computedStatus === 'flashed'
                 ? 'bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/20'
-                : selectedStatus === 'sent'
+                : computedStatus === 'sent'
                 ? 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-emerald-500/20'
                 : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20'
             }`}
           >
-            {selectedStatus === 'flashed' && <Zap className="w-5 h-5 fill-current" />}
-            {selectedStatus === 'sent' && <Check className="w-5 h-5 stroke-[3]" />}
-            {selectedStatus === 'attempted' && <Clock className="w-5 h-5" />}
+            {computedStatus === 'flashed' && <Zap className="w-5 h-5 fill-current" />}
+            {computedStatus === 'sent' && <Check className="w-5 h-5 stroke-[3]" />}
+            {computedStatus === 'attempted' && <Clock className="w-5 h-5" />}
             <span>
               {saving
                 ? 'Saving...'
-                : selectedStatus === 'flashed'
+                : computedStatus === 'flashed'
                 ? 'Log Flash! ⚡'
-                : selectedStatus === 'sent'
+                : computedStatus === 'sent'
                 ? `Log Send (${attemptCount} tries) ✅`
                 : `Save Project (${attemptCount} tries)`}
             </span>
