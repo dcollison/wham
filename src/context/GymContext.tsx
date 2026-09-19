@@ -34,7 +34,7 @@ interface GymContextType {
   setCurrentGym: (gym: Gym) => void;
   areas: GymArea[];
   currentArea: GymArea | null;
-  setCurrentArea: (area: GymArea) => void;
+  setCurrentArea: (area: GymArea | null) => void;
   boulders: Boulder[];
   attempts: Attempt[];
   comments: Comment[];
@@ -106,8 +106,15 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (currentGym) {
       const gymAreas = areas.filter(a => a.gym_id === currentGym.id).sort((a, b) => a.sort_order - b.sort_order);
       const savedAreaId = localStorage.getItem(`wham_active_area_${currentGym.id}`);
-      const area = gymAreas.find(a => a.id === savedAreaId) || gymAreas[0] || null;
-      setCurrentAreaState(area);
+      if (savedAreaId === 'all') {
+        setCurrentAreaState(null);
+      } else if (savedAreaId) {
+        const area = gymAreas.find(a => a.id === savedAreaId) || null;
+        setCurrentAreaState(area);
+      } else {
+        // Default to All Areas if no preference saved
+        setCurrentAreaState(null);
+      }
     }
   }, [currentGym, areas]);
 
@@ -116,10 +123,14 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('wham_active_gym_id', gym.id);
   };
 
-  const setCurrentArea = (area: GymArea) => {
+  const setCurrentArea = (area: GymArea | null) => {
     setCurrentAreaState(area);
     if (currentGym) {
-      localStorage.setItem(`wham_active_area_${currentGym.id}`, area.id);
+      if (area) {
+        localStorage.setItem(`wham_active_area_${currentGym.id}`, area.id);
+      } else {
+        localStorage.setItem(`wham_active_area_${currentGym.id}`, 'all');
+      }
     }
   };
 
@@ -209,21 +220,40 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('wham_comments', JSON.stringify(comments));
   }, [comments]);
 
-  // Compute Clockwise ordered active boulders in current area with adjacent indicators
+  // Compute Clockwise ordered active boulders in current area (or across the entire gym if currentArea is null)
   const orderedActiveBouldersInCurrentArea = useMemo(() => {
-    if (!currentArea) return [];
+    if (!currentGym) return [];
 
-    const filtered = boulders.filter(
-      b => b.area_id === currentArea.id && (showArchived ? true : !b.is_archived)
-    );
+    const filtered = boulders.filter(b => {
+      const matchesGym = b.gym_id === currentGym.id;
+      const matchesArea = currentArea ? b.area_id === currentArea.id : true;
+      const matchesArchived = showArchived ? true : !b.is_archived;
+      return matchesGym && matchesArea && matchesArchived;
+    });
 
-    // Sort ascending by position_order
-    filtered.sort((a, b) => a.position_order - b.position_order);
+    const areaMap = new Map(areas.map(a => [a.id, a]));
+
+    // Sort: If all areas are displayed, sort by area sort_order first, then position_order
+    filtered.sort((a, b) => {
+      if (!currentArea && a.area_id !== b.area_id) {
+        const sortA = areaMap.get(a.area_id)?.sort_order ?? 0;
+        const sortB = areaMap.get(b.area_id)?.sort_order ?? 0;
+        return sortA - sortB;
+      }
+      return a.position_order - b.position_order;
+    });
 
     // Calculate adjacent prev / next indicators for each climb
     return filtered.map((boulder, index) => {
-      const prevBoulder = index > 0 ? filtered[index - 1] : null;
-      const nextBoulder = index < filtered.length - 1 ? filtered[index + 1] : null;
+      // Only link adjacent if in the same area
+      const prevBoulder =
+        index > 0 && filtered[index - 1].area_id === boulder.area_id
+          ? filtered[index - 1]
+          : null;
+      const nextBoulder =
+        index < filtered.length - 1 && filtered[index + 1].area_id === boulder.area_id
+          ? filtered[index + 1]
+          : null;
 
       return {
         ...boulder,
@@ -231,7 +261,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         adjacent_next: nextBoulder ? { hold_colour: nextBoulder.hold_colour, grade: nextBoulder.grade } : null
       };
     });
-  }, [boulders, currentArea, showArchived]);
+  }, [boulders, currentGym, currentArea, areas, showArchived]);
 
   // Log or update an attempt (Flash, Send, Attempt)
   const logAttempt = async ({ boulderId, status, attemptCount }: LogAttemptParams) => {

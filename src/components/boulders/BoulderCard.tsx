@@ -10,6 +10,7 @@ interface BoulderCardProps {
   climbers: Profile[];
   currentUserId?: string;
   commentCount: number;
+  areaName?: string;
   onQuickLog: (boulder: Boulder) => void;
   onOpenDetails: (boulder: Boulder) => void;
 }
@@ -20,6 +21,7 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
   climbers,
   currentUserId,
   commentCount,
+  areaName,
   onQuickLog,
   onOpenDetails
 }) => {
@@ -58,11 +60,16 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
     >
       {/* Top row: Order #, Hold Color & Grade, Current User Status */}
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2.5">
-          <span className="font-mono text-xs font-bold text-slate-300 bg-slate-800 px-2 py-0.5 rounded-md border border-slate-700/60">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-mono text-xs font-bold text-slate-300 bg-slate-800 px-2 py-0.5 rounded-md border border-slate-700/60 shrink-0">
             #{Math.round(boulder.position_order)}
           </span>
           <HoldBadge color={boulder.hold_colour} grade={boulder.grade} size="sm" />
+          {areaName && (
+            <span className="text-[11px] font-medium text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-700/50 truncate max-w-[140px]">
+              {areaName}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-1.5">

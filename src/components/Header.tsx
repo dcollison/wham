@@ -8,7 +8,7 @@ interface HeaderProps {
   onSelectGym: (gym: Gym) => void;
   currentArea: GymArea | null;
   areas: GymArea[];
-  onSelectArea: (area: GymArea) => void;
+  onSelectArea: (area: GymArea | null) => void;
   currentUser: Profile | null;
   climbers: Profile[];
   onOpenProfileSwitcher: () => void;
@@ -95,23 +95,36 @@ export const Header: React.FC<HeaderProps> = ({
               <img
                 src={currentUser.avatar_url}
                 alt={currentUser.display_name}
-                className="w-5 h-5 rounded-full bg-amber-400"
+                className="w-5 h-5 rounded-full bg-amber-400 shrink-0"
               />
             ) : (
-              <div className="w-5 h-5 rounded-full bg-amber-400 text-black text-[11px] font-black flex items-center justify-center">
+              <div className="w-5 h-5 rounded-full bg-amber-400 text-black text-[11px] font-black flex items-center justify-center shrink-0">
                 {currentUser?.display_name?.charAt(0) || 'C'}
               </div>
             )}
-            <span className="text-xs font-bold text-slate-200 hidden xs:inline">
+            <span className="text-xs font-bold text-slate-200 whitespace-nowrap">
               {currentUser?.display_name || 'Climber'}
             </span>
           </button>
         </div>
       </div>
 
-      {/* Area Tabs Slider */}
+      {/* Area Tabs Slider with "All Areas" option */}
       {currentGymAreas.length > 0 && (
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+          {/* Option to not filter by area, just gym */}
+          <button
+            type="button"
+            onClick={() => onSelectArea(null)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all active-press shrink-0 flex items-center gap-1.5 ${
+              currentArea === null
+                ? 'bg-amber-400 text-black shadow-md shadow-amber-400/20'
+                : 'bg-slate-900 border border-slate-850 text-slate-300 hover:text-white hover:bg-slate-850'
+            }`}
+          >
+            <span>All Areas</span>
+          </button>
+
           {currentGymAreas.map((area) => {
             const isSelected = currentArea?.id === area.id;
             return (

@@ -116,7 +116,13 @@ export function App() {
         climbers={climbers}
         onOpenProfileSwitcher={() => setIsSettingsOpen(true)}
         onOpenAddBoulder={() => setIsAddModalOpen(true)}
-        onOpenAreaReset={() => setIsAreaResetOpen(true)}
+        onOpenAreaReset={() => {
+          if (!currentArea) {
+            alert('To archive an entire wall, please select a specific Area tab first.');
+            return;
+          }
+          setIsAreaResetOpen(true);
+        }}
         hideSent={hideSent}
         onToggleHideSent={() => setHideSent((prev) => !prev)}
         showArchived={showArchived}
@@ -133,10 +139,10 @@ export function App() {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-lg font-black tracking-tight text-white flex items-center gap-1.5">
-                  <span>{currentArea?.name || 'Climbing Area'}</span>
+                  <span>{currentArea?.name || `${currentGym?.name || 'Gym'} • All Areas`}</span>
                 </h1>
                 <p className="text-xs text-slate-400 font-mono">
-                  {visibleBoulders.length} {visibleBoulders.length === 1 ? 'boulder' : 'boulders'} • Clockwise flow
+                  {visibleBoulders.length} {visibleBoulders.length === 1 ? 'boulder' : 'boulders'} • {currentArea ? 'Clockwise flow' : 'All wall sectors'}
                 </p>
               </div>
 
@@ -154,6 +160,7 @@ export function App() {
                 {visibleBoulders.map((boulder) => {
                   const boulderAttempts = attempts.filter((a) => a.boulder_id === boulder.id);
                   const boulderComments = comments.filter((c) => c.boulder_id === boulder.id);
+                  const boulderArea = areas.find((a) => a.id === boulder.area_id);
 
                   return (
                     <BoulderCard
@@ -163,6 +170,7 @@ export function App() {
                       climbers={climbers}
                       currentUserId={currentUser?.id}
                       commentCount={boulderComments.length}
+                      areaName={!currentArea ? boulderArea?.name : undefined}
                       onQuickLog={(b) => setQuickLogBoulder(b)}
                       onOpenDetails={(b) => setDetailBoulder(b)}
                     />
@@ -278,8 +286,9 @@ export function App() {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         gymId={currentGym?.id || gyms[0]?.id || ''}
-        areaId={currentArea?.id || areas[0]?.id || ''}
-        areaName={currentArea?.name || 'Current Area'}
+        areaId={currentArea?.id || null}
+        areaName={currentArea?.name || `${currentGym?.name || 'Gym'} • All Areas`}
+        areas={areas}
         existingBoulders={boulders}
         onAdd={async (p) => {
           await addBoulder(p);

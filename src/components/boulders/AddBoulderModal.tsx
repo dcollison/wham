@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Boulder, Grade, GRADES, HOLD_COLORS } from '../../types';
+import React, { useState, useEffect, useRef } from 'react';
+import { Boulder, Grade, GRADES, HOLD_COLORS, GymArea } from '../../types';
 import { compressImage, CompressionResult } from '../../lib/imageCompressor';
 import { X, Camera, Upload, Plus, AlertCircle, ArrowDown } from 'lucide-react';
 
@@ -7,8 +7,9 @@ interface AddBoulderModalProps {
   isOpen: boolean;
   onClose: () => void;
   gymId: string;
-  areaId: string;
+  areaId: string | null;
   areaName: string;
+  areas?: GymArea[];
   existingBoulders: Boulder[];
   defaultInsertAfterId?: string | null;
   onAdd: (params: {
@@ -29,10 +30,13 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
   gymId,
   areaId,
   areaName,
+  areas = [],
   existingBoulders,
   defaultInsertAfterId,
   onAdd
 }) => {
+  const gymAreas = areas.filter(a => a.gym_id === gymId).sort((a, b) => a.sort_order - b.sort_order);
+  const [selectedAreaId, setSelectedAreaId] = useState<string>(areaId || gymAreas[0]?.id || '');
   const [holdColour, setHoldColour] = useState<string>('Yellow');
   const [grade, setGrade] = useState<Grade>('V2');
   const [notes, setNotes] = useState<string>('');
@@ -42,11 +46,22 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
   const [submitting, setSubmitting] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (areaId) {
+      setSelectedAreaId(areaId);
+    } else if (gymAreas.length > 0) {
+      setSelectedAreaId(gymAreas[0].id);
+    }
+  }, [areaId, gymAreas.length]);
+
   if (!isOpen) return null;
+
+  const currentSelectedArea = gymAreas.find(a => a.id === selectedAreaId);
+  const displayAreaName = currentSelectedArea?.name || areaName;
 
   // Active boulders in this area sorted clockwise
   const areaBoulders = existingBoulders
-    .filter(b => b.area_id === areaId && !b.is_archived)
+    .filter(b => b.area_id === selectedAreaId && !b.is_archived)
     .sort((a, b) => a.position_order - b.position_order);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,7 +86,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
     try {
       await onAdd({
         gymId,
-        areaId,
+        areaId: selectedAreaId,
         holdColour,
         grade,
         notes: notes.trim() || undefined,
@@ -99,7 +114,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
           <div>
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
               <Plus className="w-5 h-5 text-amber-400" />
-              Add Boulder to {areaName}
+              Add Boulder to {displayAreaName}
             </h2>
             <p className="text-xs text-slate-400">Positioned sequentially in clockwise order</p>
           </div>
@@ -113,6 +128,28 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          {/* Target Sector Selector (Shown when browsing All Areas) */}
+          {!areaId && gymAreas.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                Wall Sector / Area
+              </label>
+              <select
+                value={selectedAreaId}
+                onChange={(e) => {
+                  setSelectedAreaId(e.target.value);
+                  setInsertAfterId('');
+                }}
+                className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl p-2.5 outline-none focus:border-amber-400"
+              >
+                {gymAreas.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           {/* Hold Colour Selection */}
           <div className="flex flex-col gap-2">
             <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">

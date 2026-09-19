@@ -23,20 +23,20 @@ export const ClimberStatusPills: React.FC<ClimberStatusPillsProps> = ({
 
         let badgeBg = 'bg-slate-800/80 border-slate-700/60 text-slate-400';
         let icon = <Minus className="w-2.5 h-2.5 opacity-40" />;
-        let label = climber.display_name.slice(0, 3);
+        let label = climber.display_name;
         let detail = '';
 
         if (attempt?.status === 'flashed') {
           badgeBg = 'bg-amber-500/20 border-amber-500/60 text-amber-300 font-bold';
-          icon = <Zap className="w-2.5 h-2.5 text-amber-400 fill-amber-400" />;
+          icon = <Zap className="w-2.5 h-2.5 text-amber-400 fill-amber-400 shrink-0" />;
           detail = 'F';
         } else if (attempt?.status === 'sent') {
           badgeBg = 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300 font-semibold';
-          icon = <Check className="w-2.5 h-2.5 text-emerald-400 stroke-[3]" />;
+          icon = <Check className="w-2.5 h-2.5 text-emerald-400 stroke-[3] shrink-0" />;
           detail = `S${attempt.attempt_count}`;
         } else if (attempt?.status === 'attempted') {
           badgeBg = 'bg-blue-500/20 border-blue-500/50 text-blue-300 font-medium';
-          icon = <Clock className="w-2.5 h-2.5 text-blue-400" />;
+          icon = <Clock className="w-2.5 h-2.5 text-blue-400 shrink-0" />;
           detail = `P${attempt.attempt_count}`;
         }
 
@@ -52,11 +52,11 @@ export const ClimberStatusPills: React.FC<ClimberStatusPillsProps> = ({
                 ? `Projecting (${attempt.attempt_count} tries)`
                 : 'Untried'
             }`}
-            className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 border text-[11px] leading-tight transition-all ${badgeBg} ${
+            className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 border text-[11px] leading-tight whitespace-nowrap transition-all ${badgeBg} ${
               isCurrent ? 'ring-1 ring-amber-400/50' : ''
             }`}
           >
-            <span className="font-medium opacity-90">{label}</span>
+            <span className="font-semibold tracking-tight">{label}</span>
             {icon}
             {detail && <span className="font-mono text-[10px] font-bold">{detail}</span>}
           </div>
