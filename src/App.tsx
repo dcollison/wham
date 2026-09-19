@@ -21,9 +21,8 @@ export function App() {
     isDemoMode,
     switchClimber,
     updateDisplayName,
-    signInWithOtp,
-    signInWithOAuth,
-    signOut
+    addClimber,
+    removeClimber
   } = useAuth();
 
   const {
@@ -249,10 +248,8 @@ export function App() {
               climbers={climbers}
               onSwitchClimber={switchClimber}
               onUpdateDisplayName={updateDisplayName}
-              onSignInWithOtp={signInWithOtp}
-              onSignInWithOAuth={signInWithOAuth}
-              onSignOut={signOut}
-              isDemoMode={isDemoMode}
+              onAddClimber={addClimber}
+              onRemoveClimber={removeClimber}
             />
           </div>
         )}
@@ -320,10 +317,8 @@ export function App() {
         climbers={climbers}
         onSwitchClimber={switchClimber}
         onUpdateDisplayName={updateDisplayName}
-        onSignInWithOtp={signInWithOtp}
-        onSignInWithOAuth={signInWithOAuth}
-        onSignOut={signOut}
-        isDemoMode={isDemoMode}
+        onAddClimber={addClimber}
+        onRemoveClimber={removeClimber}
       />
 
       {/* First-time Welcome Climber Selection Modal */}
@@ -365,6 +360,17 @@ export function App() {
                 </button>
               ))}
             </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setHasChosenClimber(true);
+                setIsSettingsOpen(true);
+              }}
+              className="text-xs text-amber-400 hover:text-amber-300 font-bold hover:underline pt-1"
+            >
+              + Add a new climber
+            </button>
           </div>
         </div>
       )}

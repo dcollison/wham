@@ -14,6 +14,8 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   switchClimber: (profileId: string) => void;
   updateDisplayName: (displayName: string) => Promise<void>;
+  addClimber: (displayName: string, avatarUrl?: string) => Promise<Profile>;
+  removeClimber: (profileId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -153,6 +155,77 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const addClimber = async (displayName: string, avatarUrl?: string): Promise<Profile> => {
+    const trimmed = displayName.trim();
+    if (!trimmed) {
+      throw new Error('Name cannot be empty');
+    }
+
+    const newId = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+          const r = (Math.random() * 16) | 0;
+          const v = c === 'x' ? r : (r & 0x3) | 0x8;
+          return v.toString(16);
+        });
+
+    const colors = ['ffb703', 'fb8500', '219ebc', '023047', '8338ec', '3a86ff', 'ff006e', '06d6a0'];
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+    const generatedAvatar = avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(trimmed)}&backgroundColor=${randomColor}`;
+
+    const newProfile: Profile = {
+      id: newId,
+      display_name: trimmed,
+      avatar_url: generatedAvatar,
+      created_at: new Date().toISOString()
+    };
+
+    const updatedClimbers = [...climbers, newProfile];
+    setClimbers(updatedClimbers);
+    setCurrentUser(newProfile);
+    localStorage.setItem('wham_profiles', JSON.stringify(updatedClimbers));
+    localStorage.setItem('wham_active_profile_id', newProfile.id);
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('profiles').insert([{
+          id: newProfile.id,
+          display_name: newProfile.display_name,
+          avatar_url: newProfile.avatar_url
+        }]);
+      } catch (err) {
+        console.warn('Failed to insert new profile to Supabase:', err);
+      }
+    }
+
+    return newProfile;
+  };
+
+  const removeClimber = async (profileId: string): Promise<void> => {
+    if (climbers.length <= 1) {
+      alert('Cannot remove the only climber in the group.');
+      return;
+    }
+
+    const updatedClimbers = climbers.filter(c => c.id !== profileId);
+    setClimbers(updatedClimbers);
+    localStorage.setItem('wham_profiles', JSON.stringify(updatedClimbers));
+
+    if (currentUser?.id === profileId) {
+      const nextUser = updatedClimbers[0];
+      setCurrentUser(nextUser);
+      localStorage.setItem('wham_active_profile_id', nextUser.id);
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('profiles').delete().eq('id', profileId);
+      } catch (err) {
+        console.warn('Failed to delete profile from Supabase:', err);
+      }
+    }
+  };
+
   const signInWithOtp = async (email: string) => {
     if (!supabase || !isSupabaseConfigured) {
       // Demo simulated login
@@ -214,7 +287,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signInWithOAuth,
         signOut,
         switchClimber,
-        updateDisplayName
+        updateDisplayName,
+        addClimber,
+        removeClimber
       }}
     >
       {children}

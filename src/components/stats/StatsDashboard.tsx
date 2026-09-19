@@ -345,7 +345,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
         <div className="flex items-center justify-between p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-semibold">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>⚡ Combined Wham Crew Stats (Alex, Dale, Taiye, Euan)</span>
+            <span>⚡ Combined Wham Crew Stats ({climbers.map(c => c.display_name).join(', ')})</span>
           </div>
           <span className="text-[10px] font-mono font-bold bg-amber-500/20 px-2 py-0.5 rounded-full">
             All Climbers
