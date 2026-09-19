@@ -69,7 +69,17 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [areas, setAreas] = useState<GymArea[]>(() => {
     const cached = localStorage.getItem('wham_areas');
-    return cached ? JSON.parse(cached) : INITIAL_AREAS;
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length >= INITIAL_AREAS.length) {
+          return parsed;
+        }
+      } catch {
+        // Fallback
+      }
+    }
+    return INITIAL_AREAS;
   });
 
   const [currentArea, setCurrentAreaState] = useState<GymArea | null>(null);

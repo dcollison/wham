@@ -28,7 +28,12 @@ AREAS = [
     {"id": "c0000000-0000-0000-0000-000000000004", "gym_id": BOND_ID, "name": "4: Cave", "sort_order": 4, "raw": "Bond 4: Cave"},
     {"id": "c0000000-0000-0000-0000-000000000005", "gym_id": BOND_ID, "name": "5: Comp Wall", "sort_order": 5, "raw": "Bond 5: Comp Wall"},
     {"id": "c0000000-0000-0000-0000-000000000006", "gym_id": BOND_ID, "name": "6: Top-Out", "sort_order": 6, "raw": "Bond 6: Top-Out"},
-    {"id": "c0000000-0000-0000-0000-000000000007", "gym_id": HUB_ID, "name": "1: Slab Wall", "sort_order": 1, "raw": "Hub 1: Slab Wall"}
+    {"id": "c0000000-0000-0000-0000-000000000007", "gym_id": HUB_ID, "name": "Slab Wall", "sort_order": 1, "raw": "Hub: Slab Wall"},
+    {"id": "c0000000-0000-0000-0000-000000000008", "gym_id": HUB_ID, "name": "Legacy Wall", "sort_order": 2, "raw": "Hub: Legacy Wall"},
+    {"id": "c0000000-0000-0000-0000-000000000009", "gym_id": HUB_ID, "name": "Classic Comp Wall", "sort_order": 3, "raw": "Hub: Classic Comp Wall"},
+    {"id": "c0000000-0000-0000-0000-000000000010", "gym_id": HUB_ID, "name": "Right-Hand Wall", "sort_order": 4, "raw": "Hub: Right-Hand Wall"},
+    {"id": "c0000000-0000-0000-0000-000000000011", "gym_id": HUB_ID, "name": "Island", "sort_order": 5, "raw": "Hub: Island"},
+    {"id": "c0000000-0000-0000-0000-000000000012", "gym_id": HUB_ID, "name": "New Comp Wall", "sort_order": 6, "raw": "Hub: New Comp Wall"}
 ]
 
 RAW_AREA_MAP = {a["raw"]: a["id"] for a in AREAS}
@@ -187,23 +192,15 @@ INSERT INTO public.gyms (id, name)
 VALUES
     ('b0000000-0000-0000-0000-000000000001', 'Bond'),
     ('b0000000-0000-0000-0000-000000000002', 'Hub')
-ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
+ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;\n\n""")
 
-INSERT INTO public.gym_areas (id, gym_id, name, sort_order)
-VALUES
-    ('c0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', '1: Slab Wall', 1),
-    ('c0000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000001', '2: Gecko Prow', 2),
-    ('c0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', '3: Back Corner', 3),
-    ('c0000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000001', '4: Cave', 4),
-    ('c0000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000001', '5: Comp Wall', 5),
-    ('c0000000-0000-0000-0000-000000000006', 'b0000000-0000-0000-0000-000000000001', '6: Top-Out', 6),
-    ('c0000000-0000-0000-0000-000000000007', 'b0000000-0000-0000-0000-000000000002', '1: Slab Wall', 1)
-ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, sort_order = EXCLUDED.sort_order;
-
--- Insert Boulders
-INSERT INTO public.boulders (id, gym_id, area_id, hold_colour, grade, position_order, notes, is_archived, date_added, created_by)
-VALUES
-""")
+        f.write("INSERT INTO public.gym_areas (id, gym_id, name, sort_order)\nVALUES\n")
+        area_values = [
+            f"    ('{a['id']}', '{a['gym_id']}', '{a['name']}', {a['sort_order']})"
+            for a in AREAS
+        ]
+        f.write(",\n".join(area_values))
+        f.write("""\nON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, sort_order = EXCLUDED.sort_order;\n\n-- Insert Boulders\nINSERT INTO public.boulders (id, gym_id, area_id, hold_colour, grade, position_order, notes, is_archived, date_added, created_by)\nVALUES\n""")
         boulder_values = []
         for b in boulders:
             notes_str = f"'{b['notes']}'" if b['notes'] else "NULL"
