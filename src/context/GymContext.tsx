@@ -72,7 +72,8 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (cached) {
       try {
         const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length >= INITIAL_AREAS.length) {
+        const hasNumberedBondAreas = Array.isArray(parsed) && parsed.some((a: GymArea) => /^\d+:/.test(a.name));
+        if (Array.isArray(parsed) && parsed.length >= INITIAL_AREAS.length && !hasNumberedBondAreas) {
           return parsed;
         }
       } catch {
@@ -96,7 +97,17 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [comments, setComments] = useState<Comment[]>(() => {
     const cached = localStorage.getItem('wham_comments');
-    return cached ? JSON.parse(cached) : INITIAL_COMMENTS;
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((c: Comment) => !c.id.startsWith('e0000000-0000-0000-0000-'));
+        }
+      } catch {
+        // Fallback
+      }
+    }
+    return INITIAL_COMMENTS;
   });
 
   const [loading, setLoading] = useState<boolean>(true);

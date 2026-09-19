@@ -22,12 +22,12 @@ BOND_ID = "b0000000-0000-0000-0000-000000000001"
 HUB_ID = "b0000000-0000-0000-0000-000000000002"
 
 AREAS = [
-    {"id": "c0000000-0000-0000-0000-000000000001", "gym_id": BOND_ID, "name": "1: Slab Wall", "sort_order": 1, "raw": "Bond 1: Slab Wall"},
-    {"id": "c0000000-0000-0000-0000-000000000002", "gym_id": BOND_ID, "name": "2: Gecko Prow", "sort_order": 2, "raw": "Bond 2: Gecko Prow"},
-    {"id": "c0000000-0000-0000-0000-000000000003", "gym_id": BOND_ID, "name": "3: Back Corner", "sort_order": 3, "raw": "Bond 3: Back Corner"},
-    {"id": "c0000000-0000-0000-0000-000000000004", "gym_id": BOND_ID, "name": "4: Cave", "sort_order": 4, "raw": "Bond 4: Cave"},
-    {"id": "c0000000-0000-0000-0000-000000000005", "gym_id": BOND_ID, "name": "5: Comp Wall", "sort_order": 5, "raw": "Bond 5: Comp Wall"},
-    {"id": "c0000000-0000-0000-0000-000000000006", "gym_id": BOND_ID, "name": "6: Top-Out", "sort_order": 6, "raw": "Bond 6: Top-Out"},
+    {"id": "c0000000-0000-0000-0000-000000000001", "gym_id": BOND_ID, "name": "Slab Wall", "sort_order": 1, "raw": "Bond 1: Slab Wall"},
+    {"id": "c0000000-0000-0000-0000-000000000002", "gym_id": BOND_ID, "name": "Gecko Prow", "sort_order": 2, "raw": "Bond 2: Gecko Prow"},
+    {"id": "c0000000-0000-0000-0000-000000000003", "gym_id": BOND_ID, "name": "Back Corner", "sort_order": 3, "raw": "Bond 3: Back Corner"},
+    {"id": "c0000000-0000-0000-0000-000000000004", "gym_id": BOND_ID, "name": "Cave", "sort_order": 4, "raw": "Bond 4: Cave"},
+    {"id": "c0000000-0000-0000-0000-000000000005", "gym_id": BOND_ID, "name": "Comp Wall", "sort_order": 5, "raw": "Bond 5: Comp Wall"},
+    {"id": "c0000000-0000-0000-0000-000000000006", "gym_id": BOND_ID, "name": "Top-Out", "sort_order": 6, "raw": "Bond 6: Top-Out"},
     {"id": "c0000000-0000-0000-0000-000000000007", "gym_id": HUB_ID, "name": "Slab Wall", "sort_order": 1, "raw": "Hub: Slab Wall"},
     {"id": "c0000000-0000-0000-0000-000000000008", "gym_id": HUB_ID, "name": "Legacy Wall", "sort_order": 2, "raw": "Hub: Legacy Wall"},
     {"id": "c0000000-0000-0000-0000-000000000009", "gym_id": HUB_ID, "name": "Classic Comp Wall", "sort_order": 3, "raw": "Hub: Classic Comp Wall"},
@@ -134,29 +134,7 @@ def main():
         f.write(f"export const INITIAL_AREAS: GymArea[] = {json.dumps([{'id': a['id'], 'gym_id': a['gym_id'], 'name': a['name'], 'sort_order': a['sort_order']} for a in AREAS], indent=2)};\n\n")
         f.write(f"export const INITIAL_BOULDERS: Boulder[] = {json.dumps(boulders, indent=2)};\n\n")
         f.write(f"export const INITIAL_ATTEMPTS: Attempt[] = {json.dumps(attempts, indent=2)};\n\n")
-        f.write("""export const INITIAL_COMMENTS: Comment[] = [
-  {
-    id: 'e0000000-0000-0000-0000-000000000001',
-    boulder_id: 'd0000000-0000-0000-0000-000000000004',
-    user_id: 'a0000000-0000-0000-0000-000000000001',
-    content: 'Watch the right smear on the slab—foot slipped twice until I flagged far left.',
-    created_at: '2026-09-10T19:20:00Z'
-  },
-  {
-    id: 'e0000000-0000-0000-0000-000000000002',
-    boulder_id: 'd0000000-0000-0000-0000-000000000004',
-    user_id: 'a0000000-0000-0000-0000-000000000003',
-    content: 'Left flag made all the difference, flashed after seeing that!',
-    created_at: '2026-09-10T19:25:00Z'
-  },
-  {
-    id: 'e0000000-0000-0000-0000-000000000003',
-    boulder_id: 'd0000000-0000-0000-0000-000000000052',
-    user_id: 'a0000000-0000-0000-0000-000000000002',
-    content: 'Heel hook on the arête takes 80% of the weight off your wrists.',
-    created_at: '2026-09-15T19:05:00Z'
-  }
-];\n""")
+        f.write("export const INITIAL_COMMENTS: Comment[] = [];\n\n")
 
     # 2. Generate seed.sql
     with open('seed.sql', 'w', encoding='utf-8') as f:
@@ -225,13 +203,14 @@ ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;\n\n""")
     attempt_count = EXCLUDED.attempt_count,
     logged_at = EXCLUDED.logged_at;\n\n""")
 
-        # Comments
-        f.write("""INSERT INTO public.comments (id, boulder_id, user_id, content, created_at)
-VALUES
-    ('e0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000004', 'a0000000-0000-0000-0000-000000000001', 'Watch the right smear on the slab—foot slipped twice until I flagged far left.', '2026-09-10 19:20:00+00'),
-    ('e0000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000004', 'a0000000-0000-0000-0000-000000000003', 'Left flag made all the difference, flashed after seeing that!', '2026-09-10 19:25:00+00'),
-    ('e0000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000052', 'a0000000-0000-0000-0000-000000000002', 'Heel hook on the arête takes 80% of the weight off your wrists.', '2026-09-15 19:05:00+00')
-ON CONFLICT (id) DO NOTHING;\n""")
+        # Remove any old placeholder comments
+        f.write("""-- Clean up any placeholder comments
+DELETE FROM public.comments
+WHERE id IN (
+    'e0000000-0000-0000-0000-000000000001',
+    'e0000000-0000-0000-0000-000000000002',
+    'e0000000-0000-0000-0000-000000000003'
+);\n""")
 
     print("Successfully generated seed.sql and src/lib/mockData.ts with the complete Google Sheet dataset!")
 

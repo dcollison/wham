@@ -32,37 +32,37 @@ export const INITIAL_AREAS: GymArea[] = [
   {
     "id": "c0000000-0000-0000-0000-000000000001",
     "gym_id": "b0000000-0000-0000-0000-000000000001",
-    "name": "1: Slab Wall",
+    "name": "Slab Wall",
     "sort_order": 1
   },
   {
     "id": "c0000000-0000-0000-0000-000000000002",
     "gym_id": "b0000000-0000-0000-0000-000000000001",
-    "name": "2: Gecko Prow",
+    "name": "Gecko Prow",
     "sort_order": 2
   },
   {
     "id": "c0000000-0000-0000-0000-000000000003",
     "gym_id": "b0000000-0000-0000-0000-000000000001",
-    "name": "3: Back Corner",
+    "name": "Back Corner",
     "sort_order": 3
   },
   {
     "id": "c0000000-0000-0000-0000-000000000004",
     "gym_id": "b0000000-0000-0000-0000-000000000001",
-    "name": "4: Cave",
+    "name": "Cave",
     "sort_order": 4
   },
   {
     "id": "c0000000-0000-0000-0000-000000000005",
     "gym_id": "b0000000-0000-0000-0000-000000000001",
-    "name": "5: Comp Wall",
+    "name": "Comp Wall",
     "sort_order": 5
   },
   {
     "id": "c0000000-0000-0000-0000-000000000006",
     "gym_id": "b0000000-0000-0000-0000-000000000001",
-    "name": "6: Top-Out",
+    "name": "Top-Out",
     "sort_order": 6
   },
   {
@@ -3819,26 +3819,5 @@ export const INITIAL_ATTEMPTS: Attempt[] = [
   }
 ];
 
-export const INITIAL_COMMENTS: Comment[] = [
-  {
-    id: 'e0000000-0000-0000-0000-000000000001',
-    boulder_id: 'd0000000-0000-0000-0000-000000000004',
-    user_id: 'a0000000-0000-0000-0000-000000000001',
-    content: 'Watch the right smear on the slab—foot slipped twice until I flagged far left.',
-    created_at: '2026-09-10T19:20:00Z'
-  },
-  {
-    id: 'e0000000-0000-0000-0000-000000000002',
-    boulder_id: 'd0000000-0000-0000-0000-000000000004',
-    user_id: 'a0000000-0000-0000-0000-000000000003',
-    content: 'Left flag made all the difference, flashed after seeing that!',
-    created_at: '2026-09-10T19:25:00Z'
-  },
-  {
-    id: 'e0000000-0000-0000-0000-000000000003',
-    boulder_id: 'd0000000-0000-0000-0000-000000000052',
-    user_id: 'a0000000-0000-0000-0000-000000000002',
-    content: 'Heel hook on the arête takes 80% of the weight off your wrists.',
-    created_at: '2026-09-15T19:05:00Z'
-  }
-];
+export const INITIAL_COMMENTS: Comment[] = [];
+
