@@ -2,13 +2,13 @@ import React from 'react';
 import { Compass, MessageSquare, BarChart2, Users } from 'lucide-react';
 
 interface NavigationProps {
-  currentTab: 'ticklist' | 'beta' | 'stats' | 'settings';
-  onSelectTab: (tab: 'ticklist' | 'beta' | 'stats' | 'settings') => void;
+  currentTab: 'boulders' | 'beta' | 'stats' | 'settings';
+  onSelectTab: (tab: 'boulders' | 'beta' | 'stats' | 'settings') => void;
   unreadCommentsCount?: number;
 }
 
 interface TabItem {
-  id: 'ticklist' | 'beta' | 'stats' | 'settings';
+  id: 'boulders' | 'beta' | 'stats' | 'settings';
   label: string;
   icon: typeof Compass;
   hash: string;
@@ -21,7 +21,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   unreadCommentsCount = 0
 }) => {
   const tabs: TabItem[] = [
-    { id: 'ticklist', label: 'Ticklist', icon: Compass, hash: '#/gyms' },
+    { id: 'boulders', label: 'Boulders', icon: Compass, hash: '#/boulders' },
     { id: 'beta', label: 'Beta Feed', icon: MessageSquare, hash: '#/beta', badge: unreadCommentsCount },
     { id: 'stats', label: 'Analytics', icon: BarChart2, hash: '#/stats' },
     { id: 'settings', label: 'The Circle', icon: Users, hash: '#/settings' },

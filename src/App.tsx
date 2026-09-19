@@ -50,7 +50,7 @@ export function App() {
   } = useGym();
 
   // Hash-based routing for 100% static hosting on GitHub Pages
-  const [currentTab, setCurrentTab] = useState<'ticklist' | 'beta' | 'stats' | 'settings'>('ticklist');
+  const [currentTab, setCurrentTab] = useState<'boulders' | 'beta' | 'stats' | 'settings'>('boulders');
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -62,7 +62,7 @@ export function App() {
       } else if (hash.includes('settings')) {
         setCurrentTab('settings');
       } else {
-        setCurrentTab('ticklist');
+        setCurrentTab('boulders');
       }
     };
 
@@ -108,6 +108,7 @@ export function App() {
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       {/* Persistent Header */}
       <Header
+        currentTab={currentTab}
         currentGym={currentGym}
         gyms={gyms}
         onSelectGym={setCurrentGym}
@@ -134,8 +135,8 @@ export function App() {
 
       {/* Main View Area */}
       <main className="flex-1 max-w-xl w-full mx-auto p-4 sm:p-5 flex flex-col">
-        {/* TAB 1: Clockwise Ticklist View */}
-        {currentTab === 'ticklist' && (
+        {/* TAB 1: Clockwise Boulders View */}
+        {currentTab === 'boulders' && (
           <div className="flex flex-col gap-4 pb-20 animate-in fade-in duration-200">
             {/* Area Header & Info Banner */}
             <div className="flex items-center justify-between">
@@ -241,8 +242,8 @@ export function App() {
             <SettingsModal
               isOpen={true}
               onClose={() => {
-                window.location.hash = '#/gyms';
-                setCurrentTab('ticklist');
+                window.location.hash = '#/boulders';
+                setCurrentTab('boulders');
               }}
               currentUser={currentUser}
               climbers={climbers}
