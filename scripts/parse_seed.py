@@ -145,6 +145,18 @@ def main():
 -- Source: Google Sheet Historical Data (134 climbs)
 -- =========================================================
 
+-- Ensure executing as postgres role with superuser privileges
+RESET ROLE;
+SET ROLE postgres;
+
+-- Temporarily disable RLS during seeding to prevent policy violations
+ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.gyms DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.gym_areas DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.boulders DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.attempts DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.comments DISABLE ROW LEVEL SECURITY;
+
 DO $$
 BEGIN
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'auth' AND table_name = 'users') THEN
@@ -210,7 +222,16 @@ WHERE id IN (
     'e0000000-0000-0000-0000-000000000001',
     'e0000000-0000-0000-0000-000000000002',
     'e0000000-0000-0000-0000-000000000003'
-);\n""")
+);
+
+-- Re-enable Row-Level Security across all tables
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.gyms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.gym_areas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.boulders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.attempts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
+""")
 
     print("Successfully generated seed.sql and src/lib/mockData.ts with the complete Google Sheet dataset!")
 
