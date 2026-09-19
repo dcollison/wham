@@ -56,22 +56,25 @@ def main():
     area_order_counter = {}
 
     with open('initial_seed.csv', mode='r', encoding='utf-8') as f:
-        reader = csv.DictReader(f, delimiter='\t')
+        sample = f.read(2048)
+        f.seek(0)
+        delimiter = '\t' if '\t' in sample else ','
+        reader = csv.DictReader(f, delimiter=delimiter)
         row_idx = 1
         for row in reader:
             raw_area = row['Area'].strip()
             area_id = RAW_AREA_MAP.get(raw_area)
             if not area_id:
-                continue
+                raise ValueError(f"Unknown area: {raw_area}")
 
             order = area_order_counter.get(area_id, 0) + 1
             area_order_counter[area_id] = order
 
             colour = row['Route Colour'].strip()
             grade = row['Grade'].strip()
-            # Normalize date
+            
+            # Normalize date DD/MM/YYYY -> YYYY-MM-DD
             raw_date = row.get('Date Added', '').strip()
-            # If date format is 10/09/2026 -> 2026-09-10
             if '/' in raw_date:
                 parts = raw_date.split('/')
                 if len(parts) == 3:
@@ -93,7 +96,7 @@ def main():
                 "hold_colour": colour,
                 "grade": grade,
                 "position_order": float(order),
-                "notes": f"Historical line #{order} in {raw_area}" if is_archived else None,
+                "notes": None,
                 "image_url": None,
                 "date_added": date_added,
                 "is_archived": is_archived,
@@ -114,32 +117,6 @@ def main():
                         "attempt_count": parsed["attempt_count"],
                         "logged_at": f"{date_added}T19:00:00Z"
                     })
-
-    # Add sample Hub boulders so Hub has active content
-    hub_area_id = "c0000000-0000-0000-0000-000000000007"
-    hub_climbs = [
-        {"hold_colour": "Green", "grade": "VB", "order": 1.0, "notes": "Warm-up ladder"},
-        {"hold_colour": "Blue", "grade": "V1", "order": 2.0, "notes": "Technical balance corner"},
-        {"hold_colour": "Yellow", "grade": "V2", "order": 3.0, "notes": "Smeary crimp traverse"},
-        {"hold_colour": "Red", "grade": "V3", "order": 4.0, "notes": "High rock-over on volume"},
-        {"hold_colour": "Black", "grade": "V5", "order": 5.0, "notes": "Tiny micro-crimps on blank slab"},
-    ]
-    for hc in hub_climbs:
-        boulder_id = f"d0000000-0000-0000-0000-{row_idx:012d}"
-        row_idx += 1
-        boulders.append({
-            "id": boulder_id,
-            "gym_id": HUB_ID,
-            "area_id": hub_area_id,
-            "hold_colour": hc["hold_colour"],
-            "grade": hc["grade"],
-            "position_order": hc["order"],
-            "notes": hc["notes"],
-            "image_url": None,
-            "date_added": "2026-09-10",
-            "is_archived": False,
-            "created_by": PROFILES[0]["id"]
-        })
 
     print(f"Total Boulders parsed: {len(boulders)} (Archived: {sum(1 for b in boulders if b['is_archived'])})")
     print(f"Total Attempts parsed: {len(attempts)}")
