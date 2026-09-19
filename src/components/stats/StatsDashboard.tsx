@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Boulder, Attempt, Profile, Gym, GymArea, Grade, GRADES } from '../../types';
 import { Zap, Check, Clock, Trophy, Target, Award, Flame, BarChart3, Users, User, ArrowUpRight } from 'lucide-react';
 
@@ -9,6 +9,7 @@ interface StatsDashboardProps {
   gyms: Gym[];
   areas: GymArea[];
   currentUserId?: string;
+  onSwitchClimber?: (id: string) => void;
 }
 
 export const StatsDashboard: React.FC<StatsDashboardProps> = ({
@@ -17,11 +18,19 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
   climbers,
   gyms,
   areas,
-  currentUserId
+  currentUserId,
+  onSwitchClimber
 }) => {
   const [viewMode, setViewMode] = useState<'my' | 'group'>('my');
   const [selectedGymId, setSelectedGymId] = useState<string>('all');
   const [selectedClimberId, setSelectedClimberId] = useState<string>(currentUserId || climbers[0]?.id || '');
+
+  // Keep selectedClimberId in sync if currentUserId changes
+  useEffect(() => {
+    if (currentUserId) {
+      setSelectedClimberId(currentUserId);
+    }
+  }, [currentUserId]);
 
   // Filter boulders by selected gym
   const filteredBoulders = useMemo(() => {
@@ -42,20 +51,16 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
     const sentAttempts = userAttempts.filter(a => a.status === 'sent' || a.status === 'flashed');
     const flashedAttempts = userAttempts.filter(a => a.status === 'flashed');
 
-    // Total sends & flashes
     const totalSends = sentAttempts.length;
     const totalFlashes = flashedAttempts.length;
     const totalAttempted = userAttempts.length;
 
-    // Flash rate & send rate
     const flashRate = totalAttempted > 0 ? Math.round((totalFlashes / totalAttempted) * 100) : 0;
     const sendRate = totalAttempted > 0 ? Math.round((totalSends / totalAttempted) * 100) : 0;
 
-    // Average attempts on sends
     const totalAttemptsOnSend = sentAttempts.reduce((sum, a) => sum + a.attempt_count, 0);
     const averageAttemptsOnSend = totalSends > 0 ? (totalAttemptsOnSend / totalSends).toFixed(1) : '0';
 
-    // Hardest send
     let hardestSend: Grade | null = null;
     let maxGradeIndex = -1;
 
@@ -70,7 +75,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
       }
     });
 
-    // Breakdown per grade
     const perGrade: Record<Grade, { sent: number; flashed: number; attempted: number; totalAttemptsSum: number }> =
       GRADES.reduce((acc, g) => {
         acc[g] = { sent: 0, flashed: 0, attempted: 0, totalAttemptsSum: 0 };
@@ -101,14 +105,86 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
       sendRate,
       averageAttemptsOnSend,
       hardestSend,
-      perGrade
+      perGrade,
+      uniqueBouldersTopped: totalSends
     };
   };
 
-  // Active target stats (either current user or selected climber in detail)
+  // Group metrics generator (aggregates all climbers together)
+  const computeGroupStats = () => {
+    const allAttempts = filteredAttempts;
+    const sentAttempts = allAttempts.filter(a => a.status === 'sent' || a.status === 'flashed');
+    const flashedAttempts = allAttempts.filter(a => a.status === 'flashed');
+
+    const totalSends = sentAttempts.length;
+    const totalFlashes = flashedAttempts.length;
+    const totalAttempted = allAttempts.length;
+
+    const flashRate = totalAttempted > 0 ? Math.round((totalFlashes / totalAttempted) * 100) : 0;
+    const sendRate = totalAttempted > 0 ? Math.round((totalSends / totalAttempted) * 100) : 0;
+
+    const totalAttemptsOnSend = sentAttempts.reduce((sum, a) => sum + a.attempt_count, 0);
+    const averageAttemptsOnSend = totalSends > 0 ? (totalAttemptsOnSend / totalSends).toFixed(1) : '0';
+
+    let hardestSend: Grade | null = null;
+    let maxGradeIndex = -1;
+
+    sentAttempts.forEach(a => {
+      const boulder = filteredBoulders.find(b => b.id === a.boulder_id);
+      if (boulder) {
+        const gradeIdx = GRADES.indexOf(boulder.grade);
+        if (gradeIdx > maxGradeIndex) {
+          maxGradeIndex = gradeIdx;
+          hardestSend = boulder.grade;
+        }
+      }
+    });
+
+    const perGrade: Record<Grade, { sent: number; flashed: number; attempted: number; totalAttemptsSum: number }> =
+      GRADES.reduce((acc, g) => {
+        acc[g] = { sent: 0, flashed: 0, attempted: 0, totalAttemptsSum: 0 };
+        return acc;
+      }, {} as any);
+
+    allAttempts.forEach(a => {
+      const boulder = filteredBoulders.find(b => b.id === a.boulder_id);
+      if (boulder && perGrade[boulder.grade]) {
+        perGrade[boulder.grade].attempted += 1;
+        if (a.status === 'flashed') {
+          perGrade[boulder.grade].flashed += 1;
+          perGrade[boulder.grade].sent += 1;
+          perGrade[boulder.grade].totalAttemptsSum += 1;
+        } else if (a.status === 'sent') {
+          perGrade[boulder.grade].sent += 1;
+          perGrade[boulder.grade].totalAttemptsSum += a.attempt_count;
+        }
+      }
+    });
+
+    const uniqueBouldersTopped = new Set(sentAttempts.map(a => a.boulder_id)).size;
+
+    return {
+      userId: 'group',
+      totalSends,
+      totalFlashes,
+      totalAttempted,
+      flashRate,
+      sendRate,
+      averageAttemptsOnSend,
+      hardestSend,
+      perGrade,
+      uniqueBouldersTopped
+    };
+  };
+
+  // Active target stats (either current user or aggregate group)
   const activeStats = useMemo(() => {
-    return computeClimberStats(viewMode === 'my' ? (currentUserId || climbers[0]?.id) : selectedClimberId);
-  }, [viewMode, currentUserId, selectedClimberId, filteredAttempts, filteredBoulders, climbers]);
+    if (viewMode === 'my') {
+      const targetId = selectedClimberId || currentUserId || climbers[0]?.id || '';
+      return computeClimberStats(targetId);
+    }
+    return computeGroupStats();
+  }, [viewMode, selectedClimberId, currentUserId, filteredAttempts, filteredBoulders, climbers]);
 
   // Group Leaderboard Computations
   const leaderboard = useMemo(() => {
@@ -128,12 +204,19 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
   // Gym Completion Progress Ring
   const activeGymBoulders = filteredBoulders.filter(b => !b.is_archived);
   const userSentActiveBoulders = activeGymBoulders.filter(b => {
-    const att = filteredAttempts.find(
-      a => a.boulder_id === b.id &&
-           a.user_id === (viewMode === 'my' ? currentUserId : selectedClimberId) &&
-           (a.status === 'sent' || a.status === 'flashed')
+    if (viewMode === 'my') {
+      const targetId = selectedClimberId || currentUserId || climbers[0]?.id;
+      const att = filteredAttempts.find(
+        a => a.boulder_id === b.id &&
+             a.user_id === targetId &&
+             (a.status === 'sent' || a.status === 'flashed')
+      );
+      return Boolean(att);
+    }
+    // Group mode: any climber in the group topped this boulder
+    return filteredAttempts.some(
+      a => a.boulder_id === b.id && (a.status === 'sent' || a.status === 'flashed')
     );
-    return Boolean(att);
   });
 
   const completionPct = activeGymBoulders.length > 0
@@ -146,12 +229,20 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
       ? areas
       : areas.filter(a => a.gym_id === selectedGymId);
 
+    const targetId = selectedClimberId || currentUserId || climbers[0]?.id;
+
     return relevantAreas.map(area => {
       const areaBoulders = activeGymBoulders.filter(b => b.area_id === area.id);
       const sent = areaBoulders.filter(b => {
+        if (viewMode === 'my') {
+          return filteredAttempts.some(
+            a => a.boulder_id === b.id &&
+                 a.user_id === targetId &&
+                 (a.status === 'sent' || a.status === 'flashed')
+          );
+        }
         return filteredAttempts.some(
           a => a.boulder_id === b.id &&
-               a.user_id === (viewMode === 'my' ? currentUserId : selectedClimberId) &&
                (a.status === 'sent' || a.status === 'flashed')
         );
       });
@@ -164,6 +255,8 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
       };
     }).filter(ab => ab.total > 0);
   }, [areas, selectedGymId, activeGymBoulders, filteredAttempts, viewMode, currentUserId, selectedClimberId]);
+
+  const activeClimberProfile = climbers.find(c => c.id === (selectedClimberId || currentUserId)) || climbers[0];
 
   return (
     <div className="flex flex-col gap-6 pb-20 animate-in fade-in duration-300">
@@ -213,23 +306,76 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
         </div>
       </div>
 
+      {/* Climber Switcher Pill Bar (In 'My Stats' mode) */}
+      {viewMode === 'my' && (
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 bg-slate-900/60 p-2.5 rounded-2xl border border-slate-800">
+          <span className="text-xs font-bold text-slate-400 shrink-0 ml-1">Viewing:</span>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {climbers.map(c => {
+              const isSelected = (selectedClimberId || currentUserId) === c.id;
+              const isYou = currentUserId === c.id;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedClimberId(c.id);
+                    if (onSwitchClimber) onSwitchClimber(c.id);
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all active-press ${
+                    isSelected
+                      ? 'bg-amber-400 text-black shadow-md shadow-amber-400/20'
+                      : 'bg-slate-800/80 border border-slate-700/80 text-slate-300 hover:text-white'
+                  }`}
+                >
+                  {c.avatar_url && (
+                    <img src={c.avatar_url} alt={c.display_name} className="w-4 h-4 rounded-full" />
+                  )}
+                  <span>{c.display_name}</span>
+                  {isYou && <span className="text-[10px] opacity-75 font-normal">(You)</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Team Header Banner (In 'Group Stats' mode) */}
+      {viewMode === 'group' && (
+        <div className="flex items-center justify-between p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-semibold">
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>⚡ Combined Wham Crew Stats (Alex, Dale, Taiye, Euan)</span>
+          </div>
+          <span className="text-[10px] font-mono font-bold bg-amber-500/20 px-2 py-0.5 rounded-full">
+            All Climbers
+          </span>
+        </div>
+      )}
+
       {/* KPI Cards Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {/* Hardest Send */}
         <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Hardest Send</span>
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            {viewMode === 'group' ? 'Crew Top Grade' : 'Hardest Send'}
+          </span>
           <div className="flex items-baseline gap-2 mt-2">
             <span className="font-mono text-3xl font-black text-amber-400">
               {activeStats.hardestSend || '—'}
             </span>
             <Flame className="w-5 h-5 text-amber-500" />
           </div>
-          <span className="text-[10px] text-slate-400 mt-1">Top grade topped</span>
+          <span className="text-[10px] text-slate-400 mt-1">
+            {viewMode === 'group' ? 'Hardest send by crew' : 'Top grade topped'}
+          </span>
         </div>
 
         {/* Total Sends */}
         <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Sends</span>
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            {viewMode === 'group' ? 'Total Crew Sends' : 'Total Sends'}
+          </span>
           <div className="flex items-baseline gap-2 mt-2">
             <span className="font-mono text-3xl font-black text-emerald-400">
               {activeStats.totalSends}
@@ -237,13 +383,17 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
             <Check className="w-5 h-5 text-emerald-400 stroke-[3]" />
           </div>
           <span className="text-[10px] text-slate-400 mt-1">
-            {activeStats.sendRate}% send efficiency
+            {viewMode === 'group'
+              ? `${activeStats.uniqueBouldersTopped} unique climbs topped`
+              : `${activeStats.sendRate}% send efficiency`}
           </span>
         </div>
 
         {/* Flashes */}
         <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Flashes</span>
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            {viewMode === 'group' ? 'Crew Flashes' : 'Total Flashes'}
+          </span>
           <div className="flex items-baseline gap-2 mt-2">
             <span className="font-mono text-3xl font-black text-amber-400">
               {activeStats.totalFlashes}
@@ -257,7 +407,9 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
 
         {/* Avg Attempts */}
         <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Avg Tries / Send</span>
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            {viewMode === 'group' ? 'Crew Avg Tries' : 'Avg Tries / Send'}
+          </span>
           <div className="flex items-baseline gap-2 mt-2">
             <span className="font-mono text-3xl font-black text-blue-400">
               {activeStats.averageAttemptsOnSend}
@@ -273,7 +425,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
         {/* Progress Ring Card */}
         <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col items-center justify-center gap-3">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            Active Gym Completion
+            {viewMode === 'group' ? 'Crew Gym Coverage' : 'Active Gym Completion'}
           </span>
 
           {/* SVG Progress Ring */}
@@ -311,7 +463,9 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           </div>
 
           <p className="text-center text-xs text-slate-400">
-            {activeGymBoulders.length - userSentActiveBoulders.length} active boulders left to send
+            {viewMode === 'group'
+              ? `${userSentActiveBoulders.length} of ${activeGymBoulders.length} active boulders topped by the crew (${activeGymBoulders.length - userSentActiveBoulders.length} unclimbed)`
+              : `${activeGymBoulders.length - userSentActiveBoulders.length} active boulders left to send`}
           </p>
         </div>
 
@@ -319,9 +473,11 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
         <div className="md:col-span-2 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Area Completion & Remaining Climbs
+              {viewMode === 'group' ? 'Crew Area Coverage' : 'Area Completion & Remaining Climbs'}
             </span>
-            <span className="text-[11px] font-mono text-amber-400">Clockwise Sectors</span>
+            <span className="text-[11px] font-mono text-amber-400">
+              {viewMode === 'group' ? 'Team Progress' : 'Clockwise Sectors'}
+            </span>
           </div>
 
           <div className="space-y-3">
@@ -330,7 +486,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium text-slate-200">{item.area.name}</span>
                   <span className="font-mono text-[11px] text-slate-400">
-                    <strong className="text-emerald-400">{item.sent}</strong> / {item.total} sent ({item.remaining} left)
+                    <strong className="text-emerald-400">{item.sent}</strong> / {item.total} {viewMode === 'group' ? 'topped by crew' : 'sent'} ({item.remaining} left)
                   </span>
                 </div>
                 <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden flex">

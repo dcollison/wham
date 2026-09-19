@@ -78,6 +78,9 @@ export function App() {
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const [isAreaResetOpen, setIsAreaResetOpen] = useState<boolean>(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+  const [hasChosenClimber, setHasChosenClimber] = useState<boolean>(() => {
+    return Boolean(localStorage.getItem('wham_active_profile_id'));
+  });
 
   // Filter climbs by "Hide Sent" if enabled
   const visibleBoulders = useMemo(() => {
@@ -228,6 +231,7 @@ export function App() {
             gyms={gyms}
             areas={areas}
             currentUserId={currentUser?.id}
+            onSwitchClimber={switchClimber}
           />
         )}
 
@@ -321,6 +325,49 @@ export function App() {
         onSignOut={signOut}
         isDemoMode={isDemoMode}
       />
+
+      {/* First-time Welcome Climber Selection Modal */}
+      {!hasChosenClimber && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col items-center gap-5 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-amber-400 text-black flex items-center justify-center font-black text-2xl shadow-lg shadow-amber-400/20">
+              ⚡
+            </div>
+            <div>
+              <h2 className="text-xl font-black text-white">Welcome to Wham!</h2>
+              <p className="text-xs text-slate-400 mt-1">Who is climbing today? Select your profile:</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5 w-full">
+              {climbers.map((climber) => (
+                <button
+                  key={climber.id}
+                  type="button"
+                  onClick={() => {
+                    switchClimber(climber.id);
+                    setHasChosenClimber(true);
+                  }}
+                  className="p-3.5 rounded-2xl bg-slate-800/80 hover:bg-amber-400 hover:text-black border border-slate-700/80 flex flex-col items-center gap-2 transition-all active-press group"
+                >
+                  {climber.avatar_url ? (
+                    <img
+                      src={climber.avatar_url}
+                      alt={climber.display_name}
+                      className="w-10 h-10 rounded-full border border-slate-600 group-hover:border-black"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-amber-400 text-black font-black flex items-center justify-center text-sm">
+                      {climber.display_name.charAt(0)}
+                    </div>
+                  )}
+                  <span className="font-bold text-sm text-slate-200 group-hover:text-black">
+                    {climber.display_name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bottom Sticky Navigation */}
       <Navigation

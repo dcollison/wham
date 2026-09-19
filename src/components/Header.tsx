@@ -102,8 +102,9 @@ export const Header: React.FC<HeaderProps> = ({
                 {currentUser?.display_name?.charAt(0) || 'C'}
               </div>
             )}
-            <span className="text-xs font-bold text-slate-200 whitespace-nowrap">
-              {currentUser?.display_name || 'Climber'}
+            <span className="text-xs font-bold text-slate-200 whitespace-nowrap flex items-center gap-1">
+              <span>{currentUser?.display_name || 'Climber'}</span>
+              <ChevronDown className="w-3 h-3 text-slate-400" />
             </span>
           </button>
         </div>
