@@ -15,6 +15,7 @@ interface LogAttemptParams {
   boulderId: string;
   status: AttemptStatus;
   attemptCount: number;
+  loggedAt?: string;
 }
 
 interface AddBoulderParams {
@@ -92,7 +93,24 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [attempts, setAttempts] = useState<Attempt[]>(() => {
     const cached = localStorage.getItem('wham_attempts');
-    return cached ? JSON.parse(cached) : INITIAL_ATTEMPTS;
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const firstDate = parsed[0]?.logged_at;
+          const isOldMonolithicDate =
+            parsed.length > 50 &&
+            parsed.every((a) => a.logged_at === firstDate && firstDate === '2026-09-10T19:00:00Z');
+          if (isOldMonolithicDate) {
+            return INITIAL_ATTEMPTS;
+          }
+          return parsed;
+        }
+      } catch {
+        // Fallback
+      }
+    }
+    return INITIAL_ATTEMPTS;
   });
 
   const [comments, setComments] = useState<Comment[]>(() => {
@@ -285,7 +303,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [boulders, currentGym, currentArea, areas, showArchived]);
 
   // Log or update an attempt (Flash, Send, Attempt)
-  const logAttempt = async ({ boulderId, status, attemptCount }: LogAttemptParams) => {
+  const logAttempt = async ({ boulderId, status, attemptCount, loggedAt }: LogAttemptParams) => {
     if (!currentUser) return;
 
     // Trigger celebration confetti on Flash or Send!
@@ -305,13 +323,17 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
     }
 
+    const existingAttempt = attempts.find(
+      (a) => a.boulder_id === boulderId && a.user_id === currentUser.id
+    );
+
     const newAttempt: Attempt = {
-      id: `att-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      id: existingAttempt?.id || `att-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       boulder_id: boulderId,
       user_id: currentUser.id,
       status,
       attempt_count: attemptCount,
-      logged_at: new Date().toISOString(),
+      logged_at: loggedAt || existingAttempt?.logged_at || new Date().toISOString(),
       profile: currentUser
     };
 

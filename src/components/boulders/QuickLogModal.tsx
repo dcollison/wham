@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Boulder, Attempt, AttemptStatus, determineAttemptStatus } from '../../types';
 import { HoldBadge } from './HoldBadge';
-import { Zap, Check, Clock, X, Trash2, Plus, Minus, CheckCircle2, CircleDashed } from 'lucide-react';
+import { Zap, Check, Clock, X, Trash2, Plus, Minus, CheckCircle2, CircleDashed, Calendar } from 'lucide-react';
 
 interface QuickLogModalProps {
   boulder: Boulder | null;
   existingAttempt?: Attempt;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (params: { boulderId: string; status: AttemptStatus; attemptCount: number }) => Promise<void>;
+  onSave: (params: { boulderId: string; status: AttemptStatus; attemptCount: number; loggedAt?: string }) => Promise<void>;
   onDelete?: (boulderId: string) => Promise<void>;
   climberName: string;
 }
@@ -22,11 +22,16 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
   onDelete,
   climberName
 }) => {
+  const getTodayIsoDate = () => new Date().toISOString().split('T')[0];
+
   // Core user inputs:
   // 1. Did you send it?
   // 2. How many attempts / tries?
+  // 3. Session date
   const [isSent, setIsSent] = useState<boolean>(true);
   const [attemptCount, setAttemptCount] = useState<number>(1);
+  const [logDate, setLogDate] = useState<string>(getTodayIsoDate());
+  const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
 
   // Pre-fill state when opening
@@ -34,11 +39,14 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
     if (existingAttempt) {
       setIsSent(existingAttempt.status === 'flashed' || existingAttempt.status === 'sent');
       setAttemptCount(existingAttempt.attempt_count);
+      setLogDate(existingAttempt.logged_at ? existingAttempt.logged_at.split('T')[0] : getTodayIsoDate());
     } else {
-      // Default for a new log: sent on 1st try (Flash)
+      // Default for a new log: sent on 1st try (Flash) on today's date
       setIsSent(true);
       setAttemptCount(1);
+      setLogDate(getTodayIsoDate());
     }
+    setShowDatePicker(false);
   }, [existingAttempt, boulder, isOpen]);
 
   if (!isOpen || !boulder) return null;
@@ -57,10 +65,12 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
   const handleSubmit = async () => {
     setSaving(true);
     try {
+      const dateObj = new Date(logDate + 'T19:00:00Z');
       await onSave({
         boulderId: boulder.id,
         status: computedStatus,
-        attemptCount
+        attemptCount,
+        loggedAt: isNaN(dateObj.getTime()) ? new Date().toISOString() : dateObj.toISOString()
       });
       onClose();
     } finally {
@@ -248,6 +258,71 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
               {computedStatus === 'attempted' && `Currently projecting with ${attemptCount} attempts logged.`}
             </p>
           </div>
+        </div>
+
+        {/* Session Date Selector */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-800/40 border border-slate-700/60 text-xs">
+            <div className="flex items-center gap-2 text-slate-300">
+              <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
+              <span className="font-semibold">Session Date:</span>
+              <span className="font-mono font-bold text-amber-400">
+                {logDate === getTodayIsoDate() ? 'Today' : logDate}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setLogDate(getTodayIsoDate());
+                  setShowDatePicker(false);
+                }}
+                className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+                  logDate === getTodayIsoDate()
+                    ? 'bg-amber-400 text-black shadow'
+                    : 'bg-slate-700/60 text-slate-300 hover:text-white'
+                }`}
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const yesterday = new Date();
+                  yesterday.setDate(yesterday.getDate() - 1);
+                  setLogDate(yesterday.toISOString().split('T')[0]);
+                  setShowDatePicker(false);
+                }}
+                className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-slate-700/60 text-slate-300 hover:text-white transition-colors"
+              >
+                Yesterday
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDatePicker(!showDatePicker)}
+                className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+                  showDatePicker
+                    ? 'bg-slate-600 text-white'
+                    : 'bg-slate-700/60 text-slate-300 hover:text-white'
+                }`}
+              >
+                Pick 📅
+              </button>
+            </div>
+          </div>
+
+          {showDatePicker && (
+            <div className="p-3 rounded-xl bg-slate-850 border border-slate-700 flex items-center justify-between gap-2 animate-in fade-in">
+              <label className="text-xs text-slate-300 font-medium">Choose Date:</label>
+              <input
+                type="date"
+                value={logDate}
+                onChange={(e) => setLogDate(e.target.value)}
+                className="bg-slate-900 border border-slate-700 text-slate-100 text-xs rounded-xl px-3 py-1.5 outline-none focus:border-amber-400 font-mono"
+              />
+            </div>
+          )}
         </div>
 
         {/* Action Buttons */}

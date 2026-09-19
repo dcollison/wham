@@ -19,7 +19,12 @@ import {
   CircleDot,
   ArrowRight,
   Compass,
-  Award
+  Award,
+  Calendar,
+  Activity,
+  LineChart,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 interface StatsDashboardProps {
@@ -73,12 +78,17 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
   onSwitchClimber
 }) => {
   // Navigation tabs inside Stats Dashboard
-  const [activeTab, setActiveTab] = useState<'overview' | 'comparison' | 'pyramid' | 'circuits'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'comparison' | 'timeline' | 'pyramid' | 'circuits'>('overview');
   const [viewMode, setViewMode] = useState<'my' | 'group'>('my');
   const [selectedGymId, setSelectedGymId] = useState<string>('all');
   const [selectedClimberId, setSelectedClimberId] = useState<string>(currentUserId || climbers[0]?.id || '');
 
-  // 1-on-1 Battle selections (defaults: Climber A = current user or first climber, Climber B = second climber)
+  // Timeline / Over Time controls
+  const [timelineClimberFilter, setTimelineClimberFilter] = useState<string>('all');
+  const [timelineChartMode, setTimelineChartMode] = useState<'grade' | 'cumulative' | 'volume'>('grade');
+  const [expandedSessionDate, setExpandedSessionDate] = useState<string | null>(null);
+
+  // 1-on-1 Battle selections
   const [battleClimberAId, setBattleClimberAId] = useState<string>(
     currentUserId || climbers[0]?.id || ''
   );
@@ -162,12 +172,10 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
       }
     });
 
-    // Active gym climbs topped by this user
     const sentActiveCount = activeGymBoulders.filter((b) =>
       sentAttempts.some((a) => a.boulder_id === b.id)
     ).length;
 
-    // Pyramid score calculation (VB=0, V0=1, V1=2... V8=9)
     const pyramidPoints = sentAttempts.reduce((sum, a) => {
       const b = filteredBoulders.find((item) => item.id === a.boulder_id);
       if (!b) return sum;
@@ -332,7 +340,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           (a) => a.boulder_id === b.id && a.user_id === targetId && (a.status === 'sent' || a.status === 'flashed')
         );
       }
-      // Group mode
       return filteredAttempts.some(
         (a) => a.boulder_id === b.id && (a.status === 'sent' || a.status === 'flashed')
       );
@@ -392,15 +399,12 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
         .map((a) => a.boulder_id)
     );
 
-    // Shared sends
     const sharedIds = [...aSentBoulderIds].filter((id) => bSentBoulderIds.has(id));
 
-    // Active climbs sent by A but not B
     const aOnlyActiveBoulders = activeGymBoulders.filter(
       (b) => aSentBoulderIds.has(b.id) && !bSentBoulderIds.has(b.id)
     );
 
-    // Active climbs sent by B but not A
     const bOnlyActiveBoulders = activeGymBoulders.filter(
       (b) => bSentBoulderIds.has(b.id) && !aSentBoulderIds.has(b.id)
     );
@@ -414,6 +418,135 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
     };
   }, [climberStatsList, battleClimberAId, battleClimberBId, filteredAttempts, activeGymBoulders]);
 
+  // Timeline / Progression Over Time Computations
+  const timelineData = useMemo(() => {
+    const dateSet = new Set<string>();
+    filteredAttempts.forEach((a) => {
+      if (a.logged_at) {
+        dateSet.add(a.logged_at.split('T')[0]);
+      }
+    });
+
+    const sortedDates = [...dateSet].sort();
+
+    if (sortedDates.length === 0) {
+      return {
+        dates: [],
+        sessions: [],
+        climberSeries: [],
+        maxVolumeAnySession: 1
+      };
+    }
+
+    const sessions = sortedDates.map((dateStr) => {
+      const dayAttempts = filteredAttempts.filter(
+        (a) => a.logged_at && a.logged_at.startsWith(dateStr)
+      );
+      const sentAttempts = dayAttempts.filter((a) => a.status === 'sent' || a.status === 'flashed');
+      const flashes = dayAttempts.filter((a) => a.status === 'flashed');
+
+      let hardestSend: Grade | null = null;
+      let maxIdx = -1;
+      sentAttempts.forEach((a) => {
+        const b = filteredBoulders.find((item) => item.id === a.boulder_id);
+        if (b) {
+          const gIdx = GRADES.indexOf(b.grade);
+          if (gIdx > maxIdx) {
+            maxIdx = gIdx;
+            hardestSend = b.grade;
+          }
+        }
+      });
+
+      const attendeeIds = new Set(dayAttempts.map((a) => a.user_id));
+      const attendees = climbers.filter((c) => attendeeIds.has(c.id));
+
+      const sendsList = sentAttempts.map((a) => {
+        const b = filteredBoulders.find((item) => item.id === a.boulder_id);
+        const climber = climbers.find((c) => c.id === a.user_id);
+        return {
+          attempt: a,
+          boulder: b,
+          climber
+        };
+      });
+
+      return {
+        date: dateStr,
+        totalAttempts: dayAttempts.length,
+        totalSends: sentAttempts.length,
+        totalFlashes: flashes.length,
+        flashRate: sentAttempts.length > 0 ? Math.round((flashes.length / sentAttempts.length) * 100) : 0,
+        hardestSend,
+        attendees,
+        sendsList
+      };
+    });
+
+    const climberSeries = climbers.map((c, idx) => {
+      let runningCumulativeSends = 0;
+      let highestGradeSoFarIdx = -1;
+
+      const points = sortedDates.map((dateStr) => {
+        const dayAttempts = filteredAttempts.filter(
+          (a) => a.user_id === c.id && a.logged_at && a.logged_at.startsWith(dateStr)
+        );
+        const daySends = dayAttempts.filter((a) => a.status === 'sent' || a.status === 'flashed');
+        runningCumulativeSends += daySends.length;
+
+        let sessionMaxGrade: Grade | null = null;
+        let sessionMaxIdx = -1;
+
+        daySends.forEach((a) => {
+          const b = filteredBoulders.find((item) => item.id === a.boulder_id);
+          if (b) {
+            const gIdx = GRADES.indexOf(b.grade);
+            if (gIdx > sessionMaxIdx) {
+              sessionMaxIdx = gIdx;
+              sessionMaxGrade = b.grade;
+            }
+            if (gIdx > highestGradeSoFarIdx) {
+              highestGradeSoFarIdx = gIdx;
+            }
+          }
+        });
+
+        return {
+          date: dateStr,
+          sessionSends: daySends.length,
+          sessionFlashes: daySends.filter((a) => a.status === 'flashed').length,
+          sessionMaxGrade,
+          sessionMaxIdx: sessionMaxIdx >= 0 ? sessionMaxIdx : null,
+          allTimeMaxGrade: highestGradeSoFarIdx >= 0 ? GRADES[highestGradeSoFarIdx] : null,
+          allTimeMaxIdx: highestGradeSoFarIdx >= 0 ? highestGradeSoFarIdx : null,
+          cumulativeSends: runningCumulativeSends
+        };
+      });
+
+      return {
+        climber: c,
+        color: getClimberColor(idx),
+        points
+      };
+    });
+
+    const maxVolumeAnySession = Math.max(...sessions.map((s) => s.totalSends), 1);
+
+    return {
+      dates: sortedDates,
+      sessions,
+      climberSeries,
+      maxVolumeAnySession
+    };
+  }, [filteredAttempts, filteredBoulders, climbers]);
+
+  const climberSeriesToDisplay = useMemo(() => {
+    if (timelineClimberFilter === 'all') {
+      return timelineData.climberSeries;
+    }
+    return timelineData.climberSeries.filter((s) => s.climber.id === timelineClimberFilter);
+  }, [timelineData, timelineClimberFilter]);
+
   // Hold colour circuit breakdown
   const circuitBreakdown = useMemo(() => {
     const colorKeys = Object.keys(HOLD_COLORS);
@@ -424,7 +557,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
 
       const circuitIdSet = new Set(circuitBoulders.map((b) => b.id));
 
-      // Crew member sends for this circuit
       const memberSends = climbers.map((c) => {
         const sentCount = filteredAttempts.filter(
           (a) => a.user_id === c.id && circuitIdSet.has(a.boulder_id) && (a.status === 'sent' || a.status === 'flashed')
@@ -435,7 +567,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
         };
       });
 
-      // Combined crew unique topped
       const crewToppedCount = circuitBoulders.filter((b) =>
         filteredAttempts.some(
           (a) => a.boulder_id === b.id && (a.status === 'sent' || a.status === 'flashed')
@@ -462,12 +593,39 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
     }>;
   }, [activeGymBoulders, filteredAttempts, climbers]);
 
-  // Active grades that have at least one send across the group
   const activeGradeRange = useMemo(() => {
     return GRADES.filter((g) => {
       return climberStatsList.some((c) => c.perGrade[g]?.sent > 0 || c.perGrade[g]?.attempted > 0);
     });
   }, [climberStatsList]);
+
+  // Format short date helper (e.g. "15 Sep")
+  const formatShortDate = (dateStr: string) => {
+    try {
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+      }
+    } catch {
+      // fallback
+    }
+    return dateStr;
+  };
+
+  // Format full date helper (e.g. "Tuesday, 15 Sept 2026")
+  const formatFullDate = (dateStr: string) => {
+    try {
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+      }
+    } catch {
+      // fallback
+    }
+    return dateStr;
+  };
 
   return (
     <div className="flex flex-col gap-6 pb-20 animate-in fade-in duration-300">
@@ -499,6 +657,19 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           >
             <Swords className="w-3.5 h-3.5" />
             <span>Crew Showdown</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('timeline')}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all active-press ${
+              activeTab === 'timeline'
+                ? 'bg-amber-400 text-black shadow-md shadow-amber-400/20'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <LineChart className="w-3.5 h-3.5" />
+            <span>Over Time</span>
           </button>
 
           <button
@@ -792,7 +963,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-                {/* Flash King */}
                 <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/60 flex flex-col items-center text-center gap-1.5">
                   <span className="text-xl">⚡</span>
                   <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Flash King</span>
@@ -804,7 +974,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                   </span>
                 </div>
 
-                {/* Volume Machine */}
                 <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/60 flex flex-col items-center text-center gap-1.5">
                   <span className="text-xl">🧗</span>
                   <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Volume Machine</span>
@@ -816,7 +985,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                   </span>
                 </div>
 
-                {/* Hardest Sender */}
                 <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/60 flex flex-col items-center text-center gap-1.5">
                   <span className="text-xl">🔥</span>
                   <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider">The Crusher</span>
@@ -828,7 +996,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                   </span>
                 </div>
 
-                {/* Efficiency Sniper */}
                 <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/60 flex flex-col items-center text-center gap-1.5">
                   <span className="text-xl">🎯</span>
                   <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">The Sniper</span>
@@ -840,7 +1007,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                   </span>
                 </div>
 
-                {/* Grinder */}
                 <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/60 flex flex-col items-center text-center gap-1.5">
                   <span className="text-xl">🛡️</span>
                   <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">The Grinder</span>
@@ -852,7 +1018,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                   </span>
                 </div>
 
-                {/* Gym Master */}
                 <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/60 flex flex-col items-center text-center gap-1.5">
                   <span className="text-xl">🗺️</span>
                   <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider">Gym Master</span>
@@ -886,7 +1051,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
               </span>
             </div>
 
-            {/* Side-by-side Table */}
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
@@ -982,7 +1146,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                 <h3 className="text-sm font-bold text-white">Side-by-Side Sends per Grade</h3>
               </div>
 
-              {/* Legend of Climbers */}
               <div className="flex items-center gap-3 flex-wrap text-xs">
                 {climberStatsList.map((c) => (
                   <span key={c.profile.id} className="flex items-center gap-1.5">
@@ -993,7 +1156,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
               </div>
             </div>
 
-            {/* Grouped Bar Chart */}
             <div className="space-y-3 pt-2">
               {activeGradeRange.map((g) => {
                 const maxSendsThisGrade = Math.max(
@@ -1043,7 +1205,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
             </div>
           </div>
 
-          {/* 1-on-1 Head-to-Head Battle (The Friendly Rivalry) */}
+          {/* 1-on-1 Head-to-Head Battle */}
           {battleData && (
             <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col gap-5">
               <div className="flex items-center justify-between flex-wrap gap-2">
@@ -1054,7 +1216,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                 <span className="text-xs text-slate-400">Pick any two crew members to compare</span>
               </div>
 
-              {/* Climber Selectors Row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-850/60 p-3 rounded-xl border border-slate-800">
                 <div className="flex items-center gap-2">
                   <label className="text-xs font-bold text-slate-400 uppercase">Climber 1:</label>
@@ -1085,7 +1246,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
 
               {/* Head to Head Visual Comparison Bar */}
               <div className="space-y-4">
-                {/* Total Sends Bar */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs font-bold">
                     <span style={{ color: battleData.climberA.color.hex }}>
@@ -1114,7 +1274,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                   </div>
                 </div>
 
-                {/* Total Flashes Bar */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs font-bold">
                     <span style={{ color: battleData.climberA.color.hex }}>
@@ -1143,7 +1302,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                   </div>
                 </div>
 
-                {/* Hardest Send & Shared Summary */}
                 <div className="grid grid-cols-3 gap-2 text-center p-3 rounded-xl bg-slate-850 border border-slate-800 text-xs">
                   <div>
                     <span className="text-[10px] text-slate-400 block uppercase font-bold">Top Grade</span>
@@ -1167,9 +1325,8 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                 </div>
               </div>
 
-              {/* Gym Banter: Friendly Challenge Lists */}
+              {/* Gym Banter Challenge Lists */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                {/* Topped by A, but not yet by B */}
                 <div className="bg-slate-850/40 border border-slate-800 rounded-xl p-4 flex flex-col gap-2.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold" style={{ color: battleData.climberA.color.hex }}>
@@ -1205,7 +1362,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                   )}
                 </div>
 
-                {/* Topped by B, but not yet by A */}
                 <div className="bg-slate-850/40 border border-slate-800 rounded-xl p-4 flex flex-col gap-2.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold" style={{ color: battleData.climberB.color.hex }}>
@@ -1247,11 +1403,440 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 3: SEND PYRAMID & GRADE EFFICIENCY                                     */}
+      {/* TAB 3: PERFORMANCE & PROGRESSION OVER TIME                                 */}
+      {/* ========================================================================= */}
+      {activeTab === 'timeline' && (
+        <div className="flex flex-col gap-6 animate-in fade-in duration-200">
+          {/* Controls: Chart Mode Switcher & Climber Filter */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            {/* Chart Mode Switcher */}
+            <div className="flex p-1 bg-slate-900 border border-slate-800 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setTimelineChartMode('grade')}
+                className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active-press ${
+                  timelineChartMode === 'grade'
+                    ? 'bg-amber-400 text-black shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Flame className="w-3.5 h-3.5" />
+                <span>Max Grade Curve</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTimelineChartMode('cumulative')}
+                className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active-press ${
+                  timelineChartMode === 'cumulative'
+                    ? 'bg-amber-400 text-black shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <TrendingUp className="w-3.5 h-3.5" />
+                <span>Cumulative Sends</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTimelineChartMode('volume')}
+                className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active-press ${
+                  timelineChartMode === 'volume'
+                    ? 'bg-amber-400 text-black shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Activity className="w-3.5 h-3.5" />
+                <span>Session Volume</span>
+              </button>
+            </div>
+
+            {/* Climber Filter Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+              <button
+                type="button"
+                onClick={() => setTimelineClimberFilter('all')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all active-press ${
+                  timelineClimberFilter === 'all'
+                    ? 'bg-amber-400 text-black shadow'
+                    : 'bg-slate-800/80 text-slate-300 hover:text-white'
+                }`}
+              >
+                All Crew
+              </button>
+              {climbers.map((c, idx) => {
+                const isSelected = timelineClimberFilter === c.id;
+                const color = getClimberColor(idx);
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setTimelineClimberFilter(c.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all active-press ${
+                      isSelected
+                        ? `${color.bg} text-black shadow`
+                        : 'bg-slate-800/80 text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    {c.display_name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Main Visual Chart Container */}
+          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col gap-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <LineChart className="w-4 h-4 text-amber-400" />
+                  <span>
+                    {timelineChartMode === 'grade' && 'Grade Breakthroughs & Top Grade Progression'}
+                    {timelineChartMode === 'cumulative' && 'Total Sends Growth Over Time'}
+                    {timelineChartMode === 'volume' && 'Climbs Sent Per Gym Session'}
+                  </span>
+                </h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  {timelineChartMode === 'grade' && 'Peak grade topped in each weekly gym session'}
+                  {timelineChartMode === 'cumulative' && 'Cumulative tick count trajectory across sessions'}
+                  {timelineChartMode === 'volume' && 'Total volume and flash proportion by session date'}
+                </p>
+              </div>
+
+              {/* Climber Legend */}
+              <div className="flex items-center gap-3 text-xs flex-wrap">
+                {climberSeriesToDisplay.map((series) => (
+                  <span key={series.climber.id} className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: series.color.hex }} />
+                    <span className="text-slate-300 font-medium">{series.climber.display_name}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* SVG Interactive Chart */}
+            <div className="w-full h-64 bg-slate-950/60 rounded-xl border border-slate-800/80 p-3 pt-4 relative overflow-hidden">
+              {timelineData.dates.length < 2 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center p-4 text-slate-400 text-xs">
+                  <Calendar className="w-8 h-8 text-slate-600 mb-2" />
+                  <span>Log sends across multiple dates to view your progression curve.</span>
+                </div>
+              ) : (
+                <svg className="w-full h-full" viewBox="0 0 600 200" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="gridGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#334155" stopOpacity="0.2" />
+                      <stop offset="100%" stopColor="#1E293B" stopOpacity="0.05" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Horizontal Gridlines & Y-Axis Labels */}
+                  {timelineChartMode === 'grade' &&
+                    [0, 2, 4, 6, 8].map((gIndex) => {
+                      const y = 170 - (gIndex / 8) * 140;
+                      return (
+                        <g key={gIndex}>
+                          <line x1="45" y1={y} x2="580" y2={y} stroke="#334155" strokeWidth="1" strokeDasharray="3 3" opacity="0.4" />
+                          <text x="35" y={y + 4} fill="#94A3B8" fontSize="10" fontFamily="monospace" textAnchor="end" fontWeight="bold">
+                            {GRADES[gIndex]}
+                          </text>
+                        </g>
+                      );
+                    })}
+
+                  {timelineChartMode === 'cumulative' &&
+                    [0, 25, 50, 75, 100].map((val) => {
+                      const maxVal = Math.max(...timelineData.climberSeries.map((s) => s.points[s.points.length - 1]?.cumulativeSends || 1), 10);
+                      const y = 170 - (val / 100) * 140;
+                      const displayVal = Math.round((val / 100) * maxVal);
+                      return (
+                        <g key={val}>
+                          <line x1="45" y1={y} x2="580" y2={y} stroke="#334155" strokeWidth="1" strokeDasharray="3 3" opacity="0.4" />
+                          <text x="35" y={y + 4} fill="#94A3B8" fontSize="10" fontFamily="monospace" textAnchor="end" fontWeight="bold">
+                            {displayVal}
+                          </text>
+                        </g>
+                      );
+                    })}
+
+                  {/* X-Axis Dates */}
+                  {timelineData.dates.map((dateStr, i) => {
+                    const x = 50 + (i / Math.max(timelineData.dates.length - 1, 1)) * 520;
+                    return (
+                      <g key={dateStr}>
+                        <line x1={x} y1="30" x2={x} y2="170" stroke="#334155" strokeWidth="1" strokeDasharray="2 2" opacity="0.2" />
+                        <text x={x} y="190" fill="#94A3B8" fontSize="9" fontFamily="monospace" textAnchor="middle">
+                          {formatShortDate(dateStr)}
+                        </text>
+                      </g>
+                    );
+                  })}
+
+                  {/* CHART MODE 1: Max Grade Progression Curves */}
+                  {timelineChartMode === 'grade' &&
+                    climberSeriesToDisplay.map((series) => {
+                      const points = series.points.map((pt, i) => {
+                        const x = 50 + (i / Math.max(series.points.length - 1, 1)) * 520;
+                        const gradeIdx = pt.sessionMaxIdx !== null ? pt.sessionMaxIdx : 0;
+                        const y = 170 - (gradeIdx / 8) * 140;
+                        return { x, y, pt };
+                      });
+
+                      const pathData = points.reduce((acc, p, idx) => {
+                        return idx === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`;
+                      }, '');
+
+                      return (
+                        <g key={series.climber.id}>
+                          <path
+                            d={pathData}
+                            fill="none"
+                            stroke={series.color.hex}
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="transition-all duration-500"
+                          />
+                          {points.map((p, idx) => (
+                            <g key={idx}>
+                              <circle
+                                cx={p.x}
+                                cy={p.y}
+                                r={p.pt.sessionMaxGrade ? '4' : '2'}
+                                fill={p.pt.sessionMaxGrade ? series.color.hex : '#475569'}
+                                stroke="#0F172A"
+                                strokeWidth="2"
+                              />
+                              {p.pt.sessionMaxGrade && (
+                                <text
+                                  x={p.x}
+                                  y={p.y - 8}
+                                  fill={series.color.hex}
+                                  fontSize="9"
+                                  fontFamily="monospace"
+                                  fontWeight="bold"
+                                  textAnchor="middle"
+                                >
+                                  {p.pt.sessionMaxGrade}
+                                </text>
+                              )}
+                            </g>
+                          ))}
+                        </g>
+                      );
+                    })}
+
+                  {/* CHART MODE 2: Cumulative Sends Curves */}
+                  {timelineChartMode === 'cumulative' &&
+                    climberSeriesToDisplay.map((series) => {
+                      const maxVal = Math.max(...timelineData.climberSeries.map((s) => s.points[s.points.length - 1]?.cumulativeSends || 1), 10);
+                      const points = series.points.map((pt, i) => {
+                        const x = 50 + (i / Math.max(series.points.length - 1, 1)) * 520;
+                        const y = 170 - (pt.cumulativeSends / maxVal) * 140;
+                        return { x, y, pt };
+                      });
+
+                      const pathData = points.reduce((acc, p, idx) => {
+                        return idx === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`;
+                      }, '');
+
+                      return (
+                        <g key={series.climber.id}>
+                          <path
+                            d={pathData}
+                            fill="none"
+                            stroke={series.color.hex}
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="transition-all duration-500"
+                          />
+                          {points.map((p, idx) => (
+                            <circle
+                              key={idx}
+                              cx={p.x}
+                              cy={p.y}
+                              r="3.5"
+                              fill={series.color.hex}
+                              stroke="#0F172A"
+                              strokeWidth="1.5"
+                            />
+                          ))}
+                        </g>
+                      );
+                    })}
+
+                  {/* CHART MODE 3: Session Volume Bars */}
+                  {timelineChartMode === 'volume' &&
+                    timelineData.sessions.map((sess, i) => {
+                      const x = 50 + (i / Math.max(timelineData.sessions.length - 1, 1)) * 520;
+                      const maxSessVolume = timelineData.maxVolumeAnySession;
+                      const barWidth = 24;
+                      const totalH = (sess.totalSends / maxSessVolume) * 140;
+                      const flashH = (sess.totalFlashes / maxSessVolume) * 140;
+                      const sendH = totalH - flashH;
+
+                      return (
+                        <g key={sess.date}>
+                          {sendH > 0 && (
+                            <rect
+                              x={x - barWidth / 2}
+                              y={170 - totalH}
+                              width={barWidth}
+                              height={sendH}
+                              fill="#10B981"
+                              rx="2"
+                            />
+                          )}
+                          {flashH > 0 && (
+                            <rect
+                              x={x - barWidth / 2}
+                              y={170 - flashH}
+                              width={barWidth}
+                              height={flashH}
+                              fill="#F59E0B"
+                              rx="2"
+                            />
+                          )}
+                          <text
+                            x={x}
+                            y={170 - totalH - 6}
+                            fill="#F1F5F9"
+                            fontSize="9"
+                            fontFamily="monospace"
+                            fontWeight="bold"
+                            textAnchor="middle"
+                          >
+                            {sess.totalSends}
+                          </text>
+                        </g>
+                      );
+                    })}
+                </svg>
+              )}
+            </div>
+          </div>
+
+          {/* Session Log & Chronological Activity Feed */}
+          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-amber-400" />
+                <h3 className="text-sm font-bold text-white">Chronological Session Log</h3>
+              </div>
+              <span className="text-xs text-slate-400 font-mono">
+                {timelineData.sessions.length} Recorded Sessions
+              </span>
+            </div>
+
+            {/* Session Cards (Reverse chronological: newest first) */}
+            <div className="space-y-3">
+              {[...timelineData.sessions].reverse().map((sess) => {
+                const isExpanded = expandedSessionDate === sess.date;
+
+                return (
+                  <div
+                    key={sess.date}
+                    className="bg-slate-850/60 border border-slate-800 rounded-xl overflow-hidden transition-all"
+                  >
+                    <div
+                      onClick={() => setExpandedSessionDate(isExpanded ? null : sess.date)}
+                      className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-slate-800/40 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex flex-col items-center justify-center font-mono">
+                          <span className="text-[10px] text-slate-400 uppercase font-bold">
+                            {formatShortDate(sess.date).split(' ')[1]}
+                          </span>
+                          <span className="text-xs font-black text-amber-400">
+                            {formatShortDate(sess.date).split(' ')[0]}
+                          </span>
+                        </div>
+
+                        <div>
+                          <h4 className="text-xs font-bold text-white flex items-center gap-2">
+                            <span>{formatFullDate(sess.date)}</span>
+                            {sess.hardestSend && (
+                              <span className="text-[10px] font-mono font-black text-amber-400 bg-amber-400/20 px-1.5 py-0.2 rounded">
+                                Top: {sess.hardestSend}
+                              </span>
+                            )}
+                          </h4>
+                          <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
+                            <span>{sess.totalSends} sends ({sess.totalFlashes} flashes)</span>
+                            <span>•</span>
+                            <span className="flex items-center gap-1">
+                              {sess.attendees.map((c) => (
+                                <span key={c.id} className="text-slate-300 font-medium">
+                                  {c.display_name}
+                                </span>
+                              ))}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          className="p-1 rounded text-slate-400 hover:text-white"
+                        >
+                          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Detailed sends list when expanded */}
+                    {isExpanded && (
+                      <div className="p-3.5 pt-0 border-t border-slate-800/80 bg-slate-900/40 space-y-2 animate-in fade-in">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">
+                          Climbs Topped in This Session ({sess.sendsList.length}):
+                        </span>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
+                          {sess.sendsList.map((item, idx) => {
+                            const isFlash = item.attempt.status === 'flashed';
+                            return (
+                              <div
+                                key={idx}
+                                className="flex items-center justify-between p-2 rounded-lg bg-slate-850 border border-slate-800 text-xs"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono font-black text-amber-400">
+                                    {item.boulder?.grade || 'V?'}
+                                  </span>
+                                  <span className="text-slate-300 font-medium truncate max-w-[90px]">
+                                    {item.boulder?.hold_colour || 'Hold'}
+                                  </span>
+                                  {isFlash && <Zap className="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />}
+                                </div>
+
+                                <div className="flex items-center gap-1.5 font-semibold text-[11px] text-slate-300">
+                                  {item.climber?.avatar_url && (
+                                    <img src={item.climber.avatar_url} alt="" className="w-3.5 h-3.5 rounded-full" />
+                                  )}
+                                  <span>{item.climber?.display_name}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 4: SEND PYRAMID & GRADE EFFICIENCY                                     */}
       {/* ========================================================================= */}
       {activeTab === 'pyramid' && (
         <div className="flex flex-col gap-6 animate-in fade-in duration-200">
-          {/* Climber Switcher for Pyramid */}
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
               <button
@@ -1316,7 +1901,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
               </div>
             </div>
 
-            {/* Pyramid Rows: Render from Highest Grade down to lowest */}
             <div className="space-y-2 pt-2">
               {[...GRADES].reverse().map((g) => {
                 const data = activeStats.perGrade[g];
@@ -1334,7 +1918,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                       {g}
                     </span>
 
-                    {/* Centered Bar Area */}
                     <div className="flex-1 flex justify-center">
                       <div
                         className="h-8 rounded-lg flex overflow-hidden shadow-sm transition-all duration-500"
@@ -1374,7 +1957,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
               })}
             </div>
 
-            {/* Pyramid Shape Analysis Banner */}
             <div className="p-3.5 rounded-xl bg-slate-850 border border-slate-800/80 flex items-center justify-between text-xs text-slate-300">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
@@ -1388,7 +1970,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
             </div>
           </div>
 
-          {/* Efficiency Metrics Table: Send %, Flash Rate, Avg attempts */}
           <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col gap-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
               <Target className="w-4 h-4 text-blue-400" />
@@ -1440,7 +2021,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 4: HOLD COLOUR CIRCUITS                                               */}
+      {/* TAB 5: HOLD COLOUR CIRCUITS                                               */}
       {/* ========================================================================= */}
       {activeTab === 'circuits' && (
         <div className="flex flex-col gap-6 animate-in fade-in duration-200">
@@ -1453,7 +2034,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
               <span className="text-xs text-slate-400">Arch / London Circuit System</span>
             </div>
 
-            {/* Circuit Cards Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {circuitBreakdown.map((circuit) => (
                 <div
@@ -1477,7 +2057,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                     </span>
                   </div>
 
-                  {/* Circuit Progress Bar */}
                   <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-500"
@@ -1488,7 +2067,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                     />
                   </div>
 
-                  {/* Climber breakdown row for this circuit */}
                   <div className="grid grid-cols-4 gap-1 pt-1 text-center border-t border-slate-800/60">
                     {circuit.memberSends.map((ms) => (
                       <div key={ms.climber.id} className="text-[10px]">
