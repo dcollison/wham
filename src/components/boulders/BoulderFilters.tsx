@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Grade, GRADES, HOLD_COLORS, Profile } from '../../types';
+import { Grade, GRADES, HOLD_COLORS, Profile, getHoldSwatchStyle } from '../../types';
 import {
   Filter,
   X,
@@ -291,6 +291,7 @@ export const BoulderFilters: React.FC<BoulderFiltersProps> = ({
             const isSelected = filters.selectedColour?.toLowerCase() === col.toLowerCase();
             const count = colourCounts[col] || 0;
             const hex = colorConfig?.hex || '#94A3B8';
+            const isBee = col.toLowerCase() === 'bee';
 
             return (
               <button
@@ -310,21 +311,26 @@ export const BoulderFilters: React.FC<BoulderFiltersProps> = ({
                 style={
                   isSelected
                     ? {
-                        backgroundColor: `${hex}28`,
+                        backgroundColor: isBee ? 'rgba(250, 204, 21, 0.25)' : `${hex}28`,
                         borderColor: hex,
                         boxShadow: `0 0 12px ${hex}35`
                       }
                     : {
-                        borderColor: `${hex}40`
+                        borderColor: isBee ? '#EAB30880' : `${hex}40`
                       }
                 }
                 title={`Filter by ${col} circuit (${count} boulders)`}
               >
                 <span
-                  className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm ring-1 ring-black/40"
-                  style={{ backgroundColor: hex }}
+                  className={`w-2.5 h-2.5 rounded-full shrink-0 shadow-sm ring-1 ring-black/40 ${
+                    isBee ? 'border border-yellow-400' : ''
+                  }`}
+                  style={getHoldSwatchStyle(col)}
                 />
-                <span>{col}</span>
+                <span className="flex items-center gap-0.5">
+                  <span>{col}</span>
+                  {isBee && <span className="text-[10px] leading-none">🐝</span>}
+                </span>
                 <span className="text-[10px] font-mono text-slate-400">({count})</span>
               </button>
             );
@@ -456,6 +462,7 @@ export const BoulderFilters: React.FC<BoulderFiltersProps> = ({
                   const colorConfig = HOLD_COLORS[col];
                   const isSelected = filters.selectedColour?.toLowerCase() === col.toLowerCase();
                   const count = colourCounts[col] || 0;
+                  const isBee = col.toLowerCase() === 'bee';
 
                   return (
                     <button
@@ -474,10 +481,15 @@ export const BoulderFilters: React.FC<BoulderFiltersProps> = ({
                       }`}
                     >
                       <span
-                        className="w-2.5 h-2.5 rounded-full shrink-0 border border-black/30"
-                        style={{ backgroundColor: colorConfig?.hex || '#94A3B8' }}
+                        className={`w-2.5 h-2.5 rounded-full shrink-0 border border-black/30 ${
+                          isBee ? 'ring-1 ring-yellow-400' : ''
+                        }`}
+                        style={getHoldSwatchStyle(col)}
                       />
-                      <span>{col}</span>
+                      <span className="flex items-center gap-0.5">
+                        <span>{col}</span>
+                        {isBee && <span className="text-[10px]">🐝</span>}
+                      </span>
                       <span className="text-[10px] text-slate-400 font-mono">({count})</span>
                     </button>
                   );

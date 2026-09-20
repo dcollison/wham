@@ -1,5 +1,5 @@
 import React from 'react';
-import { Grade, HOLD_COLORS } from '../../types';
+import { Grade, HOLD_COLORS, getHoldSwatchStyle, getHoldCardStyle } from '../../types';
 
 interface HoldBadgeProps {
   color: string;
@@ -14,16 +14,12 @@ export const HoldBadge: React.FC<HoldBadgeProps> = ({
   size = 'md',
   showGrade = true
 }) => {
-  const config = HOLD_COLORS[color] || {
-    name: color,
-    bgClass: 'bg-slate-500',
-    textClass: 'text-white',
-    borderClass: 'border-slate-600',
-    hex: '#64748B'
-  };
-
   const isWhite = color.toLowerCase() === 'white';
   const isBlack = color.toLowerCase() === 'black';
+  const isBee = color.toLowerCase() === 'bee';
+
+  const cardStyle = getHoldCardStyle(color);
+  const swatchStyle = getHoldSwatchStyle(color);
 
   const sizeClasses = {
     sm: 'text-xs px-2.5 py-1 gap-1.5',
@@ -41,22 +37,33 @@ export const HoldBadge: React.FC<HoldBadgeProps> = ({
     <div
       className={`inline-flex items-center font-bold rounded-xl border ${sizeClasses[size]} shadow-sm transition-all`}
       style={{
-        backgroundColor: `${config.hex}16`, // 9% opacity tint of hold colour
-        borderColor: `${config.hex}50`, // vibrant matching border
-        boxShadow: `0 1px 4px ${config.hex}15`
+        background: cardStyle.badgeBackground,
+        borderColor: cardStyle.badgeBorderColor,
+        boxShadow: `0 1px 5px ${cardStyle.hex}20`
       }}
     >
       {/* Prominent hold color swatch */}
       <span
-        className={`rounded-full shrink-0 shadow-sm ring-1.5 ring-black/30 ${dotSizes[size]} ${
-          isWhite ? 'border border-slate-300' : isBlack ? 'border border-zinc-500 ring-white/30' : ''
+        className={`rounded-full shrink-0 shadow-sm ring-1.5 ring-black/40 ${dotSizes[size]} ${
+          isWhite
+            ? 'border border-slate-300'
+            : isBlack
+            ? 'border border-zinc-500 ring-white/30'
+            : isBee
+            ? 'border border-yellow-400/80 ring-black/60'
+            : ''
         }`}
-        style={{ backgroundColor: config.hex }}
+        style={swatchStyle}
       />
 
       {/* Bold Hold Colour Name */}
-      <span className="font-extrabold text-white tracking-tight">
-        {color}
+      <span className="font-extrabold text-white tracking-tight flex items-center gap-1">
+        <span>{color}</span>
+        {isBee && (
+          <span className="text-[11px] leading-none" title="Yellow & Black circuit">
+            🐝
+          </span>
+        )}
       </span>
 
       {/* High-Contrast Grade Pill */}

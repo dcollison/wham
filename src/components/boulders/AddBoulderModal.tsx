@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Boulder, Grade, GRADES, HOLD_COLORS, GymArea } from '../../types';
+import { Boulder, Grade, GRADES, HOLD_COLORS, GymArea, getHoldSwatchStyle } from '../../types';
 import { compressImage, CompressionResult } from '../../lib/imageCompressor';
 import { X, Camera, Upload, Plus, AlertCircle, ArrowDown, Layers } from 'lucide-react';
 
@@ -209,10 +209,19 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
                     }`}
                   >
                     <span
-                      className={`w-3 h-3 rounded-full shrink-0 ${colorName.toLowerCase() === 'white' ? 'border border-slate-400' : ''}`}
-                      style={{ backgroundColor: config.hex }}
+                      className={`w-3 h-3 rounded-full shrink-0 ${
+                        colorName.toLowerCase() === 'white'
+                          ? 'border border-slate-400'
+                          : colorName.toLowerCase() === 'bee'
+                          ? 'border border-yellow-400'
+                          : ''
+                      }`}
+                      style={getHoldSwatchStyle(colorName)}
                     />
-                    <span className="truncate">{colorName}</span>
+                    <span className="truncate flex items-center gap-1">
+                      <span>{colorName}</span>
+                      {colorName.toLowerCase() === 'bee' && <span className="text-[10px]">🐝</span>}
+                    </span>
                   </button>
                 );
               })}

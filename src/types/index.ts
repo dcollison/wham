@@ -125,6 +125,8 @@ export interface HoldColorConfig {
   textClass: string;
   borderClass: string;
   hex: string;
+  isBee?: boolean;
+  isStriped?: boolean;
 }
 
 export const HOLD_COLORS: Record<string, HoldColorConfig> = {
@@ -138,9 +140,69 @@ export const HOLD_COLORS: Record<string, HoldColorConfig> = {
   Pink: { name: 'Pink', bgClass: 'bg-pink-500', textClass: 'text-white', borderClass: 'border-pink-600', hex: '#EC4899' },
   Black: { name: 'Black', bgClass: 'bg-zinc-900', textClass: 'text-white', borderClass: 'border-zinc-700', hex: '#18181B' },
   White: { name: 'White', bgClass: 'bg-slate-100', textClass: 'text-slate-900', borderClass: 'border-slate-300', hex: '#F1F5F9' },
-  Bee: { name: 'Bee', bgClass: 'bg-yellow-400', textClass: 'text-black', borderClass: 'border-zinc-900', hex: '#EAB308' },
+  Bee: {
+    name: 'Bee',
+    bgClass: 'bg-yellow-400',
+    textClass: 'text-black',
+    borderClass: 'border-zinc-900',
+    hex: '#EAB308',
+    isBee: true,
+    isStriped: true
+  },
   Wood: { name: 'Wood', bgClass: 'bg-amber-800', textClass: 'text-white', borderClass: 'border-amber-900', hex: '#92400E' }
 };
+
+/**
+ * Helper to get CSS style for a hold color swatch (dot/circle/pill).
+ * Handles special hold colors like Bee (yellow & black hazard stripes).
+ */
+export function getHoldSwatchStyle(colorName: string): React.CSSProperties {
+  const isBee = colorName.toLowerCase() === 'bee';
+  if (isBee) {
+    return {
+      background: 'repeating-linear-gradient(135deg, #FACC15 0, #FACC15 2.5px, #18181B 2.5px, #18181B 5px)'
+    };
+  }
+  const config = HOLD_COLORS[colorName];
+  return {
+    backgroundColor: config?.hex || '#64748B'
+  };
+}
+
+/**
+ * Helper to get card background/border styling for a hold.
+ */
+export function getHoldCardStyle(colorName: string): {
+  accentBarBackground: string;
+  gradientBackground: string;
+  borderLeftColor: string;
+  badgeBackground: string;
+  badgeBorderColor: string;
+  hex: string;
+} {
+  const isBee = colorName.toLowerCase() === 'bee';
+  if (isBee) {
+    return {
+      accentBarBackground: 'repeating-linear-gradient(180deg, #FACC15 0px, #FACC15 8px, #18181B 8px, #18181B 16px)',
+      gradientBackground: 'linear-gradient(90deg, rgba(250, 204, 21, 0.2) 0%, rgba(24, 24, 27, 0.45) 12%, rgba(15, 23, 42, 0.95) 26%, rgba(15, 23, 42, 0.92) 100%)',
+      borderLeftColor: '#FACC15',
+      badgeBackground: 'linear-gradient(135deg, rgba(250, 204, 21, 0.22) 0%, rgba(24, 24, 27, 0.6) 100%)',
+      badgeBorderColor: '#EAB308',
+      hex: '#EAB308'
+    };
+  }
+
+  const config = HOLD_COLORS[colorName] || { hex: '#64748B' };
+  const hex = config.hex;
+  return {
+    accentBarBackground: hex,
+    gradientBackground: `linear-gradient(90deg, ${hex}18 0%, rgba(15, 23, 42, 0.95) 26%, rgba(15, 23, 42, 0.92) 100%)`,
+    borderLeftColor: hex,
+    badgeBackground: `${hex}16`,
+    badgeBorderColor: `${hex}50`,
+    hex
+  };
+}
 
 export interface ClimberStats {
   profile: Profile;

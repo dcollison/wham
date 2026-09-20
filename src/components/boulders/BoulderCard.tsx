@@ -1,5 +1,5 @@
 import React from 'react';
-import { Boulder, Attempt, Profile, HOLD_COLORS } from '../../types';
+import { Boulder, Attempt, Profile, HOLD_COLORS, getHoldCardStyle, getHoldSwatchStyle } from '../../types';
 import { HoldBadge } from './HoldBadge';
 import { ClimberStatusPills } from './ClimberStatusPills';
 import { Zap, Check, Clock, MessageSquare, ChevronRight, Image as ImageIcon } from 'lucide-react';
@@ -26,10 +26,7 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
   onOpenDetails
 }) => {
   const userAttempt = attempts.find(a => a.user_id === currentUserId);
-  const holdConfig = HOLD_COLORS[boulder.hold_colour] || {
-    name: boulder.hold_colour,
-    hex: '#64748B'
-  };
+  const cardStyle = getHoldCardStyle(boulder.hold_colour);
 
   let statusBadge = (
     <span className="text-[11px] font-semibold text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-700">
@@ -60,12 +57,18 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
   return (
     <div
       onClick={() => onQuickLog(boulder)}
-      className="group relative bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 rounded-2xl p-4 transition-all shadow-md active-press cursor-pointer flex flex-col gap-3 overflow-hidden border-l-[5px]"
+      className="group relative bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 rounded-2xl p-4 transition-all shadow-md active-press cursor-pointer flex flex-col gap-3 overflow-hidden"
       style={{
-        borderLeftColor: holdConfig.hex,
-        background: `linear-gradient(90deg, ${holdConfig.hex}18 0%, rgba(15, 23, 42, 0.95) 26%, rgba(15, 23, 42, 0.92) 100%)`
+        background: cardStyle.gradientBackground
       }}
     >
+      {/* Left colored accent bar (solid color or yellow/black hazard stripes for Bee) */}
+      <div
+        className="absolute left-0 top-0 bottom-0 w-[5px] z-10"
+        style={{
+          background: cardStyle.accentBarBackground
+        }}
+      />
       {/* Top row: Order #, Hold Color & Grade, Current User Status */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 flex-wrap">
@@ -104,8 +107,8 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
               <span className="inline-flex items-center gap-1 text-slate-300 truncate max-w-[140px]">
                 <span className="text-slate-500">←</span>
                 <span
-                  className="w-2 h-2 rounded-full shrink-0 border border-black/30"
-                  style={{ backgroundColor: HOLD_COLORS[boulder.adjacent_prev.hold_colour]?.hex || '#94A3B8' }}
+                  className="w-2.5 h-2.5 rounded-full shrink-0 border border-black/40 shadow-xs"
+                  style={getHoldSwatchStyle(boulder.adjacent_prev.hold_colour)}
                 />
                 <span className="text-slate-200 font-semibold">{boulder.adjacent_prev.hold_colour} {boulder.adjacent_prev.grade}</span>
               </span>
@@ -116,8 +119,8 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
             {boulder.adjacent_next && (
               <span className="inline-flex items-center gap-1 text-slate-300 truncate max-w-[140px]">
                 <span
-                  className="w-2 h-2 rounded-full shrink-0 border border-black/30"
-                  style={{ backgroundColor: HOLD_COLORS[boulder.adjacent_next.hold_colour]?.hex || '#94A3B8' }}
+                  className="w-2.5 h-2.5 rounded-full shrink-0 border border-black/40 shadow-xs"
+                  style={getHoldSwatchStyle(boulder.adjacent_next.hold_colour)}
                 />
                 <span className="text-slate-200 font-semibold">{boulder.adjacent_next.hold_colour} {boulder.adjacent_next.grade}</span>
                 <span className="text-slate-500">→</span>

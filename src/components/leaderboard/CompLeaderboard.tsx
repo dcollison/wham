@@ -477,12 +477,25 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                             >
                               <div className="flex items-center gap-2 min-w-0">
                                 <span
-                                  className={`px-2 py-0.5 rounded-md font-black text-[11px] border ${colorCfg.bgClass} ${colorCfg.textClass} ${colorCfg.borderClass} shrink-0`}
+                                  className={`px-2 py-0.5 rounded-md font-black text-[11px] border shrink-0 ${
+                                    item.boulder.hold_colour.toLowerCase() === 'bee'
+                                      ? 'text-white border-yellow-400'
+                                      : `${colorCfg.bgClass} ${colorCfg.textClass} ${colorCfg.borderClass}`
+                                  }`}
+                                  style={
+                                    item.boulder.hold_colour.toLowerCase() === 'bee'
+                                      ? {
+                                          background: 'repeating-linear-gradient(135deg, #FACC15 0, #FACC15 3px, #18181B 3px, #18181B 6px)',
+                                          textShadow: '0 1px 2px rgba(0,0,0,0.9)'
+                                        }
+                                      : undefined
+                                  }
                                 >
                                   {item.grade}
                                 </span>
-                                <span className="text-slate-200 font-medium truncate text-xs">
-                                  {item.boulder.hold_colour}
+                                <span className="text-slate-200 font-medium truncate text-xs flex items-center gap-1">
+                                  <span>{item.boulder.hold_colour}</span>
+                                  {item.boulder.hold_colour.toLowerCase() === 'bee' && <span>🐝</span>}
                                 </span>
                               </div>
 

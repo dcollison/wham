@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Boulder, Grade, GRADES, HOLD_COLORS, GymArea, BulkAddBoulderItem, BulkAddBouldersParams } from '../../types';
+import { Boulder, Grade, GRADES, HOLD_COLORS, GymArea, BulkAddBoulderItem, BulkAddBouldersParams, getHoldSwatchStyle } from '../../types';
 import { compressImage } from '../../lib/imageCompressor';
 import {
   X,
@@ -464,11 +464,18 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                     >
                       <span
                         className={`w-3 h-3 rounded-full shrink-0 ${
-                          cName.toLowerCase() === 'white' ? 'border border-slate-400' : ''
+                          cName.toLowerCase() === 'white'
+                            ? 'border border-slate-400'
+                            : cName.toLowerCase() === 'bee'
+                            ? 'border border-yellow-400'
+                            : ''
                         }`}
-                        style={{ backgroundColor: cfg.hex }}
+                        style={getHoldSwatchStyle(cName)}
                       />
-                      <span className="truncate text-[11px]">{cName}</span>
+                      <span className="truncate text-[11px] flex items-center gap-0.5">
+                        <span>{cName}</span>
+                        {cName.toLowerCase() === 'bee' && <span>🐝</span>}
+                      </span>
                     </button>
                   );
                 })}
