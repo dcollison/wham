@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Boulder, Attempt, Comment, Profile } from '../../types';
+import { Boulder, Attempt, Comment, Profile, GymArea } from '../../types';
 import { HoldBadge } from './HoldBadge';
 import { ClimberStatusPills } from './ClimberStatusPills';
 import { ClimberAvatar } from '../ClimberAvatar';
@@ -19,8 +19,10 @@ import {
   ExternalLink,
   ChevronLeft,
   ChevronRight,
-  Trash2
+  Trash2,
+  MapPin
 } from 'lucide-react';
+import { useGym } from '../../context/GymContext';
 
 interface BoulderDetailModalProps {
   boulder: Boulder | null;
@@ -30,6 +32,9 @@ interface BoulderDetailModalProps {
   comments: Comment[];
   climbers: Profile[];
   currentUserId?: string;
+  areaName?: string;
+  areas?: GymArea[];
+  gymName?: string;
   onQuickLog: (boulder: Boulder, targetUserId?: string) => void;
   onAddComment: (boulderId: string, content: string) => Promise<void>;
   onDeleteComment?: (commentId: string) => Promise<void>;
@@ -46,6 +51,9 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
   comments,
   climbers,
   currentUserId,
+  areaName,
+  areas,
+  gymName,
   onQuickLog,
   onAddComment,
   onDeleteComment,
@@ -53,11 +61,19 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
   filteredBoulders,
   onNavigateBoulder
 }) => {
+  const { areas: contextAreas, gyms: contextGyms } = useGym();
   const [newComment, setNewComment] = useState<string>('');
   const [submittingComment, setSubmittingComment] = useState<boolean>(false);
   const [photoZoom, setPhotoZoom] = useState<boolean>(false);
 
   if (!isOpen || !boulder) return null;
+
+  const allAreas = areas || contextAreas || [];
+  const allGyms = contextGyms || [];
+  const matchedArea = allAreas.find((a) => a.id === boulder.area_id);
+  const resolvedAreaName = areaName || matchedArea?.name;
+  const matchedGym = allGyms.find((g) => g.id === boulder.gym_id || g.id === matchedArea?.gym_id);
+  const resolvedGymName = gymName || matchedGym?.name;
 
   const boulderComments = useMemo(() => {
     const matching = comments.filter(c => c.boulder_id === boulder.id);
@@ -97,11 +113,20 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
       >
         {/* Sticky Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-900/95 sticky top-0 z-10 gap-2">
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-wrap sm:flex-nowrap">
             <HoldBadge color={boulder.hold_colour} grade={boulder.grade} size="md" />
             <span className="font-mono text-xs text-slate-400 bg-slate-800 px-2 py-0.5 rounded shrink-0">
               #{Math.round(boulder.position_order)}
             </span>
+            {resolvedAreaName && (
+              <span
+                className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-semibold text-slate-300 bg-slate-800/90 px-2 sm:px-2.5 py-0.5 rounded-lg border border-slate-700/70 truncate max-w-[120px] sm:max-w-[180px]"
+                title={`Wall Sector: ${resolvedAreaName}${resolvedGymName ? ` • ${resolvedGymName}` : ''}`}
+              >
+                <MapPin className="w-3 h-3 text-amber-400 shrink-0" />
+                <span className="truncate">{resolvedAreaName}</span>
+              </span>
+            )}
           </div>
 
           {/* Filter navigation strip */}
@@ -232,7 +257,25 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
           {/* Climb Details */}
           <div className="flex flex-col gap-2">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Climb Info</h3>
-            <div className="bg-slate-800/40 rounded-xl p-3 border border-slate-800 space-y-2 text-xs">
+            <div className="bg-slate-800/40 rounded-xl p-3 border border-slate-800 space-y-2.5 text-xs">
+              {/* Sector / Wall Area row */}
+              <div className="flex items-center justify-between text-slate-300 pb-2 border-b border-slate-800/80 text-xs">
+                <span className="text-slate-400 font-medium flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  Sector / Wall:
+                </span>
+                <div className="flex items-center gap-1.5 font-semibold text-slate-200">
+                  <span className="bg-slate-800 px-2 py-0.5 rounded-md border border-slate-700/60 text-slate-100 font-mono text-[11px]">
+                    {resolvedAreaName || 'General Wall'}
+                  </span>
+                  {resolvedGymName && (
+                    <span className="text-[11px] text-slate-400 font-normal">
+                      • {resolvedGymName}
+                    </span>
+                  )}
+                </div>
+              </div>
+
               {boulder.notes && (
                 <div>
                   <span className="text-slate-400 font-medium">Notes / Beta:</span>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Boulder, Attempt, AttemptStatus, determineAttemptStatus, Profile, getHoldSwatchStyle } from '../../types';
+import { Boulder, Attempt, AttemptStatus, determineAttemptStatus, Profile, getHoldSwatchStyle, GymArea } from '../../types';
 import { HoldBadge } from './HoldBadge';
 import { ClimberAvatar } from '../ClimberAvatar';
 import {
@@ -16,8 +16,10 @@ import {
   Users,
   CheckCircle,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  MapPin
 } from 'lucide-react';
+import { useGym } from '../../context/GymContext';
 
 interface QuickLogModalProps {
   boulder: Boulder | null;
@@ -31,6 +33,8 @@ interface QuickLogModalProps {
   attempts: Attempt[];
   filteredBoulders?: Boulder[];
   onNavigateBoulder?: (boulder: Boulder) => void;
+  areaName?: string;
+  areas?: GymArea[];
 }
 
 export const QuickLogModal: React.FC<QuickLogModalProps> = ({
@@ -44,8 +48,11 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
   initialTargetUserId,
   attempts,
   filteredBoulders,
-  onNavigateBoulder
+  onNavigateBoulder,
+  areaName,
+  areas
 }) => {
+  const { areas: contextAreas } = useGym();
   const getTodayIsoDate = () => new Date().toISOString().split('T')[0];
 
   // Active target climber for this log
@@ -93,6 +100,10 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
   }, [selectedUserId, selectedAttempt, boulder, isOpen]);
 
   if (!isOpen || !boulder) return null;
+
+  const allAreas = areas || contextAreas || [];
+  const matchedArea = allAreas.find((a) => a.id === boulder.area_id);
+  const resolvedAreaName = areaName || matchedArea?.name;
 
   // Filter-aware navigation calculations
   const currentIndex = boulder && filteredBoulders ? filteredBoulders.findIndex(b => b.id === boulder.id) : -1;
@@ -182,11 +193,20 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
       >
         {/* Header with Boulder info & Filter Navigation */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-3 gap-2">
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-wrap sm:flex-nowrap">
             <HoldBadge color={boulder.hold_colour} grade={boulder.grade} size="md" />
             <span className="font-mono text-xs text-slate-400 font-bold shrink-0">
               #{Math.round(boulder.position_order)}
             </span>
+            {resolvedAreaName && (
+              <span
+                className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-semibold text-slate-300 bg-slate-800/90 px-2 sm:px-2.5 py-0.5 rounded-lg border border-slate-700/70 truncate max-w-[120px] sm:max-w-[180px]"
+                title={`Wall Sector: ${resolvedAreaName}`}
+              >
+                <MapPin className="w-3 h-3 text-amber-400 shrink-0" />
+                <span className="truncate">{resolvedAreaName}</span>
+              </span>
+            )}
           </div>
 
           {/* Filter-aware navigation strip in header */}

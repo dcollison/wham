@@ -551,6 +551,8 @@ export function App() {
         initialTargetUserId={quickLogTargetUserId}
         attempts={attempts}
         filteredBoulders={visibleBoulders}
+        areas={areas}
+        areaName={areas.find((a) => a.id === quickLogBoulder?.area_id)?.name}
         onNavigateBoulder={(next) => setQuickLogBoulder(next)}
       />
 
@@ -563,6 +565,9 @@ export function App() {
         comments={detailBoulder ? comments.filter((c) => c.boulder_id === detailBoulder.id) : []}
         climbers={climbers}
         currentUserId={currentUser?.id}
+        areas={areas}
+        areaName={areas.find((a) => a.id === detailBoulder?.area_id)?.name}
+        gymName={gyms.find((g) => g.id === detailBoulder?.gym_id)?.name}
         onQuickLog={(b, targetUserId) => handleOpenQuickLog(b, targetUserId)}
         onAddComment={addComment}
         onDeleteComment={deleteComment}

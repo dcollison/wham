@@ -206,6 +206,23 @@ ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS accent_color TEXT,
   ADD COLUMN IF NOT EXISTS avatar_icon TEXT;
 
+-- Drop foreign key constraint to auth.users if present for shared crew profiles
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_id_fkey;
+
+-- Enable Realtime replication for profiles
+ALTER TABLE public.profiles REPLICA IDENTITY FULL;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+      AND schemaname = 'public' 
+      AND tablename = 'profiles'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+  END IF;
+END $$;
+
 -- Send Props table for cross-device reaction sync
 CREATE TABLE IF NOT EXISTS public.send_props (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

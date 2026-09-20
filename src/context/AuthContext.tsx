@@ -47,9 +47,9 @@ function normalizeMutedAccent(color?: string | null): string {
 const CUSTOMIZATIONS_KEY = 'wham_climber_customizations';
 
 export interface ClimberCustomization {
-  accent_color?: string;
-  avatar_icon?: string;
-  display_name?: string;
+  accent_color?: string | null;
+  avatar_icon?: string | null;
+  display_name?: string | null;
   updated_at?: string;
 }
 
@@ -84,34 +84,30 @@ function enrichProfile(
   const custom = customizations[p.id];
   const initialMatch = INITIAL_PROFILES.find((ip) => ip.id === p.id);
 
-  // 1. Accent Color: custom > p.accent_color > initial > palette fallback
+  // 1. Accent Color: remote profile > local customizations cache (for offline/demo) > initial profile > palette fallback
   const rawColor =
-    custom?.accent_color ||
     p.accent_color ||
+    custom?.accent_color ||
     initialMatch?.accent_color ||
     CLIMBER_ACCENT_PALETTE[idx % CLIMBER_ACCENT_PALETTE.length].hex;
   const accent_color = normalizeMutedAccent(rawColor);
 
-  // 2. Avatar Icon: custom > p.avatar_icon > icon: in url > initial icon > 'zap'
+  // 2. Avatar Icon: remote profile icon > avatar_url icon prefix > local customizations > initial icon > 'zap'
   let rawIcon: string | undefined = undefined;
-  if (custom?.avatar_icon) {
-    // Explicit user customization ALWAYS wins
-    rawIcon = custom.avatar_icon;
-  } else if (p.avatar_icon) {
+  if (p.avatar_icon) {
     rawIcon = p.avatar_icon;
   } else if (p.avatar_url?.startsWith('icon:')) {
     rawIcon = p.avatar_url.replace('icon:', '');
-  }
-
-  // Only fallback to initial profile icon if user hasn't explicitly set a custom icon
-  if (!custom?.avatar_icon && (!rawIcon || rawIcon === 'zap') && initialMatch?.avatar_icon && initialMatch.avatar_icon !== 'zap') {
+  } else if (custom?.avatar_icon) {
+    rawIcon = custom.avatar_icon;
+  } else if (initialMatch?.avatar_icon) {
     rawIcon = initialMatch.avatar_icon;
   }
-  const avatar_icon = (rawIcon || initialMatch?.avatar_icon || 'zap').toLowerCase().trim();
+  const avatar_icon = (rawIcon || 'zap').toLowerCase().trim();
   const avatar_url = p.avatar_url?.startsWith('http') ? p.avatar_url : `icon:${avatar_icon}`;
 
-  // 3. Display name: custom > p.display_name
-  const display_name = custom?.display_name || p.display_name;
+  // 3. Display name: remote profile > custom > initialMatch
+  const display_name = p.display_name || custom?.display_name || initialMatch?.display_name || 'Climber';
 
   return {
     ...p,
@@ -190,8 +186,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .order('display_name');
 
           if (!profileErr && remoteProfiles && remoteProfiles.length > 0) {
+            // Synchronize remote values into local storage customizations cache
+            remoteProfiles.forEach((rp) => {
+              if (rp.id) {
+                saveClimberCustomization(rp.id, {
+                  display_name: rp.display_name,
+                  accent_color: rp.accent_color,
+                  avatar_icon: rp.avatar_icon
+                });
+              }
+            });
+
+            const freshCustomizations = getClimberCustomizations();
             const mappedProfiles: Profile[] = remoteProfiles.map((p, idx) =>
-              enrichProfile(p, idx, customizations)
+              enrichProfile(p, idx, freshCustomizations)
             );
             setClimbers(mappedProfiles);
             localStorage.setItem('wham_profiles', JSON.stringify(mappedProfiles));
@@ -248,9 +256,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // In shared crew mode (session is null), do NOT overwrite currentUser with stale closure
           });
 
+          // Setup Realtime subscription for cross-device profile changes
+          const profilesRealtimeChannel = supabase
+            .channel('wham-profiles-sync')
+            .on(
+              'postgres_changes',
+              { event: '*', schema: 'public', table: 'profiles' },
+              (payload) => {
+                if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                  const incoming = payload.new as Profile;
+                  if (!incoming?.id) return;
+
+                  saveClimberCustomization(incoming.id, {
+                    display_name: incoming.display_name,
+                    accent_color: incoming.accent_color,
+                    avatar_icon: incoming.avatar_icon
+                  });
+
+                  const currentCustoms = getClimberCustomizations();
+                  const enriched = enrichProfile(incoming, 0, currentCustoms);
+
+                  setClimbers((prev) => {
+                    const exists = prev.some((c) => c.id === incoming.id);
+                    let nextList: Profile[];
+                    if (exists) {
+                      nextList = prev.map((c) => (c.id === incoming.id ? { ...c, ...enriched } : c));
+                    } else {
+                      nextList = [...prev, enriched];
+                    }
+                    try {
+                      localStorage.setItem('wham_profiles', JSON.stringify(nextList));
+                    } catch (e) {}
+                    return nextList;
+                  });
+
+                  setCurrentUser((prevUser) => {
+                    if (!prevUser || prevUser.id !== incoming.id) return prevUser;
+                    return { ...prevUser, ...enriched };
+                  });
+                } else if (payload.eventType === 'DELETE') {
+                  const deletedId = (payload.old as { id?: string })?.id;
+                  if (!deletedId) return;
+                  setClimbers((prev) => {
+                    const nextList = prev.filter((c) => c.id !== deletedId);
+                    try {
+                      localStorage.setItem('wham_profiles', JSON.stringify(nextList));
+                    } catch (e) {}
+                    return nextList;
+                  });
+                }
+              }
+            )
+            .subscribe();
+
           setLoading(false);
           return () => {
             authListener.subscription.unsubscribe();
+            supabase?.removeChannel(profilesRealtimeChannel);
           };
         } catch (err) {
           console.warn('Supabase auth initialization failed, defaulting to offline demo mode:', err);
@@ -349,11 +411,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .eq('id', profileId)
           .select();
 
-        if (error || !data || data.length === 0) {
-          console.warn('Notice: Supabase profiles update was not persisted remotely (saved locally in browser storage):', error?.message || '0 rows matched RLS.');
+        if (error) {
+          console.error('Notice: Supabase profiles update failed:', error.message);
+          throw new Error(`Supabase sync failed: ${error.message}`);
         }
-      } catch (err) {
+        if (!data || data.length === 0) {
+          console.warn('Notice: Supabase profiles update was not persisted remotely (saved locally in browser storage): 0 rows matched RLS.');
+          throw new Error('Supabase RLS policy blocked updating profile. Run the SQL migration in Supabase SQL Editor.');
+        }
+      } catch (err: any) {
         console.warn('Supabase profile sync error (saved locally):', err);
+        throw err;
       }
     }
   };
@@ -428,24 +496,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (isSupabaseConfigured && supabase) {
       try {
-        await supabase.from('profiles').insert([{
+        const { error: insertErr } = await supabase.from('profiles').insert([{
           id: newProfile.id,
           display_name: newProfile.display_name,
           avatar_url: newProfile.avatar_url,
           avatar_icon: newProfile.avatar_icon,
           accent_color: newProfile.accent_color
         }]);
-      } catch (err) {
-        try {
-          await supabase.from('profiles').insert([{
+        if (insertErr) {
+          console.warn('Notice: Failed to insert new profile with avatar_icon, retrying fallback:', insertErr.message);
+          const { error: retryErr } = await supabase.from('profiles').insert([{
             id: newProfile.id,
             display_name: newProfile.display_name,
             avatar_url: newProfile.avatar_url,
             accent_color: newProfile.accent_color
           }]);
-        } catch (innerErr) {
-          console.warn('Failed to insert new profile to Supabase:', innerErr);
+          if (retryErr) {
+            console.warn('Notice: Fallback profile insert also failed:', retryErr.message);
+          }
         }
+      } catch (err) {
+        console.warn('Failed to insert new profile to Supabase:', err);
       }
     }
 

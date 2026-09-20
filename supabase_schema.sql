@@ -13,13 +13,18 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- 1.1 Profiles table (Climbers)
 CREATE TABLE IF NOT EXISTS public.profiles (
-    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     display_name TEXT NOT NULL,
     avatar_url TEXT,
     avatar_icon TEXT,
     accent_color TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
+
+-- Drop auth.users FK constraint if present to allow shared crew profiles
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_id_fkey;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS accent_color TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avatar_icon TEXT;
 
 -- 1.2 Gyms table
 CREATE TABLE IF NOT EXISTS public.gyms (
@@ -156,7 +161,8 @@ CREATE POLICY "Public can insert profiles"
 CREATE POLICY "Public can update profiles"
     ON public.profiles FOR UPDATE
     TO public
-    USING (true);
+    USING (true)
+    WITH CHECK (true);
 
 -- 4.2 Gyms policies
 CREATE POLICY "Public can view gyms"
@@ -323,6 +329,8 @@ CREATE POLICY "Public can delete boulder-photos"
 -- =========================================================
 -- 6. REALTIME REPLICATION ENABLEMENT
 -- =========================================================
+ALTER TABLE public.profiles REPLICA IDENTITY FULL;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.boulders;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.attempts;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.comments;
