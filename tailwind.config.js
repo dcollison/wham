@@ -9,16 +9,16 @@ export default {
     extend: {
       colors: {
         wham: {
-          bg: '#0F172A',
-          card: '#1E293B',
-          surface: '#334155',
-          accent: '#F59E0B',
-          yellow: '#FACC15',
-          green: '#10B981',
-          blue: '#3B82F6',
-          red: '#EF4444',
-          purple: '#8B5CF6',
-          pink: '#EC4899',
+          bg: '#0B0F19',
+          card: '#151D2F',
+          surface: '#222F49',
+          accent: '#E2A336',
+          yellow: '#E5B83B',
+          green: '#32A378',
+          blue: '#4682D7',
+          red: '#D85454',
+          purple: '#8B6BD6',
+          pink: '#D45C8E',
         }
       },
       fontFamily: {

@@ -194,6 +194,10 @@ wham-app/
 6. **`public.comments`**:
    - `id` (UUID, PK), `boulder_id` (UUID), `user_id` (UUID)
    - `content` (TEXT), `created_at` (TIMESTAMPTZ)
+7. **`public.send_props`**:
+   - `id` (UUID, PK), `attempt_id` (UUID, FK attempts), `user_id` (UUID, FK profiles)
+   - `created_at` (TIMESTAMPTZ)
+   - Unique constraint on `(attempt_id, user_id)`
 
 ### Idempotent Schema Migration
 If provisioning a new Supabase environment or verifying database integrity:
@@ -201,6 +205,25 @@ If provisioning a new Supabase environment or verifying database integrity:
 ALTER TABLE public.profiles 
   ADD COLUMN IF NOT EXISTS accent_color TEXT,
   ADD COLUMN IF NOT EXISTS avatar_icon TEXT;
+
+-- Send Props table for cross-device reaction sync
+CREATE TABLE IF NOT EXISTS public.send_props (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    attempt_id UUID NOT NULL REFERENCES public.attempts(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    CONSTRAINT unique_attempt_user_prop UNIQUE (attempt_id, user_id)
+);
+
+ALTER TABLE public.send_props ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.send_props REPLICA IDENTITY FULL;
+
+CREATE INDEX IF NOT EXISTS idx_send_props_attempt ON public.send_props(attempt_id);
+CREATE INDEX IF NOT EXISTS idx_send_props_user ON public.send_props(user_id);
+
+CREATE POLICY "Public can view all props" ON public.send_props FOR SELECT TO public USING (true);
+CREATE POLICY "Public can insert props" ON public.send_props FOR INSERT TO public WITH CHECK (true);
+CREATE POLICY "Public can delete props" ON public.send_props FOR DELETE TO public USING (true);
 
 -- Drop legacy restrictive authenticated-only policies
 DROP POLICY IF EXISTS "Users can insert their own attempts" ON public.attempts;

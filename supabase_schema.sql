@@ -139,6 +139,7 @@ ALTER TABLE public.boulders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.attempts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.send_props ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.send_props REPLICA IDENTITY FULL;
 
 -- 4.1 Profiles policies
 CREATE POLICY "Public can read all profiles"

@@ -32,10 +32,10 @@ END $$;
 
 INSERT INTO public.profiles (id, display_name, avatar_url, avatar_icon, accent_color)
 VALUES
-    ('a0000000-0000-0000-0000-000000000001', 'Alex', 'https://api.dicebear.com/7.x/bottts/svg?seed=Alex&backgroundColor=ffb703', 'zap', '#F59E0B'),
-    ('a0000000-0000-0000-0000-000000000002', 'Dale', 'https://api.dicebear.com/7.x/bottts/svg?seed=Dale&backgroundColor=fb8500', 'flame', '#F97316'),
-    ('a0000000-0000-0000-0000-000000000003', 'Taiye', 'https://api.dicebear.com/7.x/bottts/svg?seed=Taiye&backgroundColor=219ebc', 'mountain', '#06B6D4'),
-    ('a0000000-0000-0000-0000-000000000004', 'Euan', 'https://api.dicebear.com/7.x/bottts/svg?seed=Euan&backgroundColor=023047', 'crown', '#8B5CF6')
+    ('a0000000-0000-0000-0000-000000000001', 'Alex', 'https://api.dicebear.com/7.x/bottts/svg?seed=Alex&backgroundColor=ffb703', 'zap', '#E2A336'),
+    ('a0000000-0000-0000-0000-000000000002', 'Dale', 'https://api.dicebear.com/7.x/bottts/svg?seed=Dale&backgroundColor=fb8500', 'flame', '#E07638'),
+    ('a0000000-0000-0000-0000-000000000003', 'Taiye', 'https://api.dicebear.com/7.x/bottts/svg?seed=Taiye&backgroundColor=219ebc', 'mountain', '#2BB3C7'),
+    ('a0000000-0000-0000-0000-000000000004', 'Euan', 'https://api.dicebear.com/7.x/bottts/svg?seed=Euan&backgroundColor=023047', 'crown', '#8B6BD6')
 ON CONFLICT (id) DO UPDATE SET display_name = EXCLUDED.display_name, avatar_icon = EXCLUDED.avatar_icon, accent_color = EXCLUDED.accent_color;
 
 INSERT INTO public.gyms (id, name)

@@ -60,7 +60,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
         particleCount: 25,
         spread: 45,
         origin: { y: 0.8 },
-        colors: [activeColor, '#FACC15', '#EF4444']
+        colors: [activeColor, '#E5B83B', '#D85454']
       });
     }
     await toggleProp(attemptId, userId);

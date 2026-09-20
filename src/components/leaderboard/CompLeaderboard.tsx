@@ -506,7 +506,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                                   style={
                                     item.boulder.hold_colour.toLowerCase() === 'bee'
                                       ? {
-                                          background: 'repeating-linear-gradient(135deg, #FACC15 0, #FACC15 3px, #18181B 3px, #18181B 6px)',
+                                          background: 'repeating-linear-gradient(135deg, #DDA82B 0, #DDA82B 3px, #27272A 3px, #27272A 6px)',
                                           textShadow: '0 1px 2px rgba(0,0,0,0.9)'
                                         }
                                       : undefined

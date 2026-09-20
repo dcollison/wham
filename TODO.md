@@ -1,3 +1,3 @@
-- [x] Adding a beta comment results in the same comment being added twice.
-- [x] When adding a beta comment from the beta spray tab, the new comment does not appear at the top of the list, and the rest of the list seems to temporarily duplicate until you click off and on it again.
-- [x] It should be possible to delete comments
+- [x] All the colours are maybe a bit too saturated for a dark mode app, please mute the colours slightly
+- [x] The props still arent synced across devices
+- [x] Add a simple passcode that can be used to stop anyone from accessing the site - it can be front end only, stored in localStorage so users dont have to enter the PIN every time. Set to pin to 2338.

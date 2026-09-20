@@ -209,8 +209,16 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const climbersRef = useRef(climbers);
+  useEffect(() => {
+    climbersRef.current = climbers;
+  }, [climbers]);
+
   // Sync with Supabase or fallback to LocalStorage
   useEffect(() => {
+    let channel: any = null;
+    let isMounted = true;
+
     async function fetchData() {
       if (!isSupabaseConfigured || !supabase) {
         setLoading(false);
@@ -219,13 +227,16 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       try {
         setLoading(true);
-        const [gymsRes, areasRes, bouldersRes, attemptsRes, commentsRes] = await Promise.all([
+        const [gymsRes, areasRes, bouldersRes, attemptsRes, commentsRes, propsRes] = await Promise.all([
           supabase.from('gyms').select('*').order('name'),
           supabase.from('gym_areas').select('*').order('sort_order'),
           supabase.from('boulders').select('*').order('position_order'),
           supabase.from('attempts').select('*, profile:profiles(*)'),
-          supabase.from('comments').select('*, profile:profiles(*)').order('created_at', { ascending: true })
+          supabase.from('comments').select('*, profile:profiles(*)').order('created_at', { ascending: true }),
+          supabase.from('send_props').select('attempt_id, user_id')
         ]);
+
+        if (!isMounted) return;
 
         if (gymsRes.data && gymsRes.data.length > 0) setGyms(gymsRes.data);
         if (areasRes.data && areasRes.data.length > 0) setAreas(areasRes.data);
@@ -233,34 +244,24 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (attemptsRes.data && attemptsRes.data.length > 0) setAttempts(attemptsRes.data);
         if (commentsRes.data && commentsRes.data.length > 0) setComments(commentsRes.data);
 
-        // Fetch send_props if table exists
-        try {
-          const { data: propsData, error: propsErr } = await supabase
-            .from('send_props')
-            .select('attempt_id, user_id');
-          if (!propsErr && Array.isArray(propsData)) {
-            const remoteMap: Record<string, string[]> = {};
-            for (const row of propsData) {
-              if (!remoteMap[row.attempt_id]) remoteMap[row.attempt_id] = [];
-              if (!remoteMap[row.attempt_id].includes(row.user_id)) {
-                remoteMap[row.attempt_id].push(row.user_id);
-              }
+        if (!propsRes.error && Array.isArray(propsRes.data)) {
+          const remoteMap: Record<string, string[]> = {};
+          for (const row of propsRes.data) {
+            if (!remoteMap[row.attempt_id]) remoteMap[row.attempt_id] = [];
+            if (!remoteMap[row.attempt_id].includes(row.user_id)) {
+              remoteMap[row.attempt_id].push(row.user_id);
             }
-            setPropsMap(prev => {
-              const merged = { ...prev };
-              for (const [attId, uIds] of Object.entries(remoteMap)) {
-                merged[attId] = Array.from(new Set([...(merged[attId] || []), ...uIds]));
-              }
-              return merged;
-            });
           }
-        } catch {
-          // Table may not exist yet
+          setPropsMap(remoteMap);
         }
 
         // Setup real-time subscriptions
-        const channel = supabase
-          .channel('wham-realtime')
+        channel = supabase
+          .channel('wham-realtime', {
+            config: {
+              broadcast: { ack: true }
+            }
+          })
           .on('broadcast', { event: 'prop_toggled' }, ({ payload }) => {
             if (!payload?.attemptId || !payload?.userId) return;
             const { attemptId, userId, action } = payload;
@@ -300,14 +301,14 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             } else if (payload.eventType === 'UPDATE') {
               setBoulders(prev => prev.map(b => b.id === payload.new.id ? { ...b, ...payload.new } : b));
             } else if (payload.eventType === 'DELETE') {
-              setBoulders(prev => prev.filter(b => b.id === payload.old.id));
+              setBoulders(prev => prev.filter(b => b.id !== payload.old.id));
             }
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'attempts' }, (payload) => {
             if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
               const incoming = payload.new as Attempt;
               setAttempts(prev => {
-                const targetClimber = climbers.find(c => c.id === incoming.user_id);
+                const targetClimber = climbersRef.current.find(c => c.id === incoming.user_id);
                 const enriched: Attempt = {
                   ...incoming,
                   profile: targetClimber || undefined
@@ -332,7 +333,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 // Ignore if already present
                 if (prev.some(c => c.id === newComm.id)) return prev;
 
-                const authorProfile = climbers.find(cl => cl.id === newComm.user_id);
+                const authorProfile = climbersRef.current.find(cl => cl.id === newComm.user_id);
                 const commentWithProfile: Comment = {
                   ...newComm,
                   profile: authorProfile || newComm.profile
@@ -358,23 +359,30 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               setComments(prev => prev.filter(c => c.id !== payload.old.id));
             }
           })
-          .subscribe();
+          .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+              channelRef.current = channel;
+            }
+          });
 
         channelRef.current = channel;
-
-        return () => {
-          channelRef.current = null;
-          supabase?.removeChannel(channel);
-        };
       } catch (err) {
         console.error('Error fetching Supabase data:', err);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     }
 
     fetchData();
-  }, [climbers]);
+
+    return () => {
+      isMounted = false;
+      channelRef.current = null;
+      if (channel) {
+        supabase?.removeChannel(channel);
+      }
+    };
+  }, []);
 
   // Multi-device sync: poll periodically and re-fetch when tab becomes visible or receives window focus
   useEffect(() => {
@@ -403,16 +411,10 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               remoteMap[row.attempt_id].push(row.user_id);
             }
           }
-          setPropsMap(prev => {
-            const merged = { ...prev };
-            for (const [attId, uIds] of Object.entries(remoteMap)) {
-              merged[attId] = Array.from(new Set([...(merged[attId] || []), ...uIds]));
-            }
-            return merged;
-          });
+          setPropsMap(remoteMap);
         }
       } catch (err) {
-        console.warn('Background sync error:', err);
+        console.warn('Silent sync poll warning:', err);
       }
     };
 
@@ -433,7 +435,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearInterval(interval);
     };
-  }, [climbers]);
+  }, []);
 
   // Save to localStorage whenever state changes (for offline/demo mode)
   useEffect(() => {
@@ -509,7 +511,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!targetUserId) return;
 
     const targetClimber = climbers.find(c => c.id === targetUserId) || (targetUserId === currentUser?.id ? currentUser : null);
-    const accentColor = targetClimber?.accent_color || '#FACC15';
+    const accentColor = targetClimber?.accent_color || '#E2A336';
 
     // Trigger celebration confetti on Flash or Send using climber's accent colour!
     if (status === 'flashed') {
@@ -517,14 +519,14 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         particleCount: 80,
         spread: 70,
         origin: { y: 0.7 },
-        colors: [accentColor, '#F59E0B', '#EF4444', '#10B981']
+        colors: [accentColor, '#E2A336', '#D85454', '#32A378']
       });
     } else if (status === 'sent') {
       confetti({
         particleCount: 50,
         spread: 50,
         origin: { y: 0.7 },
-        colors: [accentColor, '#10B981', '#3B82F6']
+        colors: [accentColor, '#32A378', '#4682D7']
       });
     }
 
@@ -769,7 +771,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       particleCount: 70,
       spread: 60,
       origin: { y: 0.6 },
-      colors: ['#F59E0B', '#10B981', '#3B82F6', '#EC4899']
+      colors: ['#E2A336', '#32A378', '#4682D7', '#D45C8E']
     });
 
     // Sync to Supabase
@@ -930,15 +932,20 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (isSupabaseConfigured && supabase) {
       // 1. Instant WebSocket broadcast across all open clients/tabs
       try {
-        channelRef.current?.send({
-          type: 'broadcast',
-          event: 'prop_toggled',
-          payload: {
-            attemptId,
-            userId,
-            action: willBePropped ? 'add' : 'remove'
+        if (channelRef.current) {
+          const res = await channelRef.current.send({
+            type: 'broadcast',
+            event: 'prop_toggled',
+            payload: {
+              attemptId,
+              userId,
+              action: willBePropped ? 'add' : 'remove'
+            }
+          });
+          if (res !== 'ok') {
+            console.warn('Realtime prop broadcast status:', res);
           }
-        });
+        }
       } catch (broadcastErr) {
         console.warn('Realtime prop broadcast warning:', broadcastErr);
       }
@@ -946,15 +953,21 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // 2. Persist to database table if available
       try {
         if (willBePropped) {
-          await supabase.from('send_props').insert({
+          const { error } = await supabase.from('send_props').insert({
             attempt_id: attemptId,
             user_id: userId
           });
+          if (error) {
+            console.warn('Supabase send_props insert error:', error.message);
+          }
         } else {
-          await supabase.from('send_props').delete().match({
+          const { error } = await supabase.from('send_props').delete().match({
             attempt_id: attemptId,
             user_id: userId
           });
+          if (error) {
+            console.warn('Supabase send_props delete error:', error.message);
+          }
         }
       } catch (dbErr) {
         // Table may not exist yet if user hasn't run the migration

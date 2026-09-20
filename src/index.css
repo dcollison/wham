@@ -7,8 +7,8 @@
     --color-bg: #0b0f19;
     --color-card: #151d2f;
     --color-border: #222f49;
-    --color-accent: #f59e0b;
-    --wham-accent: #f59e0b;
+    --color-accent: #e2a336;
+    --wham-accent: #e2a336;
   }
 
   body {
@@ -67,4 +67,21 @@
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}
+.animate-shake {
+  animation: shake 0.35s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out forwards;
 }

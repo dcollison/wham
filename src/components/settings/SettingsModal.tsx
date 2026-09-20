@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Profile, CLIMBER_ACCENT_PALETTE, CLIMBER_ICONS, getClimberColor } from '../../types';
 import { ClimberAvatar, CLIMBER_ICON_COMPONENTS } from '../ClimberAvatar';
-import { Users, UserPlus, X, Check, Trash2, Palette, Sparkles, Smile, Info } from 'lucide-react';
+import { Users, UserPlus, X, Check, Trash2, Palette, Sparkles, Smile, Info, Lock } from 'lucide-react';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -14,6 +14,7 @@ interface SettingsModalProps {
   onUpdateAvatarIcon: (avatarIcon: string) => Promise<void>;
   onAddClimber: (name: string, avatarUrl?: string, accentColor?: string, avatarIcon?: string) => Promise<Profile>;
   onRemoveClimber?: (profileId: string) => Promise<void>;
+  onLockApp?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -26,7 +27,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onUpdateAccentColor,
   onUpdateAvatarIcon,
   onAddClimber,
-  onRemoveClimber
+  onRemoveClimber,
+  onLockApp
 }) => {
   const activeColor = currentUser?.accent_color || '#3B82F6';
   const activeIcon =
@@ -38,7 +40,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [displayName, setDisplayName] = useState<string>(currentUser?.display_name || '');
   const [isAddingClimber, setIsAddingClimber] = useState<boolean>(false);
   const [newClimberName, setNewClimberName] = useState<string>('');
-  const [newClimberColor, setNewClimberColor] = useState<string>('#10B981');
+  const [newClimberColor, setNewClimberColor] = useState<string>('#32A378');
   const [newClimberIcon, setNewClimberIcon] = useState<string>('zap');
   const [savedStatus, setSavedStatus] = useState<string | null>(null);
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
@@ -55,7 +57,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     if (isAddingClimber) {
       const existingColors = new Set(climbers.map((c) => c.accent_color?.toLowerCase()).filter(Boolean));
       const nextColor =
-        CLIMBER_ACCENT_PALETTE.find((c) => !existingColors.has(c.hex.toLowerCase()))?.hex || '#10B981';
+        CLIMBER_ACCENT_PALETTE.find((c) => !existingColors.has(c.hex.toLowerCase()))?.hex || '#32A378';
       setNewClimberColor(nextColor);
     }
   }, [isAddingClimber, climbers]);
@@ -549,6 +551,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <strong className="text-slate-300">Tip:</strong> Tap any climber above to instantly switch accounts and log climbs. Your selected accent colour highlights your personal progress on comparison charts and timeline graphs.
           </span>
         </div>
+
+        {/* Passcode Security & Lock App */}
+        {onLockApp && (
+          <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between gap-3">
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-amber-400" />
+                Crew Passcode Lock
+              </span>
+              <span className="text-[11px] text-slate-500">Lock app to require PIN 2338 next time</span>
+            </div>
+            <button
+              type="button"
+              onClick={onLockApp}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 active-press transition-colors shrink-0 shadow-sm"
+            >
+              Lock Now
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

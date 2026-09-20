@@ -47,7 +47,7 @@ interface WhamBadgeProps {
 export const WhamBadge: React.FC<WhamBadgeProps> = ({
   className = '',
   size = 'md',
-  badgeColor = '#06B6D4',
+  badgeColor = '#2BB3C7',
   logoColor = '#000000',
   shadow = true
 }) => {
@@ -82,7 +82,7 @@ export const WhamBadge: React.FC<WhamBadgeProps> = ({
  * Returns a data URI for an SVG favicon rendered in the specified accent color.
  */
 export function getWhamFaviconSvg(accentColor: string): string {
-  const safeColor = encodeURIComponent(accentColor || '#06B6D4');
+  const safeColor = encodeURIComponent(accentColor || '#2BB3C7');
   return `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='18' fill='${safeColor}'/><path d='M9 15H19L28 37L32 27L36 37L45 15H55L43 51H35L32 43L29 51H21Z' fill='%23000000'/></svg>`;
 }
 

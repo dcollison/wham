@@ -2011,7 +2011,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                                       y={plotBottom - totalH}
                                       width={barWidth}
                                       height={sendH}
-                                      fill="#10B981"
+                                      fill="#32A378"
                                       rx="4"
                                     />
                                   )}
@@ -2021,7 +2021,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                                       y={plotBottom - flashH}
                                       width={barWidth}
                                       height={flashH}
-                                      fill="#F59E0B"
+                                      fill="#E2A336"
                                       rx="4"
                                     />
                                   )}

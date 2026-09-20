@@ -21,6 +21,27 @@ interface AuthContextType {
   removeClimber: (profileId: string) => Promise<void>;
 }
 
+const COLOR_MIGRATION_MAP: Record<string, string> = {
+  '#f59e0b': '#E2A336', // Amber
+  '#f97316': '#E07638', // Orange
+  '#06b6d4': '#2BB3C7', // Cyan
+  '#8b5cf6': '#8B6BD6', // Purple
+  '#f43f5e': '#D85470', // Rose
+  '#10b981': '#32A378', // Emerald
+  '#3b82f6': '#4682D7', // Blue
+  '#84cc16': '#7CA832', // Lime
+  '#ec4899': '#D45C8E', // Pink
+  '#6366f1': '#686BD6', // Indigo
+  '#14b8a6': '#2AA698', // Teal
+  '#ef4444': '#D85454', // Red
+};
+
+function normalizeMutedAccent(color?: string | null): string {
+  if (!color) return CLIMBER_ACCENT_PALETTE[0].hex;
+  const lower = color.toLowerCase();
+  return COLOR_MIGRATION_MAP[lower] || color;
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -32,7 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (Array.isArray(raw) && raw.length > 0) {
           return raw.map((c: Profile, idx: number) => ({
             ...c,
-            accent_color: c.accent_color || CLIMBER_ACCENT_PALETTE[idx % CLIMBER_ACCENT_PALETTE.length].hex
+            accent_color: normalizeMutedAccent(c.accent_color || CLIMBER_ACCENT_PALETTE[idx % CLIMBER_ACCENT_PALETTE.length].hex)
           }));
         }
       }
@@ -52,11 +73,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (found) {
           return {
             ...found,
-            accent_color: found.accent_color || CLIMBER_ACCENT_PALETTE[0].hex
+            accent_color: normalizeMutedAccent(found.accent_color || CLIMBER_ACCENT_PALETTE[0].hex)
           };
         }
       }
-      return list[0] || null;
+      return list[0] ? { ...list[0], accent_color: normalizeMutedAccent(list[0].accent_color) } : null;
     } catch {
       return INITIAL_PROFILES[0] || null;
     }
@@ -67,7 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Dynamically update CSS custom properties and browser favicon to match active user
   useEffect(() => {
-    const accent = currentUser?.accent_color || '#3B82F6';
+    const accent = normalizeMutedAccent(currentUser?.accent_color);
     document.documentElement.style.setProperty('--color-accent', accent);
     document.documentElement.style.setProperty('--wham-accent', accent);
     updateWhamFavicon(accent);
@@ -96,7 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const mappedProfiles: Profile[] = remoteProfiles.map((p, idx) => ({
               ...p,
               avatar_icon: p.avatar_icon || (p.avatar_url?.startsWith('icon:') ? p.avatar_url.replace('icon:', '') : null),
-              accent_color: p.accent_color || CLIMBER_ACCENT_PALETTE[idx % CLIMBER_ACCENT_PALETTE.length].hex
+              accent_color: normalizeMutedAccent(p.accent_color || CLIMBER_ACCENT_PALETTE[idx % CLIMBER_ACCENT_PALETTE.length].hex)
             }));
             setClimbers(mappedProfiles);
           }
@@ -107,7 +128,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (profile) {
               setCurrentUser({
                 ...profile,
-                accent_color: profile.accent_color || CLIMBER_ACCENT_PALETTE[0].hex
+                accent_color: normalizeMutedAccent(profile.accent_color || CLIMBER_ACCENT_PALETTE[0].hex)
               });
             } else {
               // Auto create/fetch profile if trigger hadn't fired yet
@@ -118,7 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                               session.user.email?.split('@')[0] ||
                               'Climber',
                 avatar_url: session.user.user_metadata?.avatar_url || null,
-                accent_color: CLIMBER_ACCENT_PALETTE[0].hex
+                accent_color: normalizeMutedAccent(CLIMBER_ACCENT_PALETTE[0].hex)
               };
               setCurrentUser(fallbackProfile);
             }

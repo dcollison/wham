@@ -130,26 +130,26 @@ export interface HoldColorConfig {
 }
 
 export const HOLD_COLORS: Record<string, HoldColorConfig> = {
-  Yellow: { name: 'Yellow', bgClass: 'bg-amber-400', textClass: 'text-amber-950', borderClass: 'border-amber-500', hex: '#FACC15' },
-  Mint: { name: 'Mint', bgClass: 'bg-emerald-300', textClass: 'text-emerald-950', borderClass: 'border-emerald-400', hex: '#6EE7B7' },
-  Green: { name: 'Green', bgClass: 'bg-green-600', textClass: 'text-white', borderClass: 'border-green-700', hex: '#16A34A' },
-  Orange: { name: 'Orange', bgClass: 'bg-orange-500', textClass: 'text-white', borderClass: 'border-orange-600', hex: '#F97316' },
-  Blue: { name: 'Blue', bgClass: 'bg-blue-600', textClass: 'text-white', borderClass: 'border-blue-700', hex: '#2563EB' },
-  Purple: { name: 'Purple', bgClass: 'bg-purple-600', textClass: 'text-white', borderClass: 'border-purple-700', hex: '#9333EA' },
-  Red: { name: 'Red', bgClass: 'bg-red-600', textClass: 'text-white', borderClass: 'border-red-700', hex: '#DC2626' },
-  Pink: { name: 'Pink', bgClass: 'bg-pink-500', textClass: 'text-white', borderClass: 'border-pink-600', hex: '#EC4899' },
-  Black: { name: 'Black', bgClass: 'bg-zinc-900', textClass: 'text-white', borderClass: 'border-zinc-700', hex: '#18181B' },
-  White: { name: 'White', bgClass: 'bg-slate-100', textClass: 'text-slate-900', borderClass: 'border-slate-300', hex: '#F1F5F9' },
+  Yellow: { name: 'Yellow', bgClass: 'bg-amber-400', textClass: 'text-amber-950', borderClass: 'border-amber-500', hex: '#E5B83B' },
+  Mint: { name: 'Mint', bgClass: 'bg-emerald-300', textClass: 'text-emerald-950', borderClass: 'border-emerald-400', hex: '#5ECE9D' },
+  Green: { name: 'Green', bgClass: 'bg-green-600', textClass: 'text-white', borderClass: 'border-green-700', hex: '#32A378' },
+  Orange: { name: 'Orange', bgClass: 'bg-orange-500', textClass: 'text-white', borderClass: 'border-orange-600', hex: '#E07638' },
+  Blue: { name: 'Blue', bgClass: 'bg-blue-600', textClass: 'text-white', borderClass: 'border-blue-700', hex: '#4682D7' },
+  Purple: { name: 'Purple', bgClass: 'bg-purple-600', textClass: 'text-white', borderClass: 'border-purple-700', hex: '#8B6BD6' },
+  Red: { name: 'Red', bgClass: 'bg-red-600', textClass: 'text-white', borderClass: 'border-red-700', hex: '#D85454' },
+  Pink: { name: 'Pink', bgClass: 'bg-pink-500', textClass: 'text-white', borderClass: 'border-pink-600', hex: '#D45C8E' },
+  Black: { name: 'Black', bgClass: 'bg-zinc-900', textClass: 'text-white', borderClass: 'border-zinc-700', hex: '#27272A' },
+  White: { name: 'White', bgClass: 'bg-slate-100', textClass: 'text-slate-900', borderClass: 'border-slate-300', hex: '#E2E8F0' },
   Bee: {
     name: 'Bee',
     bgClass: 'bg-yellow-400',
     textClass: 'text-black',
     borderClass: 'border-zinc-900',
-    hex: '#EAB308',
+    hex: '#DDA82B',
     isBee: true,
     isStriped: true
   },
-  Wood: { name: 'Wood', bgClass: 'bg-amber-800', textClass: 'text-white', borderClass: 'border-amber-900', hex: '#92400E' }
+  Wood: { name: 'Wood', bgClass: 'bg-amber-800', textClass: 'text-white', borderClass: 'border-amber-900', hex: '#8C4E26' }
 };
 
 /**
@@ -160,7 +160,7 @@ export function getHoldSwatchStyle(colorName: string): React.CSSProperties {
   const isBee = colorName.toLowerCase() === 'bee';
   if (isBee) {
     return {
-      background: 'repeating-linear-gradient(135deg, #FACC15 0, #FACC15 2.5px, #18181B 2.5px, #18181B 5px)'
+      background: 'repeating-linear-gradient(135deg, #DDA82B 0, #DDA82B 2.5px, #27272A 2.5px, #27272A 5px)'
     };
   }
   const config = HOLD_COLORS[colorName];
@@ -183,12 +183,12 @@ export function getHoldCardStyle(colorName: string): {
   const isBee = colorName.toLowerCase() === 'bee';
   if (isBee) {
     return {
-      accentBarBackground: 'repeating-linear-gradient(180deg, #FACC15 0px, #FACC15 8px, #18181B 8px, #18181B 16px)',
-      gradientBackground: 'linear-gradient(90deg, rgba(250, 204, 21, 0.2) 0%, rgba(24, 24, 27, 0.45) 12%, rgba(15, 23, 42, 0.95) 26%, rgba(15, 23, 42, 0.92) 100%)',
-      borderLeftColor: '#FACC15',
-      badgeBackground: 'linear-gradient(135deg, rgba(250, 204, 21, 0.22) 0%, rgba(24, 24, 27, 0.6) 100%)',
-      badgeBorderColor: '#EAB308',
-      hex: '#EAB308'
+      accentBarBackground: 'repeating-linear-gradient(180deg, #DDA82B 0px, #DDA82B 8px, #27272A 8px, #27272A 16px)',
+      gradientBackground: 'linear-gradient(90deg, rgba(221, 168, 43, 0.15) 0%, rgba(39, 39, 42, 0.4) 12%, rgba(15, 23, 42, 0.95) 26%, rgba(15, 23, 42, 0.92) 100%)',
+      borderLeftColor: '#DDA82B',
+      badgeBackground: 'linear-gradient(135deg, rgba(221, 168, 43, 0.16) 0%, rgba(39, 39, 42, 0.5) 100%)',
+      badgeBorderColor: '#DDA82B',
+      hex: '#DDA82B'
     };
   }
 
@@ -196,10 +196,10 @@ export function getHoldCardStyle(colorName: string): {
   const hex = config.hex;
   return {
     accentBarBackground: hex,
-    gradientBackground: `linear-gradient(90deg, ${hex}18 0%, rgba(15, 23, 42, 0.95) 26%, rgba(15, 23, 42, 0.92) 100%)`,
+    gradientBackground: `linear-gradient(90deg, ${hex}14 0%, rgba(15, 23, 42, 0.95) 26%, rgba(15, 23, 42, 0.92) 100%)`,
     borderLeftColor: hex,
-    badgeBackground: `${hex}16`,
-    badgeBorderColor: `${hex}50`,
+    badgeBackground: `${hex}12`,
+    badgeBorderColor: `${hex}40`,
     hex
   };
 }
@@ -227,18 +227,18 @@ export interface ClimberColorConfig {
 }
 
 export const CLIMBER_ACCENT_PALETTE: ClimberColorConfig[] = [
-  { name: 'Amber', bg: 'bg-amber-400', text: 'text-amber-400', hex: '#F59E0B', border: 'border-amber-400', ring: 'ring-amber-400', badgeBg: 'bg-amber-400/20' },
-  { name: 'Orange', bg: 'bg-orange-500', text: 'text-orange-400', hex: '#F97316', border: 'border-orange-500', ring: 'ring-orange-500', badgeBg: 'bg-orange-500/20' },
-  { name: 'Cyan', bg: 'bg-cyan-500', text: 'text-cyan-400', hex: '#06B6D4', border: 'border-cyan-500', ring: 'ring-cyan-500', badgeBg: 'bg-cyan-500/20' },
-  { name: 'Purple', bg: 'bg-purple-500', text: 'text-purple-400', hex: '#8B5CF6', border: 'border-purple-500', ring: 'ring-purple-500', badgeBg: 'bg-purple-500/20' },
-  { name: 'Rose', bg: 'bg-rose-500', text: 'text-rose-400', hex: '#F43F5E', border: 'border-rose-500', ring: 'ring-rose-500', badgeBg: 'bg-rose-500/20' },
-  { name: 'Emerald', bg: 'bg-emerald-500', text: 'text-emerald-400', hex: '#10B981', border: 'border-emerald-500', ring: 'ring-emerald-500', badgeBg: 'bg-emerald-500/20' },
-  { name: 'Blue', bg: 'bg-blue-500', text: 'text-blue-400', hex: '#3B82F6', border: 'border-blue-500', ring: 'ring-blue-500', badgeBg: 'bg-blue-500/20' },
-  { name: 'Lime', bg: 'bg-lime-500', text: 'text-lime-400', hex: '#84CC16', border: 'border-lime-500', ring: 'ring-lime-500', badgeBg: 'bg-lime-500/20' },
-  { name: 'Pink', bg: 'bg-pink-500', text: 'text-pink-400', hex: '#EC4899', border: 'border-pink-500', ring: 'ring-pink-500', badgeBg: 'bg-pink-500/20' },
-  { name: 'Indigo', bg: 'bg-indigo-500', text: 'text-indigo-400', hex: '#6366F1', border: 'border-indigo-500', ring: 'ring-indigo-500', badgeBg: 'bg-indigo-500/20' },
-  { name: 'Teal', bg: 'bg-teal-500', text: 'text-teal-400', hex: '#14B8A6', border: 'border-teal-500', ring: 'ring-teal-500', badgeBg: 'bg-teal-500/20' },
-  { name: 'Red', bg: 'bg-red-600', text: 'text-red-400', hex: '#EF4444', border: 'border-red-600', ring: 'ring-red-600', badgeBg: 'bg-red-500/20' }
+  { name: 'Amber', bg: 'bg-amber-400/90', text: 'text-amber-300', hex: '#E2A336', border: 'border-amber-400/80', ring: 'ring-amber-400/80', badgeBg: 'bg-amber-400/15' },
+  { name: 'Orange', bg: 'bg-orange-400', text: 'text-orange-300', hex: '#E07638', border: 'border-orange-400/80', ring: 'ring-orange-400/80', badgeBg: 'bg-orange-400/15' },
+  { name: 'Cyan', bg: 'bg-cyan-400', text: 'text-cyan-300', hex: '#2BB3C7', border: 'border-cyan-400/80', ring: 'ring-cyan-400/80', badgeBg: 'bg-cyan-400/15' },
+  { name: 'Purple', bg: 'bg-purple-400', text: 'text-purple-300', hex: '#8B6BD6', border: 'border-purple-400/80', ring: 'ring-purple-400/80', badgeBg: 'bg-purple-400/15' },
+  { name: 'Rose', bg: 'bg-rose-400', text: 'text-rose-300', hex: '#D85470', border: 'border-rose-400/80', ring: 'ring-rose-400/80', badgeBg: 'bg-rose-400/15' },
+  { name: 'Emerald', bg: 'bg-emerald-400', text: 'text-emerald-300', hex: '#32A378', border: 'border-emerald-400/80', ring: 'ring-emerald-400/80', badgeBg: 'bg-emerald-400/15' },
+  { name: 'Blue', bg: 'bg-blue-400', text: 'text-blue-300', hex: '#4682D7', border: 'border-blue-400/80', ring: 'ring-blue-400/80', badgeBg: 'bg-blue-400/15' },
+  { name: 'Lime', bg: 'bg-lime-400', text: 'text-lime-300', hex: '#7CA832', border: 'border-lime-400/80', ring: 'ring-lime-400/80', badgeBg: 'bg-lime-400/15' },
+  { name: 'Pink', bg: 'bg-pink-400', text: 'text-pink-300', hex: '#D45C8E', border: 'border-pink-400/80', ring: 'ring-pink-400/80', badgeBg: 'bg-pink-400/15' },
+  { name: 'Indigo', bg: 'bg-indigo-400', text: 'text-indigo-300', hex: '#686BD6', border: 'border-indigo-400/80', ring: 'ring-indigo-400/80', badgeBg: 'bg-indigo-400/15' },
+  { name: 'Teal', bg: 'bg-teal-400', text: 'text-teal-300', hex: '#2AA698', border: 'border-teal-400/80', ring: 'ring-teal-400/80', badgeBg: 'bg-teal-400/15' },
+  { name: 'Red', bg: 'bg-red-400', text: 'text-red-300', hex: '#D85454', border: 'border-red-400/80', ring: 'ring-red-400/80', badgeBg: 'bg-red-400/15' }
 ];
 
 export const CLIMBER_COLORS = CLIMBER_ACCENT_PALETTE;

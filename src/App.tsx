@@ -19,8 +19,18 @@ import { ClimberAvatar } from './components/ClimberAvatar';
 import { Boulder, GRADES } from './types';
 import { Plus, Compass, Sparkles, Filter, RotateCcw, Layers, Zap, ChevronRight } from 'lucide-react';
 import { WhamLogo, WhamBadge } from './components/WhamLogo';
+import { PasscodeGate } from './components/PasscodeGate';
 
 export function App() {
+  const [isPasscodeUnlocked, setIsPasscodeUnlocked] = useState<boolean>(() => {
+    return localStorage.getItem('wham_passcode_unlocked') === 'true';
+  });
+
+  const handleLockApp = () => {
+    localStorage.removeItem('wham_passcode_unlocked');
+    setIsPasscodeUnlocked(false);
+    setIsSettingsOpen(false);
+  };
   const {
     currentUser,
     climbers,
@@ -283,6 +293,11 @@ export function App() {
     };
   }, [attempts, boulders, climbers]);
 
+  // Private crew access passcode gate (PIN 2338)
+  if (!isPasscodeUnlocked) {
+    return <PasscodeGate onUnlock={() => setIsPasscodeUnlocked(true)} />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
       {/* Persistent Header */}
@@ -477,6 +492,7 @@ export function App() {
               onUpdateAvatarIcon={updateAvatarIcon}
               onAddClimber={addClimber}
               onRemoveClimber={removeClimber}
+              onLockApp={handleLockApp}
             />
           </div>
         )}
@@ -581,6 +597,7 @@ export function App() {
         onUpdateAvatarIcon={updateAvatarIcon}
         onAddClimber={addClimber}
         onRemoveClimber={removeClimber}
+        onLockApp={handleLockApp}
       />
 
       {/* Gym Comp Leaderboard Modal */}
