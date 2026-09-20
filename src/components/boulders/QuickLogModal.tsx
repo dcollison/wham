@@ -190,14 +190,14 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                       {climber.display_name}
                       {isMe && <span className="text-[10px] text-slate-400 font-normal">(You)</span>}
                     </span>
-                    <span className="text-[10px] font-mono mt-0.5 opacity-75">
+                    <span className="text-[10px] font-mono mt-0.5 opacity-80">
                       {climberAttempt?.status === 'flashed'
-                        ? '⚡ Flash'
+                        ? 'Flash'
                         : climberAttempt?.status === 'sent'
-                        ? `✓ S${climberAttempt.attempt_count}`
+                        ? `Sent (${climberAttempt.attempt_count}t)`
                         : climberAttempt?.status === 'attempted'
-                        ? `⏱️ P${climberAttempt.attempt_count}`
-                        : '○ Untried'}
+                        ? `Proj (${climberAttempt.attempt_count}t)`
+                        : 'Untried'}
                     </span>
                   </div>
                 </button>
@@ -381,13 +381,13 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
               <button
                 type="button"
                 onClick={() => setShowDatePicker(!showDatePicker)}
-                className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors ${
                   showDatePicker
                     ? 'bg-slate-600 text-white'
                     : 'bg-slate-700/60 text-slate-300 hover:text-white'
                 }`}
               >
-                Pick 📅
+                Custom Date
               </button>
             </div>
           </div>
@@ -452,12 +452,12 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                 ? 'Saving...'
                 : computedStatus === 'flashed'
                 ? isLoggingForOther
-                  ? `Log Flash for ${selectedClimber?.display_name}! ⚡`
-                  : 'Log Flash! ⚡'
+                  ? `Log Flash for ${selectedClimber?.display_name}`
+                  : 'Log Flash'
                 : computedStatus === 'sent'
                 ? isLoggingForOther
-                  ? `Log Send for ${selectedClimber?.display_name} (${attemptCount}t) ✅`
-                  : `Log Send (${attemptCount} tries) ✅`
+                  ? `Log Send for ${selectedClimber?.display_name} (${attemptCount}t)`
+                  : `Log Send (${attemptCount} tries)`
                 : isLoggingForOther
                 ? `Save Project for ${selectedClimber?.display_name} (${attemptCount}t)`
                 : `Save Project (${attemptCount} tries)`}

@@ -132,11 +132,11 @@ export interface HoldColorConfig {
 export const HOLD_COLORS: Record<string, HoldColorConfig> = {
   Yellow: { name: 'Yellow', bgClass: 'bg-amber-400', textClass: 'text-amber-950', borderClass: 'border-amber-500', hex: '#FACC15' },
   Mint: { name: 'Mint', bgClass: 'bg-emerald-300', textClass: 'text-emerald-950', borderClass: 'border-emerald-400', hex: '#6EE7B7' },
-  Green: { name: 'Green', bgClass: 'bg-emerald-600', textClass: 'text-white', borderClass: 'border-emerald-700', hex: '#059669' },
+  Green: { name: 'Green', bgClass: 'bg-green-600', textClass: 'text-white', borderClass: 'border-green-700', hex: '#16A34A' },
   Orange: { name: 'Orange', bgClass: 'bg-orange-500', textClass: 'text-white', borderClass: 'border-orange-600', hex: '#F97316' },
   Blue: { name: 'Blue', bgClass: 'bg-blue-600', textClass: 'text-white', borderClass: 'border-blue-700', hex: '#2563EB' },
   Purple: { name: 'Purple', bgClass: 'bg-purple-600', textClass: 'text-white', borderClass: 'border-purple-700', hex: '#9333EA' },
-  Red: { name: 'Red', bgClass: 'bg-rose-600', textClass: 'text-white', borderClass: 'border-rose-700', hex: '#E11D48' },
+  Red: { name: 'Red', bgClass: 'bg-red-600', textClass: 'text-white', borderClass: 'border-red-700', hex: '#DC2626' },
   Pink: { name: 'Pink', bgClass: 'bg-pink-500', textClass: 'text-white', borderClass: 'border-pink-600', hex: '#EC4899' },
   Black: { name: 'Black', bgClass: 'bg-zinc-900', textClass: 'text-white', borderClass: 'border-zinc-700', hex: '#18181B' },
   White: { name: 'White', bgClass: 'bg-slate-100', textClass: 'text-slate-900', borderClass: 'border-slate-300', hex: '#F1F5F9' },

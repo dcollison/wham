@@ -199,7 +199,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                 <div key={grade} className="p-1.5 bg-slate-800/60 rounded-lg border border-slate-700/50">
                   <span className="block text-[11px] font-black text-white">{grade}</span>
                   <span className="block text-[10px] text-amber-400 font-bold">{pts}</span>
-                  <span className="block text-[9px] text-emerald-400/90">+{Math.round(pts * FLASH_BONUS_MULTIPLIER)}⚡</span>
+                  <span className="block text-[9px] text-emerald-400/90">+{Math.round(pts * FLASH_BONUS_MULTIPLIER)} flash</span>
                 </div>
               ))}
             </div>
@@ -212,7 +212,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end pt-4 sm:pt-6">
           {/* 2nd Place (Silver) */}
           {secondPlace && (
-            <div className="order-2 sm:order-1 bg-slate-900/90 border border-slate-700/70 rounded-2xl p-4 flex flex-col items-center text-center gap-2 hover:border-slate-500 transition-all shadow-md">
+            <div className="order-2 sm:order-1 bg-slate-900/90 border border-slate-700/70 rounded-2xl p-4 sm:p-5 flex flex-col items-center text-center gap-2 hover:border-slate-500 transition-all shadow-md">
               <div className="relative">
                 <div className="w-8 h-8 rounded-full bg-slate-700 border-2 border-slate-400 text-slate-200 flex items-center justify-center font-black text-xs absolute -top-2 -left-2 shadow-md">
                   2
@@ -229,24 +229,24 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                     <span className="text-[10px] px-1.5 py-0.2 bg-amber-400 text-black font-bold rounded-full">YOU</span>
                   )}
                 </div>
-                <span className="text-[11px] text-slate-400 font-mono">Silver Medal</span>
+                <span className="text-xs text-slate-400 font-mono">Silver Medal</span>
               </div>
 
               <div className="w-full bg-slate-800/60 rounded-xl p-2.5 flex flex-col items-center">
                 <span className="text-xl sm:text-2xl font-black font-mono text-slate-100">
                   {secondPlace.totalPoints.toLocaleString()}
                 </span>
-                <span className="text-[10px] font-mono text-slate-400 font-bold">COMP POINTS</span>
+                <span className="text-[10px] font-mono text-slate-400 font-bold tracking-wider">COMP POINTS</span>
               </div>
 
-              <div className="grid grid-cols-2 gap-1.5 w-full text-[11px] font-mono">
+              <div className="grid grid-cols-2 gap-1.5 w-full text-xs font-mono">
                 <div className="bg-slate-800/40 rounded-lg py-1 px-1.5 text-center">
-                  <span className="text-slate-400 block text-[9px] uppercase">Tops</span>
+                  <span className="text-slate-400 block text-[10px] uppercase">Tops</span>
                   <strong className="text-white font-bold">{secondPlace.topsCount}</strong>
                 </div>
                 <div className="bg-slate-800/40 rounded-lg py-1 px-1.5 text-center">
-                  <span className="text-slate-400 block text-[9px] uppercase">Flashes</span>
-                  <strong className="text-emerald-400 font-bold">{secondPlace.flashesCount} ⚡</strong>
+                  <span className="text-slate-400 block text-[10px] uppercase">Flashes</span>
+                  <strong className="text-emerald-400 font-bold">{secondPlace.flashesCount}</strong>
                 </div>
               </div>
             </div>
@@ -254,7 +254,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
 
           {/* 1st Place (Gold Champion) */}
           {firstPlace && (
-            <div className="order-1 sm:order-2 bg-gradient-to-b from-amber-500/15 via-slate-900 to-slate-900 border-2 border-amber-400/70 rounded-2xl p-5 flex flex-col items-center text-center gap-2.5 hover:border-amber-400 transition-all shadow-xl shadow-amber-400/10 sm:-translate-y-2">
+            <div className="order-1 sm:order-2 bg-gradient-to-b from-amber-500/15 via-slate-900 to-slate-900 border-2 border-amber-400/70 rounded-2xl p-5 sm:p-6 flex flex-col items-center text-center gap-2.5 hover:border-amber-400 transition-all shadow-xl shadow-amber-400/10 sm:-translate-y-2">
               <div className="relative">
                 <div className="w-9 h-9 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black text-sm absolute -top-3 -left-3 shadow-lg shadow-amber-400/30">
                   <Crown className="w-4 h-4 fill-slate-950" />
@@ -271,8 +271,9 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                     <span className="text-[10px] px-1.5 py-0.2 bg-amber-400 text-black font-bold rounded-full">YOU</span>
                   )}
                 </div>
-                <span className="text-[11px] text-amber-400/90 font-mono font-bold flex items-center justify-center gap-1">
-                  <span>🏆 Gym Champion</span>
+                <span className="text-xs text-amber-400/90 font-mono font-bold flex items-center justify-center gap-1">
+                  <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Gym Champion</span>
                 </span>
               </div>
 
@@ -283,17 +284,17 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                 <span className="text-[10px] font-mono text-amber-300/80 font-black tracking-wider">COMP POINTS</span>
               </div>
 
-              <div className="grid grid-cols-3 gap-1.5 w-full text-[11px] font-mono">
+              <div className="grid grid-cols-3 gap-1.5 w-full text-xs font-mono">
                 <div className="bg-slate-800/80 rounded-lg py-1 px-1 text-center">
-                  <span className="text-slate-400 block text-[9px] uppercase">Tops</span>
+                  <span className="text-slate-400 block text-[10px] uppercase">Tops</span>
                   <strong className="text-white font-bold">{firstPlace.topsCount}</strong>
                 </div>
                 <div className="bg-slate-800/80 rounded-lg py-1 px-1 text-center">
-                  <span className="text-slate-400 block text-[9px] uppercase">Flashes</span>
-                  <strong className="text-emerald-400 font-bold">{firstPlace.flashesCount} ⚡</strong>
+                  <span className="text-slate-400 block text-[10px] uppercase">Flashes</span>
+                  <strong className="text-emerald-400 font-bold">{firstPlace.flashesCount}</strong>
                 </div>
                 <div className="bg-slate-800/80 rounded-lg py-1 px-1 text-center">
-                  <span className="text-slate-400 block text-[9px] uppercase">Top Grade</span>
+                  <span className="text-slate-400 block text-[10px] uppercase">Top Grade</span>
                   <strong className="text-rose-400 font-bold">{firstPlace.hardestSend || '—'}</strong>
                 </div>
               </div>
@@ -302,7 +303,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
 
           {/* 3rd Place (Bronze) */}
           {thirdPlace && (
-            <div className="order-3 sm:order-3 bg-slate-900/90 border border-amber-900/60 rounded-2xl p-4 flex flex-col items-center text-center gap-2 hover:border-amber-800 transition-all shadow-md">
+            <div className="order-3 sm:order-3 bg-slate-900/90 border border-amber-900/60 rounded-2xl p-4 sm:p-5 flex flex-col items-center text-center gap-2 hover:border-amber-800 transition-all shadow-md">
               <div className="relative">
                 <div className="w-8 h-8 rounded-full bg-amber-800 border-2 border-amber-600 text-amber-100 flex items-center justify-center font-black text-xs absolute -top-2 -left-2 shadow-md">
                   3
@@ -319,24 +320,24 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                     <span className="text-[10px] px-1.5 py-0.2 bg-amber-400 text-black font-bold rounded-full">YOU</span>
                   )}
                 </div>
-                <span className="text-[11px] text-amber-600/90 font-mono">Bronze Medal</span>
+                <span className="text-xs text-amber-600/90 font-mono">Bronze Medal</span>
               </div>
 
               <div className="w-full bg-slate-800/60 rounded-xl p-2.5 flex flex-col items-center">
                 <span className="text-xl sm:text-2xl font-black font-mono text-amber-200">
                   {thirdPlace.totalPoints.toLocaleString()}
                 </span>
-                <span className="text-[10px] font-mono text-slate-400 font-bold">COMP POINTS</span>
+                <span className="text-[10px] font-mono text-slate-400 font-bold tracking-wider">COMP POINTS</span>
               </div>
 
-              <div className="grid grid-cols-2 gap-1.5 w-full text-[11px] font-mono">
+              <div className="grid grid-cols-2 gap-1.5 w-full text-xs font-mono">
                 <div className="bg-slate-800/40 rounded-lg py-1 px-1.5 text-center">
-                  <span className="text-slate-400 block text-[9px] uppercase">Tops</span>
+                  <span className="text-slate-400 block text-[10px] uppercase">Tops</span>
                   <strong className="text-white font-bold">{thirdPlace.topsCount}</strong>
                 </div>
                 <div className="bg-slate-800/40 rounded-lg py-1 px-1.5 text-center">
-                  <span className="text-slate-400 block text-[9px] uppercase">Flashes</span>
-                  <strong className="text-emerald-400 font-bold">{thirdPlace.flashesCount} ⚡</strong>
+                  <span className="text-slate-400 block text-[10px] uppercase">Flashes</span>
+                  <strong className="text-emerald-400 font-bold">{thirdPlace.flashesCount}</strong>
                 </div>
               </div>
             </div>
@@ -418,14 +419,14 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                       <div className="text-base sm:text-lg font-black font-mono text-amber-400 leading-none">
                         {standing.totalPoints.toLocaleString()}
                       </div>
-                      <div className="text-[10px] font-mono text-slate-400 mt-0.5">
-                        {standing.basePoints.toLocaleString()} + {standing.flashBonusPoints.toLocaleString()}⚡
+                      <div className="text-xs font-mono text-slate-400 mt-0.5">
+                        {standing.basePoints.toLocaleString()} + {standing.flashBonusPoints.toLocaleString()} flash
                       </div>
                     </div>
 
                     <button
                       type="button"
-                      className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
                       title={isExpanded ? 'Collapse scorecard' : 'View scorecard'}
                     >
                       {isExpanded ? (
@@ -439,7 +440,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
 
                 {/* Expanded Scorecard: Topped Boulders Breakdown */}
                 {isExpanded && (
-                  <div className="p-3.5 bg-slate-950/70 border-t border-slate-800/80 flex flex-col gap-3 animate-in slide-in-from-top-1 duration-150">
+                  <div className="p-3.5 sm:p-4 bg-slate-950/70 border-t border-slate-800/80 flex flex-col gap-3 animate-in slide-in-from-top-1 duration-150">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-bold text-slate-300 flex items-center gap-1.5">
                         <span>Scorecard: Active Boulders Topped</span>
@@ -448,7 +449,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                         </span>
                       </span>
 
-                      <span className="text-[11px] font-mono text-slate-400">
+                      <span className="text-xs font-mono text-slate-400">
                         Gym Completion: <strong className="text-amber-400 font-bold">{standing.completionPercentage}%</strong>
                       </span>
                     </div>
@@ -493,9 +494,8 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                                 >
                                   {item.grade}
                                 </span>
-                                <span className="text-slate-200 font-medium truncate text-xs flex items-center gap-1">
-                                  <span>{item.boulder.hold_colour}</span>
-                                  {item.boulder.hold_colour.toLowerCase() === 'bee' && <span>🐝</span>}
+                                <span className="text-slate-200 font-medium truncate text-xs">
+                                  {item.boulder.hold_colour}
                                 </span>
                               </div>
 

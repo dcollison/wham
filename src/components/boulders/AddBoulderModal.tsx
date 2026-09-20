@@ -218,9 +218,8 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
                       }`}
                       style={getHoldSwatchStyle(colorName)}
                     />
-                    <span className="truncate flex items-center gap-1">
-                      <span>{colorName}</span>
-                      {colorName.toLowerCase() === 'bee' && <span className="text-[10px]">🐝</span>}
+                    <span className="truncate">
+                      {colorName}
                     </span>
                   </button>
                 );

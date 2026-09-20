@@ -388,7 +388,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                 </span>
                 <p className="text-[11px] text-slate-400">
                   {archiveExisting
-                    ? `⚡ All ${existingActiveInArea.length} current climbs in ${displayAreaName} will be archived. New set starts at #1.`
+                    ? `All ${existingActiveInArea.length} current climbs in ${displayAreaName} will be archived. New set starts at #1.`
                     : existingActiveInArea.length > 0
                     ? `Will append after current ${existingActiveInArea.length} climbs (starting at #${existingActiveInArea.length + 1}).`
                     : `Area is currently empty. New climbs start at #1.`}
@@ -472,9 +472,8 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                         }`}
                         style={getHoldSwatchStyle(cName)}
                       />
-                      <span className="truncate text-[11px] flex items-center gap-0.5">
-                        <span>{cName}</span>
-                        {cName.toLowerCase() === 'bee' && <span>🐝</span>}
+                      <span className="truncate text-[11px]">
+                        {cName}
                       </span>
                     </button>
                   );

@@ -295,15 +295,13 @@ export function App() {
           }
           setIsAreaResetOpen(true);
         }}
-        hideSent={hideSent}
-        onToggleHideSent={() => setHideSent((prev) => !prev)}
         showArchived={showArchived}
         onToggleShowArchived={() => setShowArchived((prev) => !prev)}
         isDemoMode={isDemoMode}
       />
 
       {/* Main View Area */}
-      <main className="flex-1 max-w-xl w-full mx-auto p-4 sm:p-5 flex flex-col">
+      <main className="flex-1 max-w-2xl w-full mx-auto p-4 sm:p-6 flex flex-col">
         {/* TAB 1: Clockwise Boulders View */}
         {currentTab === 'boulders' && (
           <div className="flex flex-col gap-4 pb-20 animate-in fade-in duration-200">
@@ -629,8 +627,8 @@ export function App() {
       {!hasChosenClimber && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
           <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col items-center gap-5 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-amber-400 text-black flex items-center justify-center font-black text-2xl shadow-lg shadow-amber-400/20">
-              ⚡
+            <div className="w-14 h-14 rounded-2xl bg-amber-400 text-black flex items-center justify-center font-black shadow-lg shadow-amber-400/20">
+              <Zap className="w-7 h-7 fill-black text-black stroke-[2.5]" />
             </div>
             <div>
               <h2 className="text-xl font-black text-white">Welcome to Wham!</h2>

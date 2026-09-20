@@ -327,10 +327,7 @@ export const BoulderFilters: React.FC<BoulderFiltersProps> = ({
                   }`}
                   style={getHoldSwatchStyle(col)}
                 />
-                <span className="flex items-center gap-0.5">
-                  <span>{col}</span>
-                  {isBee && <span className="text-[10px] leading-none">🐝</span>}
-                </span>
+                <span>{col}</span>
                 <span className="text-[10px] font-mono text-slate-400">({count})</span>
               </button>
             );
@@ -486,10 +483,7 @@ export const BoulderFilters: React.FC<BoulderFiltersProps> = ({
                         }`}
                         style={getHoldSwatchStyle(col)}
                       />
-                      <span className="flex items-center gap-0.5">
-                        <span>{col}</span>
-                        {isBee && <span className="text-[10px]">🐝</span>}
-                      </span>
+                      <span>{col}</span>
                       <span className="text-[10px] text-slate-400 font-mono">({count})</span>
                     </button>
                   );

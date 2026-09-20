@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Profile, CLIMBER_ACCENT_PALETTE, CLIMBER_ICONS, getClimberColor } from '../../types';
 import { ClimberAvatar, CLIMBER_ICON_COMPONENTS } from '../ClimberAvatar';
-import { Users, UserPlus, X, Check, Trash2, Palette, Sparkles, Smile } from 'lucide-react';
+import { Users, UserPlus, X, Check, Trash2, Palette, Sparkles, Smile, Info } from 'lucide-react';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -428,8 +428,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   style={{ width: '80%', backgroundColor: activeColor }}
                 />
               </div>
-              <span className="text-[10px] font-mono font-bold" style={{ color: activeColor }}>
-                8 Sends (6⚡)
+              <span className="text-xs font-mono font-bold" style={{ color: activeColor }}>
+                8 Sends (6 flashes)
               </span>
             </div>
           </div>
@@ -529,9 +529,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
         </form>
 
-        {/* Minimal Information Note */}
-        <div className="p-3 rounded-xl bg-slate-800/30 border border-slate-800 text-[11px] text-slate-400 leading-relaxed">
-          💡 <strong>Tip:</strong> Tap any climber above to instantly log climbs and track individual stats on this device. Your selected accent colour highlights your progress on comparison charts and timeline graphs.
+        {/* Information Note */}
+        <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-800 text-xs text-slate-400 leading-relaxed flex items-start gap-2">
+          <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          <span>
+            <strong className="text-slate-300">Tip:</strong> Tap any climber above to instantly switch accounts and log climbs. Your selected accent colour highlights your personal progress on comparison charts and timeline graphs.
+          </span>
         </div>
       </div>
     </div>

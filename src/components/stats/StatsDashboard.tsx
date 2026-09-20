@@ -10,7 +10,8 @@ import {
   HOLD_COLORS,
   CLIMBER_COLORS,
   CLIMBER_ACCENT_PALETTE,
-  getClimberColor
+  getClimberColor,
+  getHoldSwatchStyle
 } from '../../types';
 import { ClimberAvatar } from '../ClimberAvatar';
 import { CompLeaderboard } from '../leaderboard/CompLeaderboard';
@@ -54,20 +55,23 @@ interface StatsDashboardProps {
 
 export { CLIMBER_COLORS, CLIMBER_ACCENT_PALETTE, getClimberColor };
 
-// Circuit grade guide for London Arch gyms
-const CIRCUIT_GRADES: Record<string, string> = {
-  Yellow: 'VB – V1',
-  Mint: 'V1 – V2',
-  Green: 'V2 – V4',
-  Orange: 'V3 – V5',
-  Blue: 'V4 – V6',
-  Purple: 'V5 – V7',
-  Red: 'V6 – V8',
-  Pink: 'V7 – V9',
-  Black: 'V8+',
-  Bee: 'Comp Circuit',
-  Wood: 'Board / Power',
-  White: 'Mixed Circuit'
+const getAccoladeIcon = (id: string) => {
+  switch (id) {
+    case 'apex-crusher':
+      return <Flame className="w-5 h-5 text-amber-400" />;
+    case 'flash-artist':
+      return <Zap className="w-5 h-5 text-amber-400 fill-amber-400" />;
+    case 'project-battler':
+      return <Activity className="w-5 h-5 text-amber-400" />;
+    case 'circuit-explorer':
+      return <Layers className="w-5 h-5 text-amber-400" />;
+    case 'the-sniper':
+      return <Target className="w-5 h-5 text-amber-400" />;
+    case 'session-devotee':
+      return <Calendar className="w-5 h-5 text-amber-400" />;
+    default:
+      return <Award className="w-5 h-5 text-amber-400" />;
+  }
 };
 
 export const StatsDashboard: React.FC<StatsDashboardProps> = ({
@@ -355,10 +359,9 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
     return climberStatsList.reduce((max, c) => (c.totalFlashes > max ? c.totalFlashes : max), 0);
   }, [climberStatsList]);
 
-  // Diverse Crew Superlatives: Each accolade is drafted to highlight DIFFERENT climbers!
+  // Diverse Crew Superlatives: Each accolade highlights standout qualities across your crew
   const accoladesList = useMemo<{
     id: string;
-    emoji: string;
     title: string;
     climber: Profile;
     value: string;
@@ -372,7 +375,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
     const definitions = [
       {
         id: 'apex-crusher',
-        emoji: '🔥',
         title: 'Apex Crusher',
         subtitle: 'Hardest grade topped',
         score: (c: typeof climberStatsList[0]) => (c.hardestSend ? GRADES.indexOf(c.hardestSend) * 100 + c.totalSends : -1),
@@ -381,7 +383,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
       },
       {
         id: 'flash-artist',
-        emoji: '⚡',
         title: 'Flash Artist',
         subtitle: 'First-try on-sight rate',
         score: (c: typeof climberStatsList[0]) => (c.totalSends >= 2 ? c.flashOfSendsRate * 10 + c.totalFlashes : c.totalFlashes * 5),
@@ -390,7 +391,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
       },
       {
         id: 'project-battler',
-        emoji: '🦾',
         title: 'Project Battler',
         subtitle: 'Tenacity & grit on a send',
         score: (c: typeof climberStatsList[0]) => (c.maxProjectFight > 1 ? c.maxProjectFight * 10 + c.totalAttempted : c.totalAttempted),
@@ -399,7 +399,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
       },
       {
         id: 'circuit-explorer',
-        emoji: '🎨',
         title: 'Circuit Explorer',
         subtitle: 'Hold variety across gym',
         score: (c: typeof climberStatsList[0]) => c.distinctColorsCount * 10 + c.totalSends,
@@ -408,7 +407,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
       },
       {
         id: 'the-sniper',
-        emoji: '🎯',
         title: 'The Sniper',
         subtitle: 'Clean send efficiency',
         score: (c: typeof climberStatsList[0]) => (c.totalSends >= 2 ? Math.round((10 - Math.min(parseFloat(c.averageAttemptsOnSend), 9)) * 100) : 0),
@@ -417,7 +415,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
       },
       {
         id: 'session-devotee',
-        emoji: '📅',
         title: 'Session Devotee',
         subtitle: 'Consistency on the mats',
         score: (c: typeof climberStatsList[0]) => c.sessionDaysCount * 10 + c.totalSends,
@@ -433,7 +430,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
 
     const results: {
       id: string;
-      emoji: string;
       title: string;
       climber: Profile;
       value: string;
@@ -457,7 +453,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
         assignmentCounts[winner.userId] = (assignmentCounts[winner.userId] || 0) + 1;
         results.push({
           id: def.id,
-          emoji: def.emoji,
           title: def.title,
           subtitle: def.subtitle,
           climber: winner.profile,
@@ -685,11 +680,11 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
     return timelineData.climberSeries.filter((s) => s.climber.id === timelineClimberFilter);
   }, [timelineData, timelineClimberFilter]);
 
-  // Hold colour circuit breakdown
+  // Hold colour circuit breakdown (dynamically computed from active boulders of each colour)
   const circuitBreakdown = useMemo(() => {
     const colorKeys = Object.keys(HOLD_COLORS);
 
-    return colorKeys.map((colorName) => {
+    const list = colorKeys.map((colorName) => {
       const circuitBoulders = activeGymBoulders.filter((b) => b.hold_colour.toLowerCase() === colorName.toLowerCase());
       if (circuitBoulders.length === 0) return null;
 
@@ -711,10 +706,44 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
         )
       ).length;
 
+      // Dynamically determine the actual grade range of this hold colour circuit
+      const distinctGrades = Array.from(new Set(circuitBoulders.map((b) => b.grade))).sort(
+        (a, b) => GRADES.indexOf(a) - GRADES.indexOf(b)
+      );
+
+      const minGrade = distinctGrades[0];
+      const maxGrade = distinctGrades[distinctGrades.length - 1];
+      const minGradeIdx = minGrade ? GRADES.indexOf(minGrade) : 999;
+
+      const gradeRange = distinctGrades.length === 0
+        ? 'No active climbs'
+        : minGrade === maxGrade
+        ? minGrade
+        : `${minGrade} – ${maxGrade}`;
+
+      // Hardest grade topped by crew in this circuit
+      let hardestSend: Grade | null = null;
+      let maxToppedIdx = -1;
+      circuitBoulders.forEach((b) => {
+        const isTopped = filteredAttempts.some(
+          (a) => a.boulder_id === b.id && (a.status === 'sent' || a.status === 'flashed')
+        );
+        if (isTopped) {
+          const gIdx = GRADES.indexOf(b.grade);
+          if (gIdx > maxToppedIdx) {
+            maxToppedIdx = gIdx;
+            hardestSend = b.grade;
+          }
+        }
+      });
+
       return {
         name: colorName,
         config: HOLD_COLORS[colorName],
-        gradeGuide: CIRCUIT_GRADES[colorName] || 'Circuit',
+        gradeRange,
+        distinctGrades,
+        minGradeIdx,
+        hardestSend,
         totalActive: circuitBoulders.length,
         crewToppedCount,
         crewPct: Math.round((crewToppedCount / circuitBoulders.length) * 100),
@@ -723,12 +752,18 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
     }).filter(Boolean) as Array<{
       name: string;
       config: (typeof HOLD_COLORS)[string];
-      gradeGuide: string;
+      gradeRange: string;
+      distinctGrades: Grade[];
+      minGradeIdx: number;
+      hardestSend: Grade | null;
       totalActive: number;
       crewToppedCount: number;
       crewPct: number;
       memberSends: Array<{ climber: Profile; sentCount: number }>;
     }>;
+
+    // Sort circuits progressively by their base difficulty (easiest to hardest)
+    return list.sort((a, b) => a.minGradeIdx - b.minGradeIdx);
   }, [activeGymBoulders, filteredAttempts, climbers]);
 
   const activeGradeRange = useMemo(() => {
@@ -917,8 +952,9 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
             </div>
 
             {viewMode === 'group' && (
-              <span className="text-xs font-mono font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl">
-                ⚡ Crew Aggregate
+              <span className="text-xs font-mono font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5" />
+                <span>Crew Aggregate</span>
               </span>
             )}
           </div>
@@ -961,7 +997,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
             <div className="flex items-center justify-between p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-semibold">
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>⚡ Combined Wham Crew Stats ({climbers.map((c) => c.display_name).join(', ')})</span>
+                <span>Combined Wham Crew Stats ({climbers.map((c) => c.display_name).join(', ')})</span>
               </div>
               <span className="text-[10px] font-mono font-bold bg-amber-500/20 px-2.5 py-0.5 rounded-full">
                 {climbers.length} Climbers
@@ -1143,7 +1179,9 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                       key={item.id}
                       className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/60 flex flex-col items-center text-center gap-1.5 hover:border-slate-600 transition-colors"
                     >
-                      <span className="text-xl">{item.emoji}</span>
+                      <div className="w-8 h-8 rounded-xl bg-slate-800/80 border border-slate-750 flex items-center justify-center">
+                        {getAccoladeIcon(item.id)}
+                      </div>
                       <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">
                         {item.title}
                       </span>
@@ -1322,7 +1360,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                             <div className="flex items-center justify-between text-[11px]">
                               <span className="text-slate-300 truncate">{c.profile.display_name}</span>
                               <span className="font-mono font-bold text-slate-200">
-                                {sends} <span className="text-slate-500 font-normal">({flashes}⚡)</span>
+                                {sends} <span className="text-slate-500 font-normal">({flashes} flash)</span>
                               </span>
                             </div>
                             <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
@@ -1471,7 +1509,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                 <div className="bg-slate-850/40 border border-slate-800 rounded-xl p-4 flex flex-col gap-2.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold" style={{ color: battleData.climberA.color.hex }}>
-                      🎯 Sent by {battleData.climberA.profile.display_name} (not {battleData.climberB.profile.display_name})
+                      Sent by {battleData.climberA.profile.display_name} (not {battleData.climberB.profile.display_name})
                     </span>
                     <span className="text-[10px] font-mono font-bold bg-slate-800 px-2 py-0.5 rounded text-slate-300">
                       {battleData.aOnlyActiveBoulders.length} climbs
@@ -1506,7 +1544,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                 <div className="bg-slate-850/40 border border-slate-800 rounded-xl p-4 flex flex-col gap-2.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold" style={{ color: battleData.climberB.color.hex }}>
-                      🎯 Sent by {battleData.climberB.profile.display_name} (not {battleData.climberA.profile.display_name})
+                      Sent by {battleData.climberB.profile.display_name} (not {battleData.climberA.profile.display_name})
                     </span>
                     <span className="text-[10px] font-mono font-bold bg-slate-800 px-2 py-0.5 rounded text-slate-300">
                       {battleData.bOnlyActiveBoulders.length} climbs
@@ -2075,11 +2113,12 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                         )}
                         {flashes > 0 && (
                           <div
-                            className="bg-amber-400 h-full flex items-center justify-center text-[10px] font-black text-black transition-all"
+                            className="bg-amber-400 h-full flex items-center justify-center text-[10px] font-black text-black transition-all gap-0.5"
                             style={{ width: `${(flashes / totalSends) * 100}%` }}
                             title={`Flashed: ${flashes}`}
                           >
-                            {flashes}⚡
+                            <span>{flashes}</span>
+                            <Zap className="w-2.5 h-2.5 fill-black text-black shrink-0" />
                           </div>
                         )}
                         {totalSends === 0 && (
@@ -2170,9 +2209,9 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <CircleDot className="w-5 h-5 text-amber-400" />
-                <h3 className="text-sm font-bold text-white">Hold Colour Circuits & Team Completion</h3>
+                <h3 className="text-sm sm:text-base font-bold text-white">Hold Colour Circuits</h3>
               </div>
-              <span className="text-xs text-slate-400">Arch / London Circuit System</span>
+              <span className="text-xs text-slate-400 font-mono">Active Climbs & Progress</span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -2182,20 +2221,27 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                   className="p-4 rounded-xl bg-slate-850/60 border border-slate-800 flex flex-col gap-3"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-3">
                       <span
-                        className="w-4 h-4 rounded-full border border-white/20 shadow-sm"
-                        style={{ backgroundColor: circuit.config.hex }}
+                        className="w-5 h-5 rounded-full border border-black/40 shadow-sm shrink-0"
+                        style={getHoldSwatchStyle(circuit.name)}
                       />
                       <div>
-                        <strong className="text-xs text-white block">{circuit.name}</strong>
-                        <span className="text-[10px] text-slate-400 font-mono">{circuit.gradeGuide}</span>
+                        <strong className="text-xs sm:text-sm text-white block font-bold">{circuit.name} Circuit</strong>
+                        <span className="text-xs text-amber-400 font-mono font-bold">{circuit.gradeRange}</span>
                       </div>
                     </div>
 
-                    <span className="font-mono text-xs font-bold text-emerald-400">
-                      {circuit.crewToppedCount} / {circuit.totalActive} ({circuit.crewPct}%)
-                    </span>
+                    <div className="text-right">
+                      <span className="font-mono text-xs sm:text-sm font-bold text-emerald-400 block">
+                        {circuit.crewToppedCount} / {circuit.totalActive} ({circuit.crewPct}%)
+                      </span>
+                      {circuit.hardestSend && (
+                        <span className="text-[10px] sm:text-[11px] font-mono text-slate-400">
+                          Crew Top: <strong className="text-slate-200 font-bold">{circuit.hardestSend}</strong>
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">

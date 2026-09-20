@@ -57,13 +57,8 @@ export const HoldBadge: React.FC<HoldBadgeProps> = ({
       />
 
       {/* Bold Hold Colour Name */}
-      <span className="font-extrabold text-white tracking-tight flex items-center gap-1">
-        <span>{color}</span>
-        {isBee && (
-          <span className="text-[11px] leading-none" title="Yellow & Black circuit">
-            🐝
-          </span>
-        )}
+      <span className="font-extrabold text-white tracking-tight">
+        {color}
       </span>
 
       {/* High-Contrast Grade Pill */}

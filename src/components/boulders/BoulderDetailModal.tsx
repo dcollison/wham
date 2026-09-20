@@ -157,9 +157,9 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                   onClose();
                   onQuickLog(boulder, currentUserId);
                 }}
-                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black active-press transition-all shadow"
+                className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-amber-400 hover:bg-amber-300 text-black active-press transition-all shadow"
               >
-                {userAttempt ? 'Update Log' : 'Quick Log ⚡'}
+                {userAttempt ? 'Update Log' : 'Quick Log'}
               </button>
             </div>
           </div>

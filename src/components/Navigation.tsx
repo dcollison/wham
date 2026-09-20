@@ -28,7 +28,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-lg border-t border-slate-800/80 px-4 py-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-lg border-t border-slate-800/80 px-4 py-2.5">
       <div className="max-w-md mx-auto grid grid-cols-4 gap-1">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -43,7 +43,7 @@ export const Navigation: React.FC<NavigationProps> = ({
                 window.location.hash = tab.hash;
                 onSelectTab(tab.id);
               }}
-              className={`flex flex-col items-center justify-center py-1 rounded-xl transition-all active-press relative ${
+              className={`flex flex-col items-center justify-center py-1.5 rounded-xl transition-all active-press relative ${
                 isActive
                   ? 'text-amber-400 font-bold'
                   : 'text-slate-400 hover:text-slate-200 font-medium'
@@ -52,12 +52,12 @@ export const Navigation: React.FC<NavigationProps> = ({
               <div className="relative">
                 <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
                 {Boolean(tab.badge && tab.badge > 0) && (
-                  <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 bg-amber-500 text-black text-[9px] font-black rounded-full flex items-center justify-center">
+                  <span className="absolute -top-1 -right-2 w-4 h-4 bg-amber-400 text-black text-[10px] font-black rounded-full flex items-center justify-center shadow">
                     {tab.badge}
                   </span>
                 )}
               </div>
-              <span className="text-[11px] mt-1">{tab.label}</span>
+              <span className="text-xs mt-1 tracking-tight">{tab.label}</span>
             </a>
           );
         })}

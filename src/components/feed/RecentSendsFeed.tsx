@@ -203,11 +203,13 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-xl">
-              ⚡ {stats.totalCrewFlashes} Flashes
+            <span className="text-xs font-mono font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+              <Zap className="w-3.5 h-3.5 fill-amber-400" />
+              <span>{stats.totalCrewFlashes} Flashes</span>
             </span>
-            <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-xl">
-              ✓ {stats.totalCrewSends} Sends
+            <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+              <Check className="w-3.5 h-3.5 stroke-[3]" />
+              <span>{stats.totalCrewSends} Sends</span>
             </span>
           </div>
         </div>
@@ -438,17 +440,17 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                         <button
                           type="button"
                           onClick={() => handleGiveProps(attempt.id)}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border transition-all active-press ${
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all active-press ${
                             propsCount > 0
                               ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 shadow-sm'
                               : 'bg-slate-800/60 border-slate-700/70 text-slate-400 hover:text-slate-200'
                           }`}
                           title="Give props / hype!"
                         >
-                          <span>👊</span>
-                          <span className="font-semibold text-[11px]">Props</span>
+                          <Flame className={`w-3.5 h-3.5 ${propsCount > 0 ? 'text-amber-400 fill-amber-400' : 'text-slate-400'}`} />
+                          <span className="font-semibold text-xs">Props</span>
                           {propsCount > 0 && (
-                            <span className="font-mono text-[10px] font-bold text-amber-400 bg-amber-400/20 px-1.5 py-0.2 rounded-full">
+                            <span className="font-mono text-xs font-bold text-amber-400 bg-amber-400/20 px-1.5 py-0.5 rounded-full">
                               {propsCount}
                             </span>
                           )}
@@ -458,15 +460,15 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                           <button
                             type="button"
                             onClick={() => onQuickLog(boulder, currentUserId)}
-                            className="text-[11px] font-semibold text-slate-400 hover:text-amber-400 px-2 py-1 rounded-lg hover:bg-slate-800 transition-colors"
+                            className="text-xs font-semibold text-slate-400 hover:text-amber-400 px-2.5 py-1.5 rounded-lg hover:bg-slate-800 transition-colors"
                           >
-                            Log Send ⚡
+                            Log Send
                           </button>
 
                           <button
                             type="button"
                             onClick={() => onSelectBoulder(boulder)}
-                            className="text-[11px] font-bold text-amber-400 hover:text-amber-300 flex items-center gap-0.5"
+                            className="text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-0.5 px-2 py-1.5"
                           >
                             <span>Details</span>
                             <ChevronRight className="w-3.5 h-3.5" />
