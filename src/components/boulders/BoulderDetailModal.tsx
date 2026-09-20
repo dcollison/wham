@@ -3,7 +3,7 @@ import { Boulder, Attempt, Comment, Profile } from '../../types';
 import { HoldBadge } from './HoldBadge';
 import { ClimberStatusPills } from './ClimberStatusPills';
 import { ClimberAvatar } from '../ClimberAvatar';
-import { X, Send, Calendar, Archive, MessageSquare, Zap, Check, Clock, ZoomIn } from 'lucide-react';
+import { X, Send, Calendar, Archive, MessageSquare, Zap, Check, Clock, ZoomIn, Users } from 'lucide-react';
 
 interface BoulderDetailModalProps {
   boulder: Boulder | null;
@@ -13,7 +13,7 @@ interface BoulderDetailModalProps {
   comments: Comment[];
   climbers: Profile[];
   currentUserId?: string;
-  onQuickLog: (boulder: Boulder) => void;
+  onQuickLog: (boulder: Boulder, targetUserId?: string) => void;
   onAddComment: (boulderId: string, content: string) => Promise<void>;
   onToggleArchive: (boulderId: string, archive: boolean) => Promise<void>;
 }
@@ -133,16 +133,35 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                onQuickLog(boulder);
-              }}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black active-press transition-all shadow"
-            >
-              {userAttempt ? 'Update Log' : 'Quick Log ⚡'}
-            </button>
+            <div className="flex items-center gap-2">
+              {climbers.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    // Open for first crew member who is not current user, or current user
+                    const other = climbers.find(c => c.id !== currentUserId) || climbers[0];
+                    onQuickLog(boulder, other.id);
+                  }}
+                  className="px-2.5 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 active-press transition-all flex items-center gap-1.5 shadow"
+                  title="Log on behalf of someone in your crew"
+                >
+                  <Users className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Log for Crew</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onQuickLog(boulder, currentUserId);
+                }}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black active-press transition-all shadow"
+              >
+                {userAttempt ? 'Update Log' : 'Quick Log ⚡'}
+              </button>
+            </div>
           </div>
 
           {/* Climb Details */}
@@ -168,13 +187,20 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
 
           {/* Group Climber Statuses */}
           <div className="flex flex-col gap-2">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Group Ticklist</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Group Ticklist</h3>
+              <span className="text-[11px] text-slate-500">Tap a climber to log for them</span>
+            </div>
             <div className="bg-slate-800/40 rounded-xl p-3 border border-slate-800">
               <ClimberStatusPills
                 climbers={climbers}
                 attempts={attempts}
                 currentUserId={currentUserId}
                 size="md"
+                onClimberClick={(climberId) => {
+                  onClose();
+                  onQuickLog(boulder, climberId);
+                }}
               />
             </div>
           </div>

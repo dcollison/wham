@@ -16,6 +16,7 @@ interface LogAttemptParams {
   status: AttemptStatus;
   attemptCount: number;
   loggedAt?: string;
+  userId?: string;
 }
 
 interface AddBoulderParams {
@@ -45,7 +46,7 @@ interface GymContextType {
   showArchived: boolean;
   setShowArchived: (show: boolean | ((prev: boolean) => boolean)) => void;
   logAttempt: (params: LogAttemptParams) => Promise<void>;
-  deleteAttempt: (boulderId: string) => Promise<void>;
+  deleteAttempt: (boulderId: string, userId?: string) => Promise<void>;
   addBoulder: (params: AddBoulderParams) => Promise<Boulder>;
   bulkAddBoulders: (params: BulkAddBouldersParams) => Promise<Boulder[]>;
   archiveBoulder: (boulderId: string, archive?: boolean) => Promise<void>;
@@ -60,7 +61,7 @@ interface GymContextType {
 const GymContext = createContext<GymContextType | undefined>(undefined);
 
 export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, isDemoMode } = useAuth();
+  const { currentUser, climbers, isDemoMode } = useAuth();
 
   const [gyms, setGyms] = useState<Gym[]>(() => {
     const cached = localStorage.getItem('wham_gyms');
@@ -312,45 +313,49 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   }, [boulders, currentGym, currentArea, areas, showArchived]);
 
-  // Log or update an attempt (Flash, Send, Attempt)
-  const logAttempt = async ({ boulderId, status, attemptCount, loggedAt }: LogAttemptParams) => {
-    if (!currentUser) return;
+  // Log or update an attempt (Flash, Send, Attempt) - supports logging on behalf of another climber
+  const logAttempt = async ({ boulderId, status, attemptCount, loggedAt, userId }: LogAttemptParams) => {
+    const targetUserId = userId || currentUser?.id;
+    if (!targetUserId) return;
 
-    // Trigger celebration confetti on Flash or Send!
+    const targetClimber = climbers.find(c => c.id === targetUserId) || (targetUserId === currentUser?.id ? currentUser : null);
+    const accentColor = targetClimber?.accent_color || '#FACC15';
+
+    // Trigger celebration confetti on Flash or Send using climber's accent colour!
     if (status === 'flashed') {
       confetti({
         particleCount: 80,
         spread: 70,
         origin: { y: 0.7 },
-        colors: ['#FACC15', '#F59E0B', '#EF4444', '#10B981']
+        colors: [accentColor, '#F59E0B', '#EF4444', '#10B981']
       });
     } else if (status === 'sent') {
       confetti({
         particleCount: 50,
         spread: 50,
         origin: { y: 0.7 },
-        colors: ['#10B981', '#3B82F6', '#6EE7B7']
+        colors: [accentColor, '#10B981', '#3B82F6']
       });
     }
 
     const existingAttempt = attempts.find(
-      (a) => a.boulder_id === boulderId && a.user_id === currentUser.id
+      (a) => a.boulder_id === boulderId && a.user_id === targetUserId
     );
 
     const newAttempt: Attempt = {
       id: existingAttempt?.id || `att-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       boulder_id: boulderId,
-      user_id: currentUser.id,
+      user_id: targetUserId,
       status,
       attempt_count: attemptCount,
       logged_at: loggedAt || existingAttempt?.logged_at || new Date().toISOString(),
-      profile: currentUser
+      profile: targetClimber || currentUser || undefined
     };
 
     // Optimistically update state
     setAttempts(prev => {
       const filtered = prev.filter(
-        a => !(a.boulder_id === boulderId && a.user_id === currentUser.id)
+        a => !(a.boulder_id === boulderId && a.user_id === targetUserId)
       );
       return [...filtered, newAttempt];
     });
@@ -359,10 +364,10 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         const { error } = await supabase.from('attempts').upsert({
           boulder_id: boulderId,
-          user_id: currentUser.id,
+          user_id: targetUserId,
           status,
           attempt_count: attemptCount,
-          logged_at: new Date().toISOString()
+          logged_at: loggedAt || new Date().toISOString()
         }, { onConflict: 'boulder_id,user_id' });
 
         if (error) throw error;
@@ -373,11 +378,12 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Delete an attempt
-  const deleteAttempt = async (boulderId: string) => {
-    if (!currentUser) return;
+  const deleteAttempt = async (boulderId: string, userId?: string) => {
+    const targetUserId = userId || currentUser?.id;
+    if (!targetUserId) return;
 
     setAttempts(prev =>
-      prev.filter(a => !(a.boulder_id === boulderId && a.user_id === currentUser.id))
+      prev.filter(a => !(a.boulder_id === boulderId && a.user_id === targetUserId))
     );
 
     if (isSupabaseConfigured && supabase) {
@@ -385,7 +391,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         await supabase
           .from('attempts')
           .delete()
-          .match({ boulder_id: boulderId, user_id: currentUser.id });
+          .match({ boulder_id: boulderId, user_id: targetUserId });
       } catch (err) {
         console.error('Failed to delete attempt from Supabase:', err);
       }

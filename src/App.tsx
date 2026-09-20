@@ -79,7 +79,13 @@ export function App() {
 
   // Modals state
   const [quickLogBoulder, setQuickLogBoulder] = useState<Boulder | null>(null);
+  const [quickLogTargetUserId, setQuickLogTargetUserId] = useState<string | undefined>(undefined);
   const [detailBoulder, setDetailBoulder] = useState<Boulder | null>(null);
+
+  const handleOpenQuickLog = (boulder: Boulder, targetUserId?: string) => {
+    setQuickLogBoulder(boulder);
+    setQuickLogTargetUserId(targetUserId || currentUser?.id);
+  };
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const [isBulkAddOpen, setIsBulkAddOpen] = useState<boolean>(false);
   const [isAreaResetOpen, setIsAreaResetOpen] = useState<boolean>(false);
@@ -240,14 +246,6 @@ export function App() {
     });
   }, [orderedActiveBouldersInCurrentArea, boulderFilters, currentUser, attempts]);
 
-  // Existing attempt for quick log modal
-  const activeBoulderAttempt = useMemo(() => {
-    if (!quickLogBoulder || !currentUser) return undefined;
-    return attempts.find(
-      (a) => a.boulder_id === quickLogBoulder.id && a.user_id === currentUser.id
-    );
-  }, [quickLogBoulder, currentUser, attempts]);
-
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       {/* Persistent Header */}
@@ -327,7 +325,7 @@ export function App() {
                       currentUserId={currentUser?.id}
                       commentCount={boulderComments.length}
                       areaName={!currentArea ? boulderArea?.name : undefined}
-                      onQuickLog={(b) => setQuickLogBoulder(b)}
+                      onQuickLog={(b, targetUserId) => handleOpenQuickLog(b, targetUserId)}
                       onOpenDetails={(b) => setDetailBoulder(b)}
                     />
                   );
@@ -414,7 +412,6 @@ export function App() {
             gyms={gyms}
             areas={areas}
             currentUserId={currentUser?.id}
-            onSwitchClimber={switchClimber}
           />
         )}
 
@@ -446,12 +443,17 @@ export function App() {
       {/* Quick Log Modal */}
       <QuickLogModal
         boulder={quickLogBoulder}
-        existingAttempt={activeBoulderAttempt}
         isOpen={Boolean(quickLogBoulder)}
-        onClose={() => setQuickLogBoulder(null)}
+        onClose={() => {
+          setQuickLogBoulder(null);
+          setQuickLogTargetUserId(undefined);
+        }}
         onSave={logAttempt}
         onDelete={deleteAttempt}
-        climberName={currentUser?.display_name || 'Climber'}
+        climbers={climbers}
+        currentUserId={currentUser?.id}
+        initialTargetUserId={quickLogTargetUserId}
+        attempts={attempts}
       />
 
       {/* Boulder Detail & Beta Modal */}
@@ -463,7 +465,7 @@ export function App() {
         comments={detailBoulder ? comments.filter((c) => c.boulder_id === detailBoulder.id) : []}
         climbers={climbers}
         currentUserId={currentUser?.id}
-        onQuickLog={(b) => setQuickLogBoulder(b)}
+        onQuickLog={(b, targetUserId) => handleOpenQuickLog(b, targetUserId)}
         onAddComment={addComment}
         onToggleArchive={archiveBoulder}
       />

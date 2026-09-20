@@ -1,53 +1,76 @@
 import React, { useState, useEffect } from 'react';
-import { Boulder, Attempt, AttemptStatus, determineAttemptStatus } from '../../types';
+import { Boulder, Attempt, AttemptStatus, determineAttemptStatus, Profile } from '../../types';
 import { HoldBadge } from './HoldBadge';
-import { Zap, Check, Clock, X, Trash2, Plus, Minus, CheckCircle2, CircleDashed, Calendar } from 'lucide-react';
+import { ClimberAvatar } from '../ClimberAvatar';
+import { Zap, Check, Clock, X, Trash2, Plus, Minus, CheckCircle2, CircleDashed, Calendar, Users, CheckCircle } from 'lucide-react';
 
 interface QuickLogModalProps {
   boulder: Boulder | null;
-  existingAttempt?: Attempt;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (params: { boulderId: string; status: AttemptStatus; attemptCount: number; loggedAt?: string }) => Promise<void>;
-  onDelete?: (boulderId: string) => Promise<void>;
-  climberName: string;
+  onSave: (params: { boulderId: string; status: AttemptStatus; attemptCount: number; loggedAt?: string; userId?: string }) => Promise<void>;
+  onDelete?: (boulderId: string, userId?: string) => Promise<void>;
+  climbers: Profile[];
+  currentUserId?: string;
+  initialTargetUserId?: string;
+  attempts: Attempt[];
 }
 
 export const QuickLogModal: React.FC<QuickLogModalProps> = ({
   boulder,
-  existingAttempt,
   isOpen,
   onClose,
   onSave,
   onDelete,
-  climberName
+  climbers,
+  currentUserId,
+  initialTargetUserId,
+  attempts
 }) => {
   const getTodayIsoDate = () => new Date().toISOString().split('T')[0];
 
-  // Core user inputs:
-  // 1. Did you send it?
-  // 2. How many attempts / tries?
-  // 3. Session date
+  // Active target climber for this log
+  const [selectedUserId, setSelectedUserId] = useState<string>(() => {
+    return initialTargetUserId || currentUserId || climbers[0]?.id || '';
+  });
+
   const [isSent, setIsSent] = useState<boolean>(true);
   const [attemptCount, setAttemptCount] = useState<number>(1);
   const [logDate, setLogDate] = useState<string>(getTodayIsoDate());
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
+  const [justSavedName, setJustSavedName] = useState<string | null>(null);
 
-  // Pre-fill state when opening
+  // Sync selected climber when modal opens or initial target changes
   useEffect(() => {
-    if (existingAttempt) {
-      setIsSent(existingAttempt.status === 'flashed' || existingAttempt.status === 'sent');
-      setAttemptCount(existingAttempt.attempt_count);
-      setLogDate(existingAttempt.logged_at ? existingAttempt.logged_at.split('T')[0] : getTodayIsoDate());
+    if (isOpen) {
+      setSelectedUserId(initialTargetUserId || currentUserId || climbers[0]?.id || '');
+      setJustSavedName(null);
+    }
+  }, [isOpen, initialTargetUserId, currentUserId]);
+
+  const selectedClimber = climbers.find(c => c.id === selectedUserId) || climbers[0];
+  const isLoggingForOther = Boolean(currentUserId && selectedClimber && selectedClimber.id !== currentUserId);
+
+  // Selected climber's existing attempt on this boulder
+  const selectedAttempt = boulder && selectedClimber
+    ? attempts.find(a => a.boulder_id === boulder.id && a.user_id === selectedClimber.id)
+    : undefined;
+
+  // Pre-fill state whenever the selected climber or boulder changes
+  useEffect(() => {
+    if (selectedAttempt) {
+      setIsSent(selectedAttempt.status === 'flashed' || selectedAttempt.status === 'sent');
+      setAttemptCount(selectedAttempt.attempt_count);
+      setLogDate(selectedAttempt.logged_at ? selectedAttempt.logged_at.split('T')[0] : getTodayIsoDate());
     } else {
-      // Default for a new log: sent on 1st try (Flash) on today's date
+      // Default for a fresh log: sent on 1st try (Flash) on today's date
       setIsSent(true);
       setAttemptCount(1);
       setLogDate(getTodayIsoDate());
     }
     setShowDatePicker(false);
-  }, [existingAttempt, boulder, isOpen]);
+  }, [selectedUserId, selectedAttempt, boulder, isOpen]);
 
   if (!isOpen || !boulder) return null;
 
@@ -62,7 +85,8 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
     setAttemptCount((prev) => Math.max(prev - 1, 1));
   };
 
-  const handleSubmit = async () => {
+  const handleSaveAttempt = async (closeAfter: boolean = true) => {
+    if (!boulder || !selectedClimber) return;
     setSaving(true);
     try {
       const dateObj = new Date(logDate + 'T19:00:00Z');
@@ -70,19 +94,25 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
         boulderId: boulder.id,
         status: computedStatus,
         attemptCount,
-        loggedAt: isNaN(dateObj.getTime()) ? new Date().toISOString() : dateObj.toISOString()
+        loggedAt: isNaN(dateObj.getTime()) ? new Date().toISOString() : dateObj.toISOString(),
+        userId: selectedClimber.id
       });
-      onClose();
+      if (closeAfter) {
+        onClose();
+      } else {
+        setJustSavedName(selectedClimber.display_name);
+        setTimeout(() => setJustSavedName(null), 3000);
+      }
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async () => {
-    if (onDelete && existingAttempt) {
+    if (onDelete && selectedAttempt && selectedClimber) {
       setSaving(true);
       try {
-        await onDelete(boulder.id);
+        await onDelete(boulder.id, selectedClimber.id);
         onClose();
       } finally {
         setSaving(false);
@@ -113,18 +143,103 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
           </button>
         </div>
 
-        {/* Climber context */}
-        <div className="flex items-center justify-between text-xs text-slate-400 bg-slate-800/50 px-3 py-2 rounded-xl border border-slate-800">
-          <span>
-            Climber: <strong className="text-amber-400 font-semibold">{climberName}</strong>
-          </span>
-          {existingAttempt && (
-            <span className="text-slate-400">
-              Previous log:{' '}
-              <strong className="uppercase font-mono text-slate-200">
-                {existingAttempt.status} ({existingAttempt.attempt_count}t)
-              </strong>
+        {/* Climber Selector / Context */}
+        <div className="flex flex-col gap-2 bg-slate-800/40 p-3 rounded-2xl border border-slate-800">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5 text-amber-400" />
+              Log for Climber:
             </span>
+            {isLoggingForOther ? (
+              <span className="text-[11px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-full flex items-center gap-1 animate-in fade-in">
+                On behalf of {selectedClimber.display_name}
+              </span>
+            ) : (
+              <span className="text-[11px] font-semibold text-slate-400">
+                Tap crew to switch
+              </span>
+            )}
+          </div>
+
+          {/* Climber Swatch Row */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar pt-0.5">
+            {climbers.map((climber) => {
+              const isSelected = climber.id === selectedUserId;
+              const isMe = climber.id === currentUserId;
+              const climberAttempt = attempts.find(
+                (a) => a.boulder_id === boulder.id && a.user_id === climber.id
+              );
+
+              return (
+                <button
+                  key={climber.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedUserId(climber.id);
+                    setJustSavedName(null);
+                  }}
+                  className={`flex items-center gap-2 px-2.5 py-2 rounded-xl border text-xs font-semibold shrink-0 transition-all active-press ${
+                    isSelected
+                      ? 'bg-slate-800 border-amber-400 text-white shadow-md ring-1 ring-amber-400/50'
+                      : 'bg-slate-850/70 border-slate-700/80 text-slate-400 hover:text-slate-200 hover:border-slate-600'
+                  }`}
+                >
+                  <ClimberAvatar profile={climber} size="xs" />
+                  <div className="flex flex-col items-start leading-none text-left">
+                    <span className="flex items-center gap-1 font-bold">
+                      {climber.display_name}
+                      {isMe && <span className="text-[10px] text-slate-400 font-normal">(You)</span>}
+                    </span>
+                    <span className="text-[10px] font-mono mt-0.5 opacity-75">
+                      {climberAttempt?.status === 'flashed'
+                        ? '⚡ Flash'
+                        : climberAttempt?.status === 'sent'
+                        ? `✓ S${climberAttempt.attempt_count}`
+                        : climberAttempt?.status === 'attempted'
+                        ? `⏱️ P${climberAttempt.attempt_count}`
+                        : '○ Untried'}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Climber Status Feedback Notice */}
+          <div className="flex items-center justify-between text-xs text-slate-400 pt-1 border-t border-slate-750/50">
+            <span className="flex items-center gap-1.5">
+              <span>Active:</span>
+              <strong className="text-amber-400 font-semibold">{selectedClimber?.display_name}</strong>
+              {isLoggingForOther && (
+                <button
+                  type="button"
+                  onClick={() => currentUserId && setSelectedUserId(currentUserId)}
+                  className="text-[10px] underline text-slate-400 hover:text-slate-200"
+                >
+                  (switch back to you)
+                </button>
+              )}
+            </span>
+
+            {selectedAttempt ? (
+              <span className="text-slate-400 text-[11px]">
+                Previous log:{' '}
+                <strong className="uppercase font-mono text-slate-200">
+                  {selectedAttempt.status} ({selectedAttempt.attempt_count}t)
+                </strong>
+              </span>
+            ) : (
+              <span className="text-slate-500 text-[11px] italic">
+                Untried by {selectedClimber?.display_name}
+              </span>
+            )}
+          </div>
+
+          {justSavedName && (
+            <div className="flex items-center gap-1.5 text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-xl animate-in fade-in">
+              <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>Successfully logged for <strong>{justSavedName}</strong>! Switch climber above to log another.</span>
+            </div>
           )}
         </div>
 
@@ -291,24 +406,37 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-3 pt-1">
-          {existingAttempt && onDelete && (
+        <div className="flex items-center gap-2.5 pt-1">
+          {selectedAttempt && onDelete && (
             <button
               type="button"
               onClick={handleDelete}
               disabled={saving}
-              className="p-3.5 rounded-xl border border-rose-900/50 bg-rose-950/40 text-rose-300 hover:bg-rose-900/50 transition-colors flex items-center justify-center"
-              title="Clear / Delete Log"
+              className="p-3.5 rounded-xl border border-rose-900/50 bg-rose-950/40 text-rose-300 hover:bg-rose-900/50 transition-colors flex items-center justify-center shrink-0"
+              title={`Clear / Delete Log for ${selectedClimber?.display_name}`}
             >
               <Trash2 className="w-5 h-5" />
             </button>
           )}
 
+          {climbers.length > 1 && (
+            <button
+              type="button"
+              onClick={() => handleSaveAttempt(false)}
+              disabled={saving}
+              className="py-3.5 px-3.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 active-press transition-all flex items-center justify-center gap-1.5 shrink-0"
+              title="Save this climber's log and keep modal open to log for another"
+            >
+              <Users className="w-4 h-4 text-amber-400" />
+              <span>Save & Log Next</span>
+            </button>
+          )}
+
           <button
             type="button"
-            onClick={handleSubmit}
+            onClick={() => handleSaveAttempt(true)}
             disabled={saving}
-            className={`flex-1 py-3.5 px-4 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-all active-press ${
+            className={`flex-1 py-3.5 px-4 rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg transition-all active-press ${
               computedStatus === 'flashed'
                 ? 'bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/20'
                 : computedStatus === 'sent'
@@ -316,16 +444,22 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                 : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20'
             }`}
           >
-            {computedStatus === 'flashed' && <Zap className="w-5 h-5 fill-current" />}
-            {computedStatus === 'sent' && <Check className="w-5 h-5 stroke-[3]" />}
-            {computedStatus === 'attempted' && <Clock className="w-5 h-5" />}
-            <span>
+            {computedStatus === 'flashed' && <Zap className="w-5 h-5 fill-current shrink-0" />}
+            {computedStatus === 'sent' && <Check className="w-5 h-5 stroke-[3] shrink-0" />}
+            {computedStatus === 'attempted' && <Clock className="w-5 h-5 shrink-0" />}
+            <span className="truncate">
               {saving
                 ? 'Saving...'
                 : computedStatus === 'flashed'
-                ? 'Log Flash! ⚡'
+                ? isLoggingForOther
+                  ? `Log Flash for ${selectedClimber?.display_name}! ⚡`
+                  : 'Log Flash! ⚡'
                 : computedStatus === 'sent'
-                ? `Log Send (${attemptCount} tries) ✅`
+                ? isLoggingForOther
+                  ? `Log Send for ${selectedClimber?.display_name} (${attemptCount}t) ✅`
+                  : `Log Send (${attemptCount} tries) ✅`
+                : isLoggingForOther
+                ? `Save Project for ${selectedClimber?.display_name} (${attemptCount}t)`
                 : `Save Project (${attemptCount} tries)`}
             </span>
           </button>

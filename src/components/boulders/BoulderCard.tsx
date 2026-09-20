@@ -11,7 +11,7 @@ interface BoulderCardProps {
   currentUserId?: string;
   commentCount: number;
   areaName?: string;
-  onQuickLog: (boulder: Boulder) => void;
+  onQuickLog: (boulder: Boulder, targetUserId?: string) => void;
   onOpenDetails: (boulder: Boulder) => void;
 }
 
@@ -134,6 +134,7 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
           attempts={attempts}
           currentUserId={currentUserId}
           size="sm"
+          onClimberClick={(climberId) => onQuickLog(boulder, climberId)}
         />
 
         <div className="flex items-center gap-1 text-slate-400">

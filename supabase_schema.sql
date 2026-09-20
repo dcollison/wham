@@ -205,26 +205,26 @@ CREATE POLICY "Authenticated users can delete boulders"
     TO authenticated
     USING (true);
 
--- 4.5 Attempts policies (Strict climber isolation for writes)
+-- 4.5 Attempts policies (Crew members can view and log/update attempts on behalf of each other)
 CREATE POLICY "Authenticated users can view all attempts"
     ON public.attempts FOR SELECT
     TO authenticated
     USING (true);
 
-CREATE POLICY "Users can insert their own attempts"
+CREATE POLICY "Authenticated users can insert attempts"
     ON public.attempts FOR INSERT
     TO authenticated
-    WITH CHECK (auth.uid() = user_id);
+    WITH CHECK (true);
 
-CREATE POLICY "Users can update their own attempts"
+CREATE POLICY "Authenticated users can update attempts"
     ON public.attempts FOR UPDATE
     TO authenticated
-    USING (auth.uid() = user_id);
+    USING (true);
 
-CREATE POLICY "Users can delete their own attempts"
+CREATE POLICY "Authenticated users can delete attempts"
     ON public.attempts FOR DELETE
     TO authenticated
-    USING (auth.uid() = user_id);
+    USING (true);
 
 -- 4.6 Comments policies
 CREATE POLICY "Authenticated users can view all comments"

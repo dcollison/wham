@@ -47,7 +47,6 @@ interface StatsDashboardProps {
   gyms: Gym[];
   areas: GymArea[];
   currentUserId?: string;
-  onSwitchClimber?: (id: string) => void;
 }
 
 export { CLIMBER_COLORS, CLIMBER_ACCENT_PALETTE, getClimberColor };
@@ -74,8 +73,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
   climbers,
   gyms,
   areas,
-  currentUserId,
-  onSwitchClimber
+  currentUserId
 }) => {
   // Navigation tabs inside Stats Dashboard
   const [activeTab, setActiveTab] = useState<'overview' | 'comparison' | 'timeline' | 'pyramid' | 'circuits'>('overview');
@@ -771,7 +769,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                       type="button"
                       onClick={() => {
                         setSelectedClimberId(c.id);
-                        if (onSwitchClimber) onSwitchClimber(c.id);
                       }}
                       style={isSelected ? { backgroundColor: color.hex, color: '#000000' } : undefined}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all active-press ${
@@ -1852,7 +1849,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                     onClick={() => {
                       setViewMode('my');
                       setSelectedClimberId(c.id);
-                      if (onSwitchClimber) onSwitchClimber(c.id);
                     }}
                     style={isSelected ? { backgroundColor: color.hex, color: '#000000' } : undefined}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all active-press ${
@@ -1861,6 +1857,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                         : 'bg-slate-800/80 border border-slate-700/80 text-slate-300 hover:text-white'
                     }`}
                   >
+                    <ClimberAvatar profile={c} size="xs" />
                     <span>{c.display_name}</span>
                   </button>
                 );

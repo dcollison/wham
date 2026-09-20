@@ -1,5 +1,6 @@
 import React from 'react';
 import { Attempt, Profile } from '../../types';
+import { ClimberAvatar } from '../ClimberAvatar';
 import { Zap, Check, Clock, Minus } from 'lucide-react';
 
 interface ClimberStatusPillsProps {
@@ -7,22 +8,25 @@ interface ClimberStatusPillsProps {
   attempts: Attempt[];
   currentUserId?: string;
   size?: 'sm' | 'md';
+  onClimberClick?: (climberId: string) => void;
 }
 
 export const ClimberStatusPills: React.FC<ClimberStatusPillsProps> = ({
   climbers,
   attempts,
   currentUserId,
-  size = 'sm'
+  size = 'sm',
+  onClimberClick
 }) => {
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
       {climbers.map((climber) => {
         const attempt = attempts.find(a => a.user_id === climber.id);
         const isCurrent = climber.id === currentUserId;
+        const isClickable = Boolean(onClimberClick);
 
         let badgeBg = 'bg-slate-800/80 border-slate-700/60 text-slate-400';
-        let icon = <Minus className="w-2.5 h-2.5 opacity-40" />;
+        let icon = <Minus className="w-2.5 h-2.5 opacity-40 shrink-0" />;
         let label = climber.display_name;
         let detail = '';
 
@@ -40,22 +44,33 @@ export const ClimberStatusPills: React.FC<ClimberStatusPillsProps> = ({
           detail = `P${attempt.attempt_count}`;
         }
 
+        const statusText = attempt?.status === 'flashed'
+          ? 'Flashed (1 try)'
+          : attempt?.status === 'sent'
+          ? `Sent (${attempt.attempt_count} tries)`
+          : attempt?.status === 'attempted'
+          ? `Projecting (${attempt.attempt_count} tries)`
+          : 'Untried';
+
         return (
           <div
             key={climber.id}
-            title={`${climber.display_name}: ${
-              attempt?.status === 'flashed'
-                ? 'Flashed (1 try)'
-                : attempt?.status === 'sent'
-                ? `Sent (${attempt.attempt_count} tries)`
-                : attempt?.status === 'attempted'
-                ? `Projecting (${attempt.attempt_count} tries)`
-                : 'Untried'
-            }`}
-            className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 border text-[11px] leading-tight whitespace-nowrap transition-all ${badgeBg} ${
+            onClick={(e) => {
+              if (onClimberClick) {
+                e.stopPropagation();
+                onClimberClick(climber.id);
+              }
+            }}
+            title={`${climber.display_name}: ${statusText}${isClickable ? ' (Click to log)' : ''}`}
+            className={`inline-flex items-center gap-1 rounded-md border leading-tight whitespace-nowrap transition-all ${
+              size === 'md' ? 'px-2 py-1 text-xs' : 'px-1.5 py-0.5 text-[11px]'
+            } ${badgeBg} ${
               isCurrent ? 'ring-1 ring-amber-400/50' : ''
+            } ${
+              isClickable ? 'cursor-pointer hover:brightness-125 hover:border-slate-500 active:scale-95' : ''
             }`}
           >
+            {size === 'md' && <ClimberAvatar profile={climber} size="xs" />}
             <span className="font-semibold tracking-tight">{label}</span>
             {icon}
             {detail && <span className="font-mono text-[10px] font-bold">{detail}</span>}
