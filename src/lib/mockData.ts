@@ -4,22 +4,26 @@ export const INITIAL_PROFILES: Profile[] = [
   {
     "id": "a0000000-0000-0000-0000-000000000001",
     "display_name": "Alex",
-    "avatar_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Alex&backgroundColor=ffb703"
+    "avatar_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Alex&backgroundColor=ffb703",
+    "accent_color": "#F59E0B"
   },
   {
     "id": "a0000000-0000-0000-0000-000000000002",
     "display_name": "Dale",
-    "avatar_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Dale&backgroundColor=fb8500"
+    "avatar_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Dale&backgroundColor=fb8500",
+    "accent_color": "#F97316"
   },
   {
     "id": "a0000000-0000-0000-0000-000000000003",
     "display_name": "Taiye",
-    "avatar_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Taiye&backgroundColor=219ebc"
+    "avatar_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Taiye&backgroundColor=219ebc",
+    "accent_color": "#06B6D4"
   },
   {
     "id": "a0000000-0000-0000-0000-000000000004",
     "display_name": "Euan",
-    "avatar_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Euan&backgroundColor=023047"
+    "avatar_url": "https://api.dicebear.com/7.x/bottts/svg?seed=Euan&backgroundColor=023047",
+    "accent_color": "#8B5CF6"
   }
 ];
 

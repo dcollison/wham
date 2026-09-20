@@ -46,6 +46,7 @@ export interface Profile {
   id: string;
   display_name: string;
   avatar_url?: string | null;
+  accent_color?: string | null;
   created_at?: string;
 }
 
@@ -134,3 +135,58 @@ export interface ClimberStats {
   hardestSend: Grade | null;
   gradeCounts: Record<Grade, { sent: number; flashed: number; attempted: number }>;
 }
+
+export interface ClimberColorConfig {
+  name: string;
+  bg: string;
+  text: string;
+  hex: string;
+  border: string;
+  ring: string;
+  badgeBg: string;
+}
+
+export const CLIMBER_ACCENT_PALETTE: ClimberColorConfig[] = [
+  { name: 'Amber', bg: 'bg-amber-400', text: 'text-amber-400', hex: '#F59E0B', border: 'border-amber-400', ring: 'ring-amber-400', badgeBg: 'bg-amber-400/20' },
+  { name: 'Orange', bg: 'bg-orange-500', text: 'text-orange-400', hex: '#F97316', border: 'border-orange-500', ring: 'ring-orange-500', badgeBg: 'bg-orange-500/20' },
+  { name: 'Cyan', bg: 'bg-cyan-500', text: 'text-cyan-400', hex: '#06B6D4', border: 'border-cyan-500', ring: 'ring-cyan-500', badgeBg: 'bg-cyan-500/20' },
+  { name: 'Purple', bg: 'bg-purple-500', text: 'text-purple-400', hex: '#8B5CF6', border: 'border-purple-500', ring: 'ring-purple-500', badgeBg: 'bg-purple-500/20' },
+  { name: 'Rose', bg: 'bg-rose-500', text: 'text-rose-400', hex: '#F43F5E', border: 'border-rose-500', ring: 'ring-rose-500', badgeBg: 'bg-rose-500/20' },
+  { name: 'Emerald', bg: 'bg-emerald-500', text: 'text-emerald-400', hex: '#10B981', border: 'border-emerald-500', ring: 'ring-emerald-500', badgeBg: 'bg-emerald-500/20' },
+  { name: 'Blue', bg: 'bg-blue-500', text: 'text-blue-400', hex: '#3B82F6', border: 'border-blue-500', ring: 'ring-blue-500', badgeBg: 'bg-blue-500/20' },
+  { name: 'Lime', bg: 'bg-lime-500', text: 'text-lime-400', hex: '#84CC16', border: 'border-lime-500', ring: 'ring-lime-500', badgeBg: 'bg-lime-500/20' },
+  { name: 'Pink', bg: 'bg-pink-500', text: 'text-pink-400', hex: '#EC4899', border: 'border-pink-500', ring: 'ring-pink-500', badgeBg: 'bg-pink-500/20' },
+  { name: 'Indigo', bg: 'bg-indigo-500', text: 'text-indigo-400', hex: '#6366F1', border: 'border-indigo-500', ring: 'ring-indigo-500', badgeBg: 'bg-indigo-500/20' },
+  { name: 'Teal', bg: 'bg-teal-500', text: 'text-teal-400', hex: '#14B8A6', border: 'border-teal-500', ring: 'ring-teal-500', badgeBg: 'bg-teal-500/20' },
+  { name: 'Red', bg: 'bg-red-600', text: 'text-red-400', hex: '#EF4444', border: 'border-red-600', ring: 'ring-red-600', badgeBg: 'bg-red-500/20' }
+];
+
+export const CLIMBER_COLORS = CLIMBER_ACCENT_PALETTE;
+
+export const getClimberColor = (
+  climberOrIndex: Profile | number | undefined,
+  indexFallback = 0
+): ClimberColorConfig => {
+  if (typeof climberOrIndex === 'object' && climberOrIndex !== null) {
+    const profile = climberOrIndex;
+    if (profile.accent_color) {
+      const match = CLIMBER_ACCENT_PALETTE.find(
+        (c) => c.hex.toLowerCase() === profile.accent_color!.toLowerCase()
+      );
+      if (match) return match;
+      return {
+        name: 'Custom',
+        bg: 'bg-amber-400',
+        text: 'text-amber-400',
+        hex: profile.accent_color,
+        border: 'border-amber-400',
+        ring: 'ring-amber-400',
+        badgeBg: 'bg-amber-400/20'
+      };
+    }
+    return CLIMBER_ACCENT_PALETTE[indexFallback % CLIMBER_ACCENT_PALETTE.length];
+  }
+
+  const idx = typeof climberOrIndex === 'number' ? climberOrIndex : indexFallback;
+  return CLIMBER_ACCENT_PALETTE[idx % CLIMBER_ACCENT_PALETTE.length];
+};

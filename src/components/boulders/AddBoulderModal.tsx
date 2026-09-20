@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Boulder, Grade, GRADES, HOLD_COLORS, GymArea } from '../../types';
 import { compressImage, CompressionResult } from '../../lib/imageCompressor';
 import { X, Camera, Upload, Plus, AlertCircle, ArrowDown } from 'lucide-react';
@@ -35,8 +35,14 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
   defaultInsertAfterId,
   onAdd
 }) => {
-  const gymAreas = areas.filter(a => a.gym_id === gymId).sort((a, b) => a.sort_order - b.sort_order);
-  const [selectedAreaId, setSelectedAreaId] = useState<string>(areaId || gymAreas[0]?.id || '');
+  const gymAreas = useMemo(() => {
+    return areas.filter(a => a.gym_id === gymId).sort((a, b) => a.sort_order - b.sort_order);
+  }, [areas, gymId]);
+
+  const [selectedAreaId, setSelectedAreaId] = useState<string>(() => {
+    if (areaId && gymAreas.some(a => a.id === areaId)) return areaId;
+    return gymAreas[0]?.id || '';
+  });
   const [holdColour, setHoldColour] = useState<string>('Yellow');
   const [grade, setGrade] = useState<Grade>('V2');
   const [notes, setNotes] = useState<string>('');
@@ -46,23 +52,38 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
   const [submitting, setSubmitting] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Sync selected area and reset form when modal opens or active gym/area changes
   useEffect(() => {
-    if (areaId) {
-      setSelectedAreaId(areaId);
-    } else if (gymAreas.length > 0) {
-      setSelectedAreaId(gymAreas[0].id);
+    if (isOpen) {
+      if (areaId && gymAreas.some(a => a.id === areaId)) {
+        setSelectedAreaId(areaId);
+      } else if (gymAreas.length > 0) {
+        setSelectedAreaId(gymAreas[0].id);
+      } else {
+        setSelectedAreaId('');
+      }
+      setInsertAfterId(defaultInsertAfterId || '');
+      setNotes('');
+      setCompressionResult(null);
     }
-  }, [areaId, gymAreas.length]);
+  }, [isOpen, gymId, areaId, gymAreas, defaultInsertAfterId]);
 
   if (!isOpen) return null;
 
-  const currentSelectedArea = gymAreas.find(a => a.id === selectedAreaId);
+  // Ensure selectedAreaId is valid for the current gym, otherwise fallback to first gym area
+  const effectiveAreaId = (selectedAreaId && gymAreas.some(a => a.id === selectedAreaId))
+    ? selectedAreaId
+    : (areaId && gymAreas.some(a => a.id === areaId) ? areaId : (gymAreas[0]?.id || ''));
+
+  const currentSelectedArea = gymAreas.find(a => a.id === effectiveAreaId);
   const displayAreaName = currentSelectedArea?.name || areaName;
 
-  // Active boulders in this area sorted clockwise
+  // Active boulders in this specific gym & area sorted clockwise
   const areaBoulders = existingBoulders
-    .filter(b => b.area_id === selectedAreaId && !b.is_archived)
+    .filter(b => b.gym_id === gymId && b.area_id === effectiveAreaId && !b.is_archived)
     .sort((a, b) => a.position_order - b.position_order);
+
+  const effectiveInsertAfterId = areaBoulders.some(b => b.id === insertAfterId) ? insertAfterId : '';
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -86,18 +107,19 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
     try {
       await onAdd({
         gymId,
-        areaId: selectedAreaId,
+        areaId: effectiveAreaId,
         holdColour,
         grade,
         notes: notes.trim() || undefined,
         imageFile: compressionResult?.file || null,
         imageDataUrl: compressionResult?.dataUrl || null,
-        insertAfterBoulderId: insertAfterId || null
+        insertAfterBoulderId: effectiveInsertAfterId || null
       });
       onClose();
       // Reset form
       setNotes('');
       setCompressionResult(null);
+      setInsertAfterId('');
     } finally {
       setSubmitting(false);
     }
@@ -135,7 +157,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
                 Wall Sector / Area
               </label>
               <select
-                value={selectedAreaId}
+                value={effectiveAreaId}
                 onChange={(e) => {
                   setSelectedAreaId(e.target.value);
                   setInsertAfterId('');
@@ -213,11 +235,15 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
               <span className="text-[10px] text-amber-400/90 font-mono">Clockwise Positioning</span>
             </label>
             <select
-              value={insertAfterId}
+              value={effectiveInsertAfterId}
               onChange={(e) => setInsertAfterId(e.target.value)}
               className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg p-2.5 outline-none focus:border-amber-400"
             >
-              <option value="">At the End of Area (Position #{areaBoulders.length + 1})</option>
+              <option value="">
+                {areaBoulders.length === 0
+                  ? 'First climb in this sector (Position #1)'
+                  : `At the End of Area (Position #${areaBoulders.length + 1})`}
+              </option>
               {areaBoulders.map((b, idx) => (
                 <option key={b.id} value={b.id}>
                   Insert after #{idx + 1}: {b.hold_colour} {b.grade} {b.notes ? `("${b.notes.slice(0, 20)}...")` : ''}
@@ -225,7 +251,9 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
               ))}
             </select>
             <p className="text-[11px] text-slate-400 mt-0.5">
-              Inserts halfway between climbs without shifting existing indices.
+              {areaBoulders.length === 0
+                ? 'No climbs logged in this sector yet. This will be climb #1.'
+                : 'Inserts halfway between climbs without shifting existing indices.'}
             </p>
           </div>
 

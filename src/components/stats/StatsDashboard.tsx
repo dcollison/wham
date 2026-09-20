@@ -1,5 +1,17 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Boulder, Attempt, Profile, Gym, GymArea, Grade, GRADES, HOLD_COLORS } from '../../types';
+import {
+  Boulder,
+  Attempt,
+  Profile,
+  Gym,
+  GymArea,
+  Grade,
+  GRADES,
+  HOLD_COLORS,
+  CLIMBER_COLORS,
+  CLIMBER_ACCENT_PALETTE,
+  getClimberColor
+} from '../../types';
 import {
   Zap,
   Check,
@@ -37,20 +49,7 @@ interface StatsDashboardProps {
   onSwitchClimber?: (id: string) => void;
 }
 
-// Consistent color palette for each climber in charts & comparisons
-export const CLIMBER_COLORS = [
-  { bg: 'bg-amber-400', text: 'text-amber-400', hex: '#F59E0B', border: 'border-amber-400', ring: 'ring-amber-400', badgeBg: 'bg-amber-400/20' },
-  { bg: 'bg-orange-500', text: 'text-orange-400', hex: '#F97316', border: 'border-orange-500', ring: 'ring-orange-500', badgeBg: 'bg-orange-500/20' },
-  { bg: 'bg-cyan-500', text: 'text-cyan-400', hex: '#06B6D4', border: 'border-cyan-500', ring: 'ring-cyan-500', badgeBg: 'bg-cyan-500/20' },
-  { bg: 'bg-purple-500', text: 'text-purple-400', hex: '#8B5CF6', border: 'border-purple-500', ring: 'ring-purple-500', badgeBg: 'bg-purple-500/20' },
-  { bg: 'bg-rose-500', text: 'text-rose-400', hex: '#F43F5E', border: 'border-rose-500', ring: 'ring-rose-500', badgeBg: 'bg-rose-500/20' },
-  { bg: 'bg-emerald-500', text: 'text-emerald-400', hex: '#10B981', border: 'border-emerald-500', ring: 'ring-emerald-500', badgeBg: 'bg-emerald-500/20' },
-  { bg: 'bg-blue-500', text: 'text-blue-400', hex: '#3B82F6', border: 'border-blue-500', ring: 'ring-blue-500', badgeBg: 'bg-blue-500/20' },
-];
-
-export const getClimberColor = (index: number) => {
-  return CLIMBER_COLORS[index % CLIMBER_COLORS.length];
-};
+export { CLIMBER_COLORS, CLIMBER_ACCENT_PALETTE, getClimberColor };
 
 // Circuit grade guide for London Arch gyms
 const CIRCUIT_GRADES: Record<string, string> = {
@@ -291,7 +290,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
   const climberStatsList = useMemo(() => {
     return climbers.map((c, index) => {
       const stats = computeClimberStats(c.id);
-      const color = getClimberColor(index);
+      const color = getClimberColor(c, index);
       return {
         profile: c,
         color,
@@ -525,7 +524,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
 
       return {
         climber: c,
-        color: getClimberColor(idx),
+        color: getClimberColor(c, idx),
         points
       };
     });
@@ -764,7 +763,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                 {climbers.map((c, idx) => {
                   const isSelected = (selectedClimberId || currentUserId) === c.id;
                   const isYou = currentUserId === c.id;
-                  const color = getClimberColor(idx);
+                  const color = getClimberColor(c, idx);
                   return (
                     <button
                       key={c.id}
@@ -773,6 +772,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                         setSelectedClimberId(c.id);
                         if (onSwitchClimber) onSwitchClimber(c.id);
                       }}
+                      style={isSelected ? { backgroundColor: color.hex, color: '#000000' } : undefined}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all active-press ${
                         isSelected
                           ? `${color.bg} text-black shadow-md`
@@ -1079,12 +1079,21 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                               {idx + 1}
                             </span>
                             {item.profile.avatar_url ? (
-                              <img src={item.profile.avatar_url} alt="" className="w-6 h-6 rounded-full" />
+                              <img
+                                src={item.profile.avatar_url}
+                                alt=""
+                                className="w-6 h-6 rounded-full border-2"
+                                style={{ borderColor: item.color.hex }}
+                              />
                             ) : (
-                              <div className="w-6 h-6 rounded-full bg-slate-700 text-white text-[10px] flex items-center justify-center">
+                              <div
+                                className="w-6 h-6 rounded-full text-black font-black text-[10px] flex items-center justify-center"
+                                style={{ backgroundColor: item.color.hex }}
+                              >
                                 {item.profile.display_name.charAt(0)}
                               </div>
                             )}
+                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color.hex }} />
                             <span className="truncate max-w-[120px]">{item.profile.display_name}</span>
                           </div>
                         </td>
@@ -1218,6 +1227,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-850/60 p-3 rounded-xl border border-slate-800">
                 <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: battleData.climberA.color.hex }} />
                   <label className="text-xs font-bold text-slate-400 uppercase">Climber 1:</label>
                   <select
                     value={battleClimberAId}
@@ -1231,6 +1241,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: battleData.climberB.color.hex }} />
                   <label className="text-xs font-bold text-slate-400 uppercase">Climber 2:</label>
                   <select
                     value={battleClimberBId}
@@ -1466,12 +1477,13 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
               </button>
               {climbers.map((c, idx) => {
                 const isSelected = timelineClimberFilter === c.id;
-                const color = getClimberColor(idx);
+                const color = getClimberColor(c, idx);
                 return (
                   <button
                     key={c.id}
                     type="button"
                     onClick={() => setTimelineClimberFilter(c.id)}
+                    style={isSelected ? { backgroundColor: color.hex, color: '#000000' } : undefined}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all active-press ${
                       isSelected
                         ? `${color.bg} text-black shadow`
@@ -1854,7 +1866,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
 
               {climbers.map((c, idx) => {
                 const isSelected = viewMode === 'my' && (selectedClimberId || currentUserId) === c.id;
-                const color = getClimberColor(idx);
+                const color = getClimberColor(c, idx);
                 return (
                   <button
                     key={c.id}
@@ -1864,6 +1876,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                       setSelectedClimberId(c.id);
                       if (onSwitchClimber) onSwitchClimber(c.id);
                     }}
+                    style={isSelected ? { backgroundColor: color.hex, color: '#000000' } : undefined}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all active-press ${
                       isSelected
                         ? `${color.bg} text-black shadow-md`

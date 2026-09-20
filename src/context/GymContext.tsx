@@ -150,16 +150,25 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } else if (savedAreaId) {
         const area = gymAreas.find(a => a.id === savedAreaId) || null;
         setCurrentAreaState(area);
-      } else {
-        // Default to All Areas if no preference saved
+      } else if (currentArea && currentArea.gym_id !== currentGym.id) {
         setCurrentAreaState(null);
       }
     }
-  }, [currentGym, areas]);
+  }, [currentGym, areas, currentArea]);
 
   const setCurrentGym = (gym: Gym) => {
     setCurrentGymState(gym);
     localStorage.setItem('wham_active_gym_id', gym.id);
+    const gymAreas = areas.filter(a => a.gym_id === gym.id).sort((a, b) => a.sort_order - b.sort_order);
+    const savedAreaId = localStorage.getItem(`wham_active_area_${gym.id}`);
+    if (savedAreaId === 'all') {
+      setCurrentAreaState(null);
+    } else if (savedAreaId) {
+      const area = gymAreas.find(a => a.id === savedAreaId) || null;
+      setCurrentAreaState(area);
+    } else {
+      setCurrentAreaState(null);
+    }
   };
 
   const setCurrentArea = (area: GymArea | null) => {
@@ -395,7 +404,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     insertAfterBoulderId
   }: AddBoulderParams): Promise<Boulder> => {
     const areaBoulders = boulders
-      .filter(b => b.area_id === areaId && !b.is_archived)
+      .filter(b => b.gym_id === gymId && b.area_id === areaId && !b.is_archived)
       .sort((a, b) => a.position_order - b.position_order);
 
     let calculatedPosition = 1.0;

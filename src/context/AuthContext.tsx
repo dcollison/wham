@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { Profile } from '../types';
+import { Profile, CLIMBER_ACCENT_PALETTE } from '../types';
 import { INITIAL_PROFILES } from '../lib/mockData';
 
 interface AuthContextType {
@@ -14,7 +14,8 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   switchClimber: (profileId: string) => void;
   updateDisplayName: (displayName: string) => Promise<void>;
-  addClimber: (displayName: string, avatarUrl?: string) => Promise<Profile>;
+  updateAccentColor: (accentColor: string) => Promise<void>;
+  addClimber: (displayName: string, avatarUrl?: string, accentColor?: string) => Promise<Profile>;
   removeClimber: (profileId: string) => Promise<void>;
 }
 
@@ -46,14 +47,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .order('display_name');
 
           if (!profileErr && remoteProfiles && remoteProfiles.length > 0) {
-            setClimbers(remoteProfiles);
+            const mappedProfiles: Profile[] = remoteProfiles.map((p, idx) => ({
+              ...p,
+              accent_color: p.accent_color || CLIMBER_ACCENT_PALETTE[idx % CLIMBER_ACCENT_PALETTE.length].hex
+            }));
+            setClimbers(mappedProfiles);
           }
 
           if (session?.user) {
             // Find current user's profile
             const profile = (remoteProfiles || climbers).find(p => p.id === session.user.id);
             if (profile) {
-              setCurrentUser(profile);
+              setCurrentUser({
+                ...profile,
+                accent_color: profile.accent_color || CLIMBER_ACCENT_PALETTE[0].hex
+              });
             } else {
               // Auto create/fetch profile if trigger hadn't fired yet
               const fallbackProfile: Profile = {
@@ -62,7 +70,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                               session.user.user_metadata?.full_name ||
                               session.user.email?.split('@')[0] ||
                               'Climber',
-                avatar_url: session.user.user_metadata?.avatar_url || null
+                avatar_url: session.user.user_metadata?.avatar_url || null,
+                accent_color: CLIMBER_ACCENT_PALETTE[0].hex
               };
               setCurrentUser(fallbackProfile);
             }
@@ -70,7 +79,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } else {
             // No active session in Supabase, pick first climber or saved profile for viewing
             const active = (remoteProfiles || climbers).find(p => p.id === savedProfileId) || (remoteProfiles || climbers)[0];
-            setCurrentUser(active);
+            setCurrentUser(active ? {
+              ...active,
+              accent_color: active.accent_color || CLIMBER_ACCENT_PALETTE[0].hex
+            } : null);
           }
 
           // Listen for auth state changes
@@ -83,12 +95,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 .single();
 
               if (profile) {
-                setCurrentUser(profile);
+                setCurrentUser({
+                  ...profile,
+                  accent_color: profile.accent_color || CLIMBER_ACCENT_PALETTE[0].hex
+                });
               } else {
                 setCurrentUser({
                   id: session.user.id,
                   display_name: session.user.email?.split('@')[0] || 'Climber',
-                  avatar_url: null
+                  avatar_url: null,
+                  accent_color: CLIMBER_ACCENT_PALETTE[0].hex
                 });
               }
               setIsDemoMode(false);
@@ -111,7 +127,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Offline / Demo fallback
       const stored = localStorage.getItem('wham_profiles');
-      const loadedClimbers = stored ? JSON.parse(stored) : INITIAL_PROFILES;
+      const rawClimbers: Profile[] = stored ? JSON.parse(stored) : INITIAL_PROFILES;
+      const loadedClimbers: Profile[] = rawClimbers.map((c, idx) => ({
+        ...c,
+        accent_color: c.accent_color || INITIAL_PROFILES[idx]?.accent_color || CLIMBER_ACCENT_PALETTE[idx % CLIMBER_ACCENT_PALETTE.length].hex
+      }));
       setClimbers(loadedClimbers);
 
       const active = loadedClimbers.find((p: Profile) => p.id === savedProfileId) || loadedClimbers[0];
@@ -155,7 +175,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const addClimber = async (displayName: string, avatarUrl?: string): Promise<Profile> => {
+  const updateAccentColor = async (accentColor: string) => {
+    if (!currentUser) return;
+    const trimmed = accentColor.trim();
+    if (!trimmed) return;
+
+    const updatedUser = { ...currentUser, accent_color: trimmed };
+    setCurrentUser(updatedUser);
+
+    const updatedClimbers = climbers.map(c => c.id === currentUser.id ? updatedUser : c);
+    setClimbers(updatedClimbers);
+    localStorage.setItem('wham_profiles', JSON.stringify(updatedClimbers));
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({ accent_color: trimmed })
+          .eq('id', currentUser.id);
+      } catch (err) {
+        console.warn('Failed to update accent color on Supabase:', err);
+      }
+    }
+  };
+
+  const addClimber = async (displayName: string, avatarUrl?: string, accentColor?: string): Promise<Profile> => {
     const trimmed = displayName.trim();
     if (!trimmed) {
       throw new Error('Name cannot be empty');
@@ -173,10 +217,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
     const generatedAvatar = avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(trimmed)}&backgroundColor=${randomColor}`;
 
+    const existingColors = new Set(climbers.map(c => c.accent_color?.toLowerCase()).filter(Boolean));
+    const defaultColor = CLIMBER_ACCENT_PALETTE.find(c => !existingColors.has(c.hex.toLowerCase()))?.hex ||
+      CLIMBER_ACCENT_PALETTE[climbers.length % CLIMBER_ACCENT_PALETTE.length].hex;
+    const finalAccentColor = accentColor || defaultColor;
+
     const newProfile: Profile = {
       id: newId,
       display_name: trimmed,
       avatar_url: generatedAvatar,
+      accent_color: finalAccentColor,
       created_at: new Date().toISOString()
     };
 
@@ -191,7 +241,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await supabase.from('profiles').insert([{
           id: newProfile.id,
           display_name: newProfile.display_name,
-          avatar_url: newProfile.avatar_url
+          avatar_url: newProfile.avatar_url,
+          accent_color: newProfile.accent_color
         }]);
       } catch (err) {
         console.warn('Failed to insert new profile to Supabase:', err);
@@ -288,6 +339,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signOut,
         switchClimber,
         updateDisplayName,
+        updateAccentColor,
         addClimber,
         removeClimber
       }}

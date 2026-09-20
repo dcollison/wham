@@ -97,14 +97,19 @@ export const Header: React.FC<HeaderProps> = ({
               <img
                 src={currentUser.avatar_url}
                 alt={currentUser.display_name}
-                className="w-5 h-5 rounded-full bg-amber-400 shrink-0"
+                className="w-5 h-5 rounded-full border shrink-0"
+                style={{ borderColor: currentUser?.accent_color || '#F59E0B' }}
               />
             ) : (
-              <div className="w-5 h-5 rounded-full bg-amber-400 text-black text-[11px] font-black flex items-center justify-center shrink-0">
+              <div
+                className="w-5 h-5 rounded-full text-black text-[11px] font-black flex items-center justify-center shrink-0"
+                style={{ backgroundColor: currentUser?.accent_color || '#F59E0B' }}
+              >
                 {currentUser?.display_name?.charAt(0) || 'C'}
               </div>
             )}
-            <span className="text-xs font-bold text-slate-200 whitespace-nowrap flex items-center gap-1">
+            <span className="text-xs font-bold text-slate-200 whitespace-nowrap flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: currentUser?.accent_color || '#F59E0B' }} />
               <span>{currentUser?.display_name || 'Climber'}</span>
               <ChevronDown className="w-3 h-3 text-slate-400" />
             </span>

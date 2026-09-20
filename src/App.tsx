@@ -22,6 +22,7 @@ export function App() {
     isDemoMode,
     switchClimber,
     updateDisplayName,
+    updateAccentColor,
     addClimber,
     removeClimber
   } = useAuth();
@@ -415,6 +416,7 @@ export function App() {
               climbers={climbers}
               onSwitchClimber={switchClimber}
               onUpdateDisplayName={updateDisplayName}
+              onUpdateAccentColor={updateAccentColor}
               onAddClimber={addClimber}
               onRemoveClimber={removeClimber}
             />
@@ -451,13 +453,14 @@ export function App() {
 
       {/* Add Boulder Modal (with Adjacent Placement) */}
       <AddBoulderModal
+        key={`${currentGym?.id || 'gym'}-${currentArea?.id || 'all'}-${isAddModalOpen ? 'open' : 'closed'}`}
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         gymId={currentGym?.id || gyms[0]?.id || ''}
         areaId={currentArea?.id || null}
         areaName={currentArea?.name || `${currentGym?.name || 'Gym'} • All Areas`}
         areas={areas}
-        existingBoulders={boulders}
+        existingBoulders={boulders.filter(b => b.gym_id === (currentGym?.id || gyms[0]?.id || ''))}
         onAdd={async (p) => {
           await addBoulder(p);
         }}
@@ -484,6 +487,7 @@ export function App() {
         climbers={climbers}
         onSwitchClimber={switchClimber}
         onUpdateDisplayName={updateDisplayName}
+        onUpdateAccentColor={updateAccentColor}
         onAddClimber={addClimber}
         onRemoveClimber={removeClimber}
       />

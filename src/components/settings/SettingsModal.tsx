@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Profile } from '../../types';
-import { Users, UserPlus, X, Check, Trash2 } from 'lucide-react';
+import { Profile, CLIMBER_ACCENT_PALETTE, getClimberColor } from '../../types';
+import { Users, UserPlus, X, Check, Trash2, Palette } from 'lucide-react';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -9,7 +9,8 @@ interface SettingsModalProps {
   climbers: Profile[];
   onSwitchClimber: (profileId: string) => void;
   onUpdateDisplayName: (name: string) => Promise<void>;
-  onAddClimber: (name: string) => Promise<Profile>;
+  onUpdateAccentColor: (accentColor: string) => Promise<void>;
+  onAddClimber: (name: string, avatarUrl?: string, accentColor?: string) => Promise<Profile>;
   onRemoveClimber?: (profileId: string) => Promise<void>;
 }
 
@@ -20,12 +21,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   climbers,
   onSwitchClimber,
   onUpdateDisplayName,
+  onUpdateAccentColor,
   onAddClimber,
   onRemoveClimber
 }) => {
+  const activeColor = currentUser?.accent_color || '#F59E0B';
   const [displayName, setDisplayName] = useState<string>(currentUser?.display_name || '');
   const [isAddingClimber, setIsAddingClimber] = useState<boolean>(false);
   const [newClimberName, setNewClimberName] = useState<string>('');
+  const [newClimberColor, setNewClimberColor] = useState<string>('#10B981');
   const [savedStatus, setSavedStatus] = useState<string | null>(null);
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
 
@@ -36,14 +40,45 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   }, [currentUser]);
 
+  // Pick an unused default color when opening the Add Climber form
+  useEffect(() => {
+    if (isAddingClimber) {
+      const existingColors = new Set(climbers.map((c) => c.accent_color?.toLowerCase()).filter(Boolean));
+      const nextColor =
+        CLIMBER_ACCENT_PALETTE.find((c) => !existingColors.has(c.hex.toLowerCase()))?.hex || '#10B981';
+      setNewClimberColor(nextColor);
+    }
+  }, [isAddingClimber, climbers]);
+
   if (!isOpen) return null;
+
+  const selectedPreset = CLIMBER_ACCENT_PALETTE.find(
+    (c) => c.hex.toLowerCase() === activeColor.toLowerCase()
+  );
 
   const handleUpdateName = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!displayName.trim()) return;
-    await onUpdateDisplayName(displayName.trim());
-    setSavedStatus('Name updated!');
-    setTimeout(() => setSavedStatus(null), 2000);
+    try {
+      await onUpdateDisplayName(displayName.trim());
+      setSavedStatus('Name updated!');
+      setTimeout(() => setSavedStatus(null), 2000);
+    } catch (err: any) {
+      setErrorStatus(err?.message || 'Failed to update name');
+      setTimeout(() => setErrorStatus(null), 2500);
+    }
+  };
+
+  const handleSelectColor = async (colorHex: string) => {
+    try {
+      await onUpdateAccentColor(colorHex);
+      const matched = CLIMBER_ACCENT_PALETTE.find((p) => p.hex.toLowerCase() === colorHex.toLowerCase());
+      setSavedStatus(`Accent colour updated${matched ? ` to ${matched.name}` : ''}!`);
+      setTimeout(() => setSavedStatus(null), 2000);
+    } catch (err: any) {
+      setErrorStatus(err?.message || 'Failed to update accent colour');
+      setTimeout(() => setErrorStatus(null), 2500);
+    }
   };
 
   const handleCreateClimber = async (e: React.FormEvent) => {
@@ -63,7 +98,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
 
     try {
-      await onAddClimber(trimmed);
+      await onAddClimber(trimmed, undefined, newClimberColor);
       setNewClimberName('');
       setIsAddingClimber(false);
       setSavedStatus(`Added ${trimmed} to the crew!`);
@@ -88,7 +123,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
             <div>
               <h2 className="text-base font-bold text-white">The Circle & Account</h2>
-              <p className="text-xs text-slate-400">Manage crew members and active climber</p>
+              <p className="text-xs text-slate-400">Manage crew members, active climber & custom accent colours</p>
             </div>
           </div>
           <button
@@ -134,42 +169,72 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
             {climbers.map((climber) => {
               const isSelected = currentUser?.id === climber.id;
+              const climberColor = getClimberColor(climber);
               return (
-                <div
-                  key={climber.id}
-                  className="relative group"
-                >
+                <div key={climber.id} className="relative group">
                   <button
                     type="button"
                     onClick={() => onSwitchClimber(climber.id)}
+                    style={
+                      isSelected
+                        ? {
+                            borderColor: climberColor.hex,
+                            backgroundColor: `${climberColor.hex}18`,
+                            boxShadow: `0 4px 14px -2px ${climberColor.hex}30`
+                          }
+                        : undefined
+                    }
                     className={`w-full p-3 rounded-xl border flex flex-col items-center gap-1.5 transition-all active-press ${
                       isSelected
-                        ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-md ring-1 ring-amber-400/50'
+                        ? 'ring-1'
                         : 'bg-slate-800/60 border-slate-700 text-slate-300 hover:border-slate-600'
                     }`}
                   >
-                    {climber.avatar_url ? (
-                      <img
-                        src={climber.avatar_url}
-                        alt={climber.display_name}
-                        className="w-9 h-9 rounded-full border border-slate-600"
+                    <div className="relative">
+                      {climber.avatar_url ? (
+                        <img
+                          src={climber.avatar_url}
+                          alt={climber.display_name}
+                          className="w-9 h-9 rounded-full border-2"
+                          style={{ borderColor: climberColor.hex }}
+                        />
+                      ) : (
+                        <div
+                          className="w-9 h-9 rounded-full text-black font-black flex items-center justify-center text-sm"
+                          style={{ backgroundColor: climberColor.hex }}
+                        >
+                          {climber.display_name.charAt(0)}
+                        </div>
+                      )}
+                      {/* Accent color dot badge */}
+                      <span
+                        className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border border-slate-900 shadow"
+                        style={{ backgroundColor: climberColor.hex }}
                       />
-                    ) : (
-                      <div className="w-9 h-9 rounded-full bg-amber-400 text-black font-black flex items-center justify-center text-sm">
-                        {climber.display_name.charAt(0)}
-                      </div>
-                    )}
-                    <span className="font-bold text-xs truncate max-w-full">
+                    </div>
+
+                    <span className="font-bold text-xs truncate max-w-full text-slate-100">
                       {climber.display_name}
                     </span>
-                    {isSelected && (
-                      <span className="text-[10px] text-amber-400 font-semibold bg-amber-400/20 px-1.5 py-0.2 rounded">
+
+                    {isSelected ? (
+                      <span
+                        className="text-[10px] font-bold px-1.5 py-0.2 rounded"
+                        style={{
+                          backgroundColor: `${climberColor.hex}25`,
+                          color: climberColor.hex
+                        }}
+                      >
                         Active
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {climberColor.name || climberColor.hex}
                       </span>
                     )}
                   </button>
 
-                  {/* Remove Climber Button (for custom added climbers when not the only climber) */}
+                  {/* Remove Climber Button */}
                   {onRemoveClimber && climbers.length > 1 && !isSelected && (
                     <button
                       type="button"
@@ -242,8 +307,134 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <span>Add</span>
               </button>
             </div>
+
+            {/* Accent Color picker for new climber */}
+            <div className="flex flex-col gap-1.5 pt-1">
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                Select Accent Colour:
+              </label>
+              <div className="flex items-center gap-2 flex-wrap">
+                {CLIMBER_ACCENT_PALETTE.map((pal) => (
+                  <button
+                    key={pal.hex}
+                    type="button"
+                    onClick={() => setNewClimberColor(pal.hex)}
+                    className={`w-6 h-6 rounded-full transition-transform active:scale-95 flex items-center justify-center ${
+                      newClimberColor.toLowerCase() === pal.hex.toLowerCase()
+                        ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900 scale-110'
+                        : 'opacity-70 hover:opacity-100'
+                    }`}
+                    style={{ backgroundColor: pal.hex }}
+                    title={pal.name}
+                  >
+                    {newClimberColor.toLowerCase() === pal.hex.toLowerCase() && (
+                      <Check className="w-3 h-3 text-black stroke-[3]" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
           </form>
         )}
+
+        {/* Accent Colour Customization */}
+        <div className="flex flex-col gap-3 pt-3 border-t border-slate-800/80">
+          <div>
+            <div className="flex items-center gap-2">
+              <Palette className="w-4 h-4" style={{ color: activeColor }} />
+              <label className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+                Accent Colour (Charts & Stats)
+              </label>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Choose your personal colour used in comparison charts, timeline graphs, and 1v1 showdowns.
+            </p>
+          </div>
+
+          {/* Live Preview Card */}
+          <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="relative shrink-0">
+                {currentUser?.avatar_url ? (
+                  <img
+                    src={currentUser.avatar_url}
+                    alt={currentUser.display_name}
+                    className="w-10 h-10 rounded-full border-2"
+                    style={{ borderColor: activeColor }}
+                  />
+                ) : (
+                  <div
+                    className="w-10 h-10 rounded-full text-black font-black flex items-center justify-center text-sm"
+                    style={{ backgroundColor: activeColor }}
+                  >
+                    {currentUser?.display_name.charAt(0)}
+                  </div>
+                )}
+                <span
+                  className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-slate-900 shadow-sm"
+                  style={{ backgroundColor: activeColor }}
+                />
+              </div>
+
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-xs font-bold text-white truncate">{currentUser?.display_name}</span>
+                  <span
+                    className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded"
+                    style={{ backgroundColor: `${activeColor}25`, color: activeColor }}
+                  >
+                    Active Colour
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                  {selectedPreset ? selectedPreset.name : 'Curated Colour'}
+                </p>
+              </div>
+            </div>
+
+            {/* Mini Chart Mockup Preview */}
+            <div className="hidden sm:flex flex-col gap-1 items-end shrink-0 pl-2">
+              <span className="text-[10px] text-slate-400 font-mono">Chart Preview</span>
+              <div className="w-24 h-2 bg-slate-800 rounded-full overflow-hidden flex">
+                <div
+                  className="h-full rounded-full transition-all duration-300"
+                  style={{ width: '80%', backgroundColor: activeColor }}
+                />
+              </div>
+              <span className="text-[10px] font-mono font-bold" style={{ color: activeColor }}>
+                8 Sends (6⚡)
+              </span>
+            </div>
+          </div>
+
+          {/* Preset Swatches Palette */}
+          <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+            {CLIMBER_ACCENT_PALETTE.map((palette) => {
+              const isSelected = activeColor.toLowerCase() === palette.hex.toLowerCase();
+              return (
+                <button
+                  key={palette.hex}
+                  type="button"
+                  onClick={() => handleSelectColor(palette.hex)}
+                  className={`flex items-center gap-1.5 p-2 rounded-xl border text-xs font-semibold transition-all active-press ${
+                    isSelected
+                      ? 'bg-slate-800 text-white shadow-md ring-2 ring-white/60'
+                      : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:border-slate-700'
+                  }`}
+                  style={isSelected ? { borderColor: palette.hex } : undefined}
+                >
+                  <span
+                    className="w-3.5 h-3.5 rounded-full shrink-0 flex items-center justify-center shadow-sm"
+                    style={{ backgroundColor: palette.hex }}
+                  >
+                    {isSelected && <Check className="w-2.5 h-2.5 text-black stroke-[3]" />}
+                  </span>
+                  <span className="truncate text-[11px]">{palette.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         {/* Display Name Edit for Active Climber */}
         <form onSubmit={handleUpdateName} className="flex flex-col gap-2 pt-2 border-t border-slate-800/80">
@@ -269,7 +460,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
         {/* Minimal Information Note */}
         <div className="p-3 rounded-xl bg-slate-800/30 border border-slate-800 text-[11px] text-slate-400 leading-relaxed">
-          💡 <strong>Tip:</strong> Tap any climber above to instantly log climbs and track individual stats on this device. New crew members are automatically included in team stats and Beta comments.
+          💡 <strong>Tip:</strong> Tap any climber above to instantly log climbs and track individual stats on this device. Your selected accent colour highlights your progress on comparison charts and timeline graphs.
         </div>
       </div>
     </div>
