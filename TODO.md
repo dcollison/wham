@@ -1,0 +1,1 @@
+- Either make the main accent colour of the app match the user's selected accent colour, or use a neutral unimposing colour as the accent colour, there are too many competing colours at the moment.
