@@ -1,7 +1,7 @@
 import React from 'react';
 import { Gym, GymArea, Profile } from '../types';
 import { ClimberAvatar } from './ClimberAvatar';
-import { Zap, ChevronDown, Filter, Plus, Archive, Settings, RefreshCw, Layers } from 'lucide-react';
+import { Zap, ChevronDown, Filter, Plus, Archive, Settings, RefreshCw, Layers, Trophy } from 'lucide-react';
 
 interface HeaderProps {
   currentTab?: 'boulders' | 'beta' | 'stats' | 'settings';
@@ -14,6 +14,7 @@ interface HeaderProps {
   currentUser: Profile | null;
   climbers: Profile[];
   onOpenProfileSwitcher: () => void;
+  onOpenLeaderboard?: () => void;
   onOpenAddBoulder: () => void;
   onOpenBulkAdd?: () => void;
   onOpenAreaReset: () => void;
@@ -35,6 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
   currentUser,
   climbers,
   onOpenProfileSwitcher,
+  onOpenLeaderboard,
   onOpenAddBoulder,
   onOpenBulkAdd,
   onOpenAreaReset,
@@ -88,8 +90,20 @@ export const Header: React.FC<HeaderProps> = ({
           <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
 
-        {/* Climber Profile Avatar / Switcher */}
+        {/* Quick Comp Leaderboard & Climber Profile Avatar */}
         <div className="flex items-center gap-2">
+          {onOpenLeaderboard && (
+            <button
+              type="button"
+              onClick={onOpenLeaderboard}
+              className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700/80 hover:border-amber-400/50 rounded-xl py-1.5 px-2 sm:px-2.5 transition-colors active-press shadow-sm group"
+              title="Open Gym Comp Leaderboard"
+            >
+              <Trophy className="w-4 h-4 text-amber-400 stroke-[2.5] group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-bold text-slate-200 hidden sm:inline">Comp</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={onOpenProfileSwitcher}

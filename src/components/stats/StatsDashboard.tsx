@@ -13,6 +13,7 @@ import {
   getClimberColor
 } from '../../types';
 import { ClimberAvatar } from '../ClimberAvatar';
+import { CompLeaderboard } from '../leaderboard/CompLeaderboard';
 import {
   Zap,
   Check,
@@ -47,6 +48,8 @@ interface StatsDashboardProps {
   gyms: Gym[];
   areas: GymArea[];
   currentUserId?: string;
+  initialTab?: 'overview' | 'leaderboard' | 'comparison' | 'timeline' | 'pyramid' | 'circuits';
+  onSelectBoulder?: (boulder: Boulder) => void;
 }
 
 export { CLIMBER_COLORS, CLIMBER_ACCENT_PALETTE, getClimberColor };
@@ -73,13 +76,35 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
   climbers,
   gyms,
   areas,
-  currentUserId
+  currentUserId,
+  initialTab,
+  onSelectBoulder
 }) => {
   // Navigation tabs inside Stats Dashboard
-  const [activeTab, setActiveTab] = useState<'overview' | 'comparison' | 'timeline' | 'pyramid' | 'circuits'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'leaderboard' | 'comparison' | 'timeline' | 'pyramid' | 'circuits'>(
+    initialTab || 'overview'
+  );
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
   const [viewMode, setViewMode] = useState<'my' | 'group'>('my');
   const [selectedGymId, setSelectedGymId] = useState<string>('all');
   const [selectedClimberId, setSelectedClimberId] = useState<string>(currentUserId || climbers[0]?.id || '');
+
+  // User preference to show or hide crew accolades
+  const [showAccolades, setShowAccolades] = useState<boolean>(() => {
+    const saved = localStorage.getItem('wham_show_accolades');
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  const handleToggleAccolades = (show: boolean) => {
+    setShowAccolades(show);
+    localStorage.setItem('wham_show_accolades', String(show));
+  };
 
   // Timeline / Over Time controls
   const [timelineClimberFilter, setTimelineClimberFilter] = useState<string>('all');
@@ -181,14 +206,27 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
       return sum + Math.max(gIndex, 0) + 1;
     }, 0);
 
+    const flashOfSendsRate = totalSends > 0 ? Math.round((totalFlashes / totalSends) * 100) : 0;
+    const maxProjectFight = sentAttempts.reduce((max, a) => Math.max(max, a.attempt_count), 0);
+    const distinctColorsCount = new Set(
+      sentAttempts.map((a) => filteredBoulders.find((b) => b.id === a.boulder_id)?.hold_colour).filter(Boolean)
+    ).size;
+    const sessionDaysCount = new Set(
+      userAttempts.map((a) => (a.logged_at ? a.logged_at.split('T')[0] : '')).filter(Boolean)
+    ).size;
+
     return {
       userId,
       totalSends,
       totalFlashes,
       totalAttempted,
       flashRate,
+      flashOfSendsRate,
       sendRate,
       averageAttemptsOnSend,
+      maxProjectFight,
+      distinctColorsCount,
+      sessionDaysCount,
       hardestSend,
       perGrade,
       sentActiveCount,
@@ -302,31 +340,133 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
     return [...climberStatsList].sort((a, b) => b.totalSends - a.totalSends);
   }, [climberStatsList]);
 
-  // Hall of Fame Accolades
-  const accolades = useMemo(() => {
-    if (climberStatsList.length === 0) return null;
+  const maxGradeOverall = useMemo(() => {
+    return climberStatsList.reduce((max, c) => {
+      const idx = c.hardestSend ? GRADES.indexOf(c.hardestSend) : -1;
+      return idx > max ? idx : max;
+    }, -1);
+  }, [climberStatsList]);
 
-    const flashKing = [...climberStatsList].sort((a, b) => b.totalFlashes - a.totalFlashes)[0];
-    const volumeMachine = [...climberStatsList].sort((a, b) => b.totalSends - a.totalSends)[0];
-    const hardestSender = [...climberStatsList].sort((a, b) => {
-      const aIdx = a.hardestSend ? GRADES.indexOf(a.hardestSend) : -1;
-      const bIdx = b.hardestSend ? GRADES.indexOf(b.hardestSend) : -1;
-      return bIdx - aIdx;
-    })[0];
-    const efficiencyMaster = [...climberStatsList]
-      .filter((c) => c.totalSends > 0)
-      .sort((a, b) => parseFloat(a.averageAttemptsOnSend) - parseFloat(b.averageAttemptsOnSend))[0];
-    const grinder = [...climberStatsList].sort((a, b) => b.totalAttempted - a.totalAttempted)[0];
-    const gymMaster = [...climberStatsList].sort((a, b) => b.sentActiveCount - a.sentActiveCount)[0];
+  const maxSendsOverall = useMemo(() => {
+    return climberStatsList.reduce((max, c) => (c.totalSends > max ? c.totalSends : max), 0);
+  }, [climberStatsList]);
 
-    return {
-      flashKing,
-      volumeMachine,
-      hardestSender,
-      efficiencyMaster,
-      grinder,
-      gymMaster
-    };
+  const maxFlashesOverall = useMemo(() => {
+    return climberStatsList.reduce((max, c) => (c.totalFlashes > max ? c.totalFlashes : max), 0);
+  }, [climberStatsList]);
+
+  // Diverse Crew Superlatives: Each accolade is drafted to highlight DIFFERENT climbers!
+  const accoladesList = useMemo<{
+    id: string;
+    emoji: string;
+    title: string;
+    climber: Profile;
+    value: string;
+    subtitle: string;
+  }[]>(() => {
+    if (climberStatsList.length === 0) return [];
+
+    const activeClimbers = climberStatsList.filter((c) => c.totalAttempted > 0);
+    if (activeClimbers.length === 0) return [];
+
+    const definitions = [
+      {
+        id: 'apex-crusher',
+        emoji: '🔥',
+        title: 'Apex Crusher',
+        subtitle: 'Hardest grade topped',
+        score: (c: typeof climberStatsList[0]) => (c.hardestSend ? GRADES.indexOf(c.hardestSend) * 100 + c.totalSends : -1),
+        formatValue: (c: typeof climberStatsList[0]) => `${c.hardestSend || 'V0'} Top Grade`,
+        minThreshold: (c: typeof climberStatsList[0]) => Boolean(c.hardestSend)
+      },
+      {
+        id: 'flash-artist',
+        emoji: '⚡',
+        title: 'Flash Artist',
+        subtitle: 'First-try on-sight rate',
+        score: (c: typeof climberStatsList[0]) => (c.totalSends >= 2 ? c.flashOfSendsRate * 10 + c.totalFlashes : c.totalFlashes * 5),
+        formatValue: (c: typeof climberStatsList[0]) => `${c.flashOfSendsRate}% (${c.totalFlashes} flashes)`,
+        minThreshold: (c: typeof climberStatsList[0]) => c.totalFlashes > 0
+      },
+      {
+        id: 'project-battler',
+        emoji: '🦾',
+        title: 'Project Battler',
+        subtitle: 'Tenacity & grit on a send',
+        score: (c: typeof climberStatsList[0]) => (c.maxProjectFight > 1 ? c.maxProjectFight * 10 + c.totalAttempted : c.totalAttempted),
+        formatValue: (c: typeof climberStatsList[0]) => (c.maxProjectFight > 1 ? `${c.maxProjectFight} tries fight` : `${c.totalAttempted} tries`),
+        minThreshold: (c: typeof climberStatsList[0]) => c.totalAttempted > 0
+      },
+      {
+        id: 'circuit-explorer',
+        emoji: '🎨',
+        title: 'Circuit Explorer',
+        subtitle: 'Hold variety across gym',
+        score: (c: typeof climberStatsList[0]) => c.distinctColorsCount * 10 + c.totalSends,
+        formatValue: (c: typeof climberStatsList[0]) => `${c.distinctColorsCount} circuits sent`,
+        minThreshold: (c: typeof climberStatsList[0]) => c.distinctColorsCount > 0
+      },
+      {
+        id: 'the-sniper',
+        emoji: '🎯',
+        title: 'The Sniper',
+        subtitle: 'Clean send efficiency',
+        score: (c: typeof climberStatsList[0]) => (c.totalSends >= 2 ? Math.round((10 - Math.min(parseFloat(c.averageAttemptsOnSend), 9)) * 100) : 0),
+        formatValue: (c: typeof climberStatsList[0]) => `${c.averageAttemptsOnSend} tries/send`,
+        minThreshold: (c: typeof climberStatsList[0]) => c.totalSends >= 2
+      },
+      {
+        id: 'session-devotee',
+        emoji: '📅',
+        title: 'Session Devotee',
+        subtitle: 'Consistency on the mats',
+        score: (c: typeof climberStatsList[0]) => c.sessionDaysCount * 10 + c.totalSends,
+        formatValue: (c: typeof climberStatsList[0]) => `${c.sessionDaysCount} session days`,
+        minThreshold: (c: typeof climberStatsList[0]) => c.sessionDaysCount > 0
+      }
+    ];
+
+    const assignmentCounts: Record<string, number> = {};
+    activeClimbers.forEach((c) => {
+      assignmentCounts[c.userId] = 0;
+    });
+
+    const results: {
+      id: string;
+      emoji: string;
+      title: string;
+      climber: Profile;
+      value: string;
+      subtitle: string;
+    }[] = [];
+
+    definitions.forEach((def) => {
+      const eligible = activeClimbers.filter((c) => (def.minThreshold ? def.minThreshold(c) : true));
+      if (eligible.length === 0) return;
+
+      // Find the minimum number of assignments among eligible climbers to prioritize underrepresented climbers
+      const minAssignments = Math.min(...eligible.map((c) => assignmentCounts[c.userId] || 0));
+
+      // Candidates with that minimum assignment count
+      const pool = eligible.filter((c) => (assignmentCounts[c.userId] || 0) === minAssignments);
+
+      // Best candidate by score
+      const winner = [...pool].sort((a, b) => def.score(b) - def.score(a))[0];
+
+      if (winner && def.score(winner) >= 0) {
+        assignmentCounts[winner.userId] = (assignmentCounts[winner.userId] || 0) + 1;
+        results.push({
+          id: def.id,
+          emoji: def.emoji,
+          title: def.title,
+          subtitle: def.subtitle,
+          climber: winner.profile,
+          value: def.formatValue(winner)
+        });
+      }
+    });
+
+    return results;
   }, [climberStatsList]);
 
   // Gym Completion Progress Ring
@@ -646,6 +786,19 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
 
           <button
             type="button"
+            onClick={() => setActiveTab('leaderboard')}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all active-press ${
+              activeTab === 'leaderboard'
+                ? 'bg-amber-400 text-black shadow-md shadow-amber-400/20'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Trophy className="w-3.5 h-3.5" />
+            <span>Comp Leaderboard</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab('comparison')}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all active-press ${
               activeTab === 'comparison'
@@ -712,6 +865,22 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           </select>
         </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* TAB: COMP LEADERBOARD (REDPOINT COMP SCORING FOR ACTIVE BOULDERS)          */}
+      {/* ========================================================================= */}
+      {activeTab === 'leaderboard' && (
+        <CompLeaderboard
+          boulders={boulders}
+          attempts={attempts}
+          climbers={climbers}
+          gyms={gyms}
+          initialGymId={selectedGymId}
+          currentUserId={currentUserId}
+          onSelectBoulder={onSelectBoulder}
+          showGymSelector={true}
+        />
+      )}
 
       {/* ========================================================================= */}
       {/* TAB 1: OVERVIEW & CORE METRICS                                            */}
@@ -947,81 +1116,65 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           </div>
 
           {/* Hall of Fame & Superlatives Cards */}
-          {accolades && (
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col gap-4">
-              <div className="flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-amber-400" />
-                <h3 className="text-sm font-bold text-white">Crew Superlatives & Accolades</h3>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-                <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/60 flex flex-col items-center text-center gap-1.5">
-                  <span className="text-xl">⚡</span>
-                  <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Flash King</span>
-                  <strong className="text-xs text-white truncate max-w-full">
-                    {accolades.flashKing?.profile.display_name}
-                  </strong>
-                  <span className="text-[10px] font-mono text-slate-400">
-                    {accolades.flashKing?.totalFlashes} flashes
-                  </span>
+          {accoladesList.length > 0 && (
+            showAccolades ? (
+              <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col gap-4 shadow-sm animate-in fade-in">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Trophy className="w-5 h-5 text-amber-400" />
+                    <div>
+                      <h3 className="text-sm font-bold text-white">Crew Superlatives & Accolades</h3>
+                      <p className="text-[11px] text-slate-400">Unique standout achievements across your crew</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleAccolades(false)}
+                    className="text-[11px] font-semibold text-slate-400 hover:text-rose-300 px-2.5 py-1 rounded-lg hover:bg-slate-800/80 transition-colors border border-transparent hover:border-slate-700"
+                    title="Hide crew accolades section"
+                  >
+                    Hide
+                  </button>
                 </div>
 
-                <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/60 flex flex-col items-center text-center gap-1.5">
-                  <span className="text-xl">🧗</span>
-                  <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Volume Machine</span>
-                  <strong className="text-xs text-white truncate max-w-full">
-                    {accolades.volumeMachine?.profile.display_name}
-                  </strong>
-                  <span className="text-[10px] font-mono text-slate-400">
-                    {accolades.volumeMachine?.totalSends} sends
-                  </span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/60 flex flex-col items-center text-center gap-1.5">
-                  <span className="text-xl">🔥</span>
-                  <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider">The Crusher</span>
-                  <strong className="text-xs text-white truncate max-w-full">
-                    {accolades.hardestSender?.profile.display_name}
-                  </strong>
-                  <span className="text-[10px] font-mono text-slate-400">
-                    {accolades.hardestSender?.hardestSend || '—'} top grade
-                  </span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/60 flex flex-col items-center text-center gap-1.5">
-                  <span className="text-xl">🎯</span>
-                  <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">The Sniper</span>
-                  <strong className="text-xs text-white truncate max-w-full">
-                    {accolades.efficiencyMaster?.profile.display_name}
-                  </strong>
-                  <span className="text-[10px] font-mono text-slate-400">
-                    {accolades.efficiencyMaster?.averageAttemptsOnSend} tries/send
-                  </span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/60 flex flex-col items-center text-center gap-1.5">
-                  <span className="text-xl">🛡️</span>
-                  <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">The Grinder</span>
-                  <strong className="text-xs text-white truncate max-w-full">
-                    {accolades.grinder?.profile.display_name}
-                  </strong>
-                  <span className="text-[10px] font-mono text-slate-400">
-                    {accolades.grinder?.totalAttempted} tries logged
-                  </span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/60 flex flex-col items-center text-center gap-1.5">
-                  <span className="text-xl">🗺️</span>
-                  <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider">Gym Master</span>
-                  <strong className="text-xs text-white truncate max-w-full">
-                    {accolades.gymMaster?.profile.display_name}
-                  </strong>
-                  <span className="text-[10px] font-mono text-slate-400">
-                    {accolades.gymMaster?.sentActiveCount} active climbs
-                  </span>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+                  {accoladesList.map((item) => (
+                    <div
+                      key={item.id}
+                      className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/60 flex flex-col items-center text-center gap-1.5 hover:border-slate-600 transition-colors"
+                    >
+                      <span className="text-xl">{item.emoji}</span>
+                      <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">
+                        {item.title}
+                      </span>
+                      <div className="flex items-center gap-1.5 max-w-full my-0.5">
+                        <ClimberAvatar profile={item.climber} size="xs" />
+                        <strong className="text-xs text-white truncate max-w-[85px]">
+                          {item.climber.display_name}
+                        </strong>
+                      </div>
+                      <span className="text-[11px] font-mono font-bold text-emerald-400">
+                        {item.value}
+                      </span>
+                      <span className="text-[10px] text-slate-400 leading-tight">
+                        {item.subtitle}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex justify-end animate-in fade-in">
+                <button
+                  type="button"
+                  onClick={() => handleToggleAccolades(true)}
+                  className="text-xs font-semibold text-slate-400 hover:text-amber-400 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-colors shadow-sm"
+                >
+                  <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Show Crew Accolades</span>
+                </button>
+              </div>
+            )
           )}
         </div>
       )}
@@ -1059,9 +1212,9 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 font-mono">
                   {sortedLeaderboard.map((item, idx) => {
-                    const isTopHardest = item.hardestSend === accolades?.hardestSender?.hardestSend;
-                    const isTopSends = item.totalSends === accolades?.volumeMachine?.totalSends;
-                    const isTopFlashes = item.totalFlashes === accolades?.flashKing?.totalFlashes;
+                    const isTopHardest = Boolean(item.hardestSend && GRADES.indexOf(item.hardestSend) === maxGradeOverall);
+                    const isTopSends = Boolean(item.totalSends > 0 && item.totalSends === maxSendsOverall);
+                    const isTopFlashes = Boolean(item.totalFlashes > 0 && item.totalFlashes === maxFlashesOverall);
 
                     return (
                       <tr key={item.profile.id} className="hover:bg-slate-850/50 transition-colors">

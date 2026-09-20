@@ -10,6 +10,8 @@ import { BulkAddBouldersModal } from './components/boulders/BulkAddBouldersModal
 import { BoulderDetailModal } from './components/boulders/BoulderDetailModal';
 import { AreaResetModal } from './components/boulders/AreaResetModal';
 import { StatsDashboard } from './components/stats/StatsDashboard';
+import { CompLeaderboardModal } from './components/leaderboard/CompLeaderboardModal';
+import { GymCompBanner } from './components/boulders/GymCompBanner';
 import { CrewFeedView } from './components/feed/CrewFeedView';
 import { SettingsModal } from './components/settings/SettingsModal';
 import { BoulderFilters, BoulderFiltersState } from './components/boulders/BoulderFilters';
@@ -57,11 +59,17 @@ export function App() {
 
   // Hash-based routing for 100% static hosting on GitHub Pages
   const [currentTab, setCurrentTab] = useState<'boulders' | 'beta' | 'stats' | 'settings'>('boulders');
+  const [statsInitialTab, setStatsInitialTab] = useState<
+    'overview' | 'leaderboard' | 'comparison' | 'timeline' | 'pyramid' | 'circuits'
+  >('overview');
 
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.toLowerCase();
-      if (hash.includes('stats')) {
+      if (hash.includes('leaderboard') || hash.includes('comp') || hash.includes('standings')) {
+        setCurrentTab('stats');
+        setStatsInitialTab('leaderboard');
+      } else if (hash.includes('stats')) {
         setCurrentTab('stats');
       } else if (hash.includes('beta') || hash.includes('feed') || hash.includes('sends') || hash.includes('activity')) {
         setCurrentTab('beta');
@@ -81,6 +89,7 @@ export function App() {
   const [quickLogBoulder, setQuickLogBoulder] = useState<Boulder | null>(null);
   const [quickLogTargetUserId, setQuickLogTargetUserId] = useState<string | undefined>(undefined);
   const [detailBoulder, setDetailBoulder] = useState<Boulder | null>(null);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState<boolean>(false);
 
   const handleOpenQuickLog = (boulder: Boulder, targetUserId?: string) => {
     setQuickLogBoulder(boulder);
@@ -276,6 +285,7 @@ export function App() {
         currentUser={currentUser}
         climbers={climbers}
         onOpenProfileSwitcher={() => setIsSettingsOpen(true)}
+        onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
         onOpenAddBoulder={() => setIsAddModalOpen(true)}
         onOpenBulkAdd={() => setIsBulkAddOpen(true)}
         onOpenAreaReset={() => {
@@ -310,6 +320,17 @@ export function App() {
                 </p>
               </div>
             </div>
+
+            {/* Easy-to-See Gym Comp Leaderboard Banner / Standings */}
+            <GymCompBanner
+              gym={currentGym}
+              gyms={gyms}
+              boulders={boulders}
+              attempts={attempts}
+              climbers={climbers}
+              currentUserId={currentUser?.id}
+              onOpenFullLeaderboard={() => setIsLeaderboardOpen(true)}
+            />
 
             {/* Quick Live Send Ticker Banner */}
             {latestSendInfo && (
@@ -458,6 +479,8 @@ export function App() {
             gyms={gyms}
             areas={areas}
             currentUserId={currentUser?.id}
+            initialTab={statsInitialTab}
+            onSelectBoulder={(b) => setDetailBoulder(b)}
           />
         )}
 
@@ -582,6 +605,24 @@ export function App() {
         onUpdateAvatarIcon={updateAvatarIcon}
         onAddClimber={addClimber}
         onRemoveClimber={removeClimber}
+      />
+
+      {/* Gym Comp Leaderboard Modal */}
+      <CompLeaderboardModal
+        isOpen={isLeaderboardOpen}
+        onClose={() => setIsLeaderboardOpen(false)}
+        boulders={boulders}
+        attempts={attempts}
+        climbers={climbers}
+        gyms={gyms}
+        currentGymId={currentGym?.id}
+        currentUserId={currentUser?.id}
+        onSelectBoulder={(b) => setDetailBoulder(b)}
+        onNavigateToStats={() => {
+          setCurrentTab('stats');
+          setStatsInitialTab('leaderboard');
+          window.location.hash = '#/leaderboard';
+        }}
       />
 
       {/* First-time Welcome Climber Selection Modal */}
