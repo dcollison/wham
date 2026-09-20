@@ -8,15 +8,16 @@ interface WhamLogoProps extends React.SVGProps<SVGSVGElement> {
 /**
  * Big bold geometric "W" brand glyph for Wham.
  * Symmetrical, chiseled vector path with flat terminals and athletic climbing-inspired cuts.
+ * Tight viewBox (9 15 46 36) guarantees zero excess dead margin.
  */
 export const WhamLogo: React.FC<WhamLogoProps> = ({
-  className = 'w-4 h-4',
+  className = 'w-5 h-5',
   color = 'currentColor',
   ...props
 }) => {
   return (
     <svg
-      viewBox="0 0 32 32"
+      viewBox="9 15 46 36"
       fill={color}
       xmlns="http://www.w3.org/2000/svg"
       className={className}
@@ -24,7 +25,7 @@ export const WhamLogo: React.FC<WhamLogoProps> = ({
       {...props}
     >
       <path
-        d="M4.5 7.5H9.5L14 18.5L16 13.5L18 18.5L22.5 7.5H27.5L21.5 25.5H17.5L16 21.5L14.5 25.5H10.5Z"
+        d="M9 15H19L28 37L32 27L36 37L45 15H55L43 51H35L32 43L29 51H21Z"
         fillRule="evenodd"
         clipRule="evenodd"
       />
@@ -41,7 +42,7 @@ interface WhamBadgeProps {
 }
 
 /**
- * Squircle app badge container with dynamic accent background and the bold "W" glyph inside.
+ * Squircle app badge container matching the exact proportions of the browser favicon.
  */
 export const WhamBadge: React.FC<WhamBadgeProps> = ({
   className = '',
@@ -50,28 +51,30 @@ export const WhamBadge: React.FC<WhamBadgeProps> = ({
   logoColor = '#000000',
   shadow = true
 }) => {
-  const sizeClasses = {
-    sm: 'w-6 h-6 rounded-lg',
-    md: 'w-8 h-8 rounded-xl',
-    lg: 'w-14 h-14 rounded-2xl'
-  }[size];
-
-  const iconSizes = {
-    sm: 'w-3.5 h-3.5',
-    md: 'w-4 h-4',
-    lg: 'w-7 h-7'
+  const sizeClass = {
+    sm: 'w-6 h-6',
+    md: 'w-8 h-8',
+    lg: 'w-14 h-14'
   }[size];
 
   return (
-    <div
-      className={`${sizeClasses} flex items-center justify-center transition-transform active:scale-95 ${className}`}
+    <svg
+      viewBox="0 0 64 64"
+      className={`${sizeClass} active:scale-95 transition-transform shrink-0 ${className}`}
       style={{
-        backgroundColor: badgeColor,
-        boxShadow: shadow ? `0 4px 14px ${badgeColor}35` : undefined
+        filter: shadow ? `drop-shadow(0 4px 12px ${badgeColor}40)` : undefined
       }}
+      xmlns="http://www.w3.org/2000/svg"
+      aria-label="Wham App Icon"
     >
-      <WhamLogo className={`${iconSizes}`} color={logoColor} />
-    </div>
+      <rect width="64" height="64" rx="18" fill={badgeColor} />
+      <path
+        d="M9 15H19L28 37L32 27L36 37L45 15H55L43 51H35L32 43L29 51H21Z"
+        fill={logoColor}
+        fillRule="evenodd"
+        clipRule="evenodd"
+      />
+    </svg>
   );
 };
 

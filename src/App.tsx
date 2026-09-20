@@ -18,7 +18,7 @@ import { BoulderFilters, BoulderFiltersState } from './components/boulders/Bould
 import { ClimberAvatar } from './components/ClimberAvatar';
 import { Boulder, GRADES } from './types';
 import { Plus, Compass, Sparkles, Filter, RotateCcw, Layers, Zap, ChevronRight } from 'lucide-react';
-import { WhamLogo } from './components/WhamLogo';
+import { WhamLogo, WhamBadge } from './components/WhamLogo';
 
 export function App() {
   const {
@@ -605,12 +605,7 @@ export function App() {
       {!hasChosenClimber && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
           <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col items-center gap-5 text-center">
-            <div
-              className="w-14 h-14 rounded-2xl text-black flex items-center justify-center font-black shadow-lg"
-              style={{ backgroundColor: activeColor }}
-            >
-              <WhamLogo className="w-7 h-7" color="#000000" />
-            </div>
+            <WhamBadge size="lg" badgeColor={activeColor} logoColor="#000000" />
             <div>
               <h2 className="text-xl font-black text-white">Welcome to Wham!</h2>
               <p className="text-xs text-slate-400 mt-1">Who is climbing today? Select your profile:</p>

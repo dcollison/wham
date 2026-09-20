@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Gym, GymArea, Profile } from '../types';
 import { ClimberAvatar } from './ClimberAvatar';
 import { Zap, ChevronDown, Plus, Archive, Layers, Trophy, MoreHorizontal, Check, Eye } from 'lucide-react';
-import { WhamLogo } from './WhamLogo';
+import { WhamLogo, WhamBadge } from './WhamLogo';
 
 interface HeaderProps {
   currentTab?: 'boulders' | 'beta' | 'stats' | 'settings';
@@ -70,12 +70,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="flex items-center justify-between gap-3">
         {/* Brand Logo */}
         <div className="flex items-center gap-2.5">
-          <div
-            className="w-8 h-8 rounded-xl text-black flex items-center justify-center font-black shadow-md active:scale-95 transition-transform"
-            style={{ backgroundColor: activeColor, boxShadow: `0 4px 14px ${activeColor}30` }}
-          >
-            <WhamLogo className="w-4 h-4" color="#000000" />
-          </div>
+          <WhamBadge size="md" badgeColor={activeColor} logoColor="#000000" />
           <div>
             <span className="text-xl font-black tracking-tight text-white font-heading flex items-center gap-0.5">
               Wham<span style={{ color: activeColor }}>.</span>
