@@ -43,29 +43,53 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
   const [sendTypeFilter, setSendTypeFilter] = useState<'all' | 'flashes' | 'sends' | 'projects'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Props / reactions state stored in local storage
-  const [propsMap, setPropsMap] = useState<Record<string, number>>(() => {
+  const activeClimber = climbers.find((c) => c.id === currentUserId);
+  const activeColor = activeClimber?.accent_color || '#F59E0B';
+
+  // Props / reactions state stored in local storage: map of attemptId -> string[] (user IDs)
+  const [propsMap, setPropsMap] = useState<Record<string, string[]>>(() => {
     try {
       const saved = localStorage.getItem('wham_sends_props');
-      return saved ? JSON.parse(saved) : {};
+      if (!saved) return {};
+      const parsed = JSON.parse(saved);
+      const migrated: Record<string, string[]> = {};
+      for (const [key, val] of Object.entries(parsed)) {
+        if (Array.isArray(val)) {
+          migrated[key] = val.filter((id) => typeof id === 'string');
+        } else if (typeof val === 'number' && val > 0) {
+          // Backward compatibility for legacy numeric counts
+          migrated[key] = Array.from({ length: val }, (_, i) => `legacy-climber-${i}`);
+        }
+      }
+      return migrated;
     } catch {
       return {};
     }
   });
 
   const handleGiveProps = (attemptId: string) => {
+    const userId = currentUserId || 'local-climber';
     setPropsMap((prev) => {
-      const updated = { ...prev, [attemptId]: (prev[attemptId] || 0) + 1 };
+      const currentList = Array.isArray(prev[attemptId]) ? prev[attemptId] : [];
+      const hasPropped = currentList.includes(userId);
+      let updatedList: string[];
+      if (hasPropped) {
+        // Toggle off / remove prop
+        updatedList = currentList.filter((id) => id !== userId);
+      } else {
+        // Add prop (strictly limited to 1 per climber)
+        updatedList = [...currentList, userId];
+        // Celebration confetti only when giving props
+        confetti({
+          particleCount: 25,
+          spread: 45,
+          origin: { y: 0.8 },
+          colors: [activeColor, '#FACC15', '#EF4444']
+        });
+      }
+      const updated = { ...prev, [attemptId]: updatedList };
       localStorage.setItem('wham_sends_props', JSON.stringify(updated));
       return updated;
-    });
-
-    // Subtle celebration pop
-    confetti({
-      particleCount: 20,
-      spread: 40,
-      origin: { y: 0.8 },
-      colors: ['#FACC15', '#F59E0B', '#EF4444']
     });
   };
 
@@ -221,9 +245,10 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
             onClick={() => setSelectedClimberId('all')}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all active-press ${
               selectedClimberId === 'all'
-                ? 'bg-amber-500 text-black shadow'
+                ? 'text-black shadow'
                 : 'bg-slate-800/80 text-slate-400 hover:text-white border border-slate-700/80'
             }`}
+            style={selectedClimberId === 'all' ? { backgroundColor: activeColor, color: '#000' } : undefined}
           >
             All Crew
           </button>
@@ -349,7 +374,9 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                   const isFlash = attempt.status === 'flashed';
                   const isSent = attempt.status === 'sent';
                   const isYou = climber?.id === currentUserId;
-                  const propsCount = propsMap[attempt.id] || 0;
+                  const proppedUserIds = Array.isArray(propsMap[attempt.id]) ? propsMap[attempt.id] : [];
+                  const propsCount = proppedUserIds.length;
+                  const isProppedByMe = currentUserId ? proppedUserIds.includes(currentUserId) : false;
 
                   return (
                     <div
@@ -366,7 +393,10 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                                 {climber?.display_name || 'Climber'}
                               </span>
                               {isYou && (
-                                <span className="text-[10px] text-amber-400 font-semibold bg-amber-400/10 px-1.5 py-0.2 rounded shrink-0">
+                                <span
+                                  className="text-[10px] font-semibold px-1.5 py-0.2 rounded shrink-0"
+                                  style={{ backgroundColor: `${activeColor}20`, color: activeColor }}
+                                >
                                   You
                                 </span>
                               )}
@@ -436,21 +466,31 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
 
                       {/* Bottom action row: Props, Quick Log, and View Details */}
                       <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-xs">
-                        {/* Props / Hype Button */}
+                        {/* Props / Hype Button (Limited to 1 per user, toggles) */}
                         <button
                           type="button"
                           onClick={() => handleGiveProps(attempt.id)}
                           className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all active-press ${
-                            propsCount > 0
-                              ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 shadow-sm'
+                            isProppedByMe
+                              ? 'text-white shadow-sm ring-1'
+                              : propsCount > 0
+                              ? 'bg-slate-800 border-slate-700 text-slate-300'
                               : 'bg-slate-800/60 border-slate-700/70 text-slate-400 hover:text-slate-200'
                           }`}
-                          title="Give props / hype!"
+                          style={isProppedByMe ? {
+                            backgroundColor: `${activeColor}20`,
+                            borderColor: activeColor,
+                            color: activeColor
+                          } : undefined}
+                          title={isProppedByMe ? 'You gave props! Tap to remove' : 'Give props (limit 1 per climber)'}
                         >
-                          <Flame className={`w-3.5 h-3.5 ${propsCount > 0 ? 'text-amber-400 fill-amber-400' : 'text-slate-400'}`} />
-                          <span className="font-semibold text-xs">Props</span>
+                          <Flame className={`w-3.5 h-3.5 ${isProppedByMe ? 'fill-current' : propsCount > 0 ? 'text-amber-400 fill-amber-400' : 'text-slate-400'}`} />
+                          <span className="font-semibold text-xs">{isProppedByMe ? 'Propped' : 'Props'}</span>
                           {propsCount > 0 && (
-                            <span className="font-mono text-xs font-bold text-amber-400 bg-amber-400/20 px-1.5 py-0.5 rounded-full">
+                            <span
+                              className="font-mono text-xs font-bold px-1.5 py-0.2 rounded-full"
+                              style={isProppedByMe ? { backgroundColor: `${activeColor}30`, color: activeColor } : { backgroundColor: '#334155', color: '#f1f5f9' }}
+                            >
                               {propsCount}
                             </span>
                           )}

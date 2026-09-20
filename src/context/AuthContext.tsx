@@ -23,10 +23,53 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<Profile | null>(null);
-  const [climbers, setClimbers] = useState<Profile[]>(INITIAL_PROFILES);
+  const [climbers, setClimbers] = useState<Profile[]>(() => {
+    try {
+      const stored = localStorage.getItem('wham_profiles');
+      if (stored) {
+        const raw = JSON.parse(stored);
+        if (Array.isArray(raw) && raw.length > 0) {
+          return raw.map((c: Profile, idx: number) => ({
+            ...c,
+            accent_color: c.accent_color || CLIMBER_ACCENT_PALETTE[idx % CLIMBER_ACCENT_PALETTE.length].hex
+          }));
+        }
+      }
+    } catch {
+      // Fallback
+    }
+    return INITIAL_PROFILES;
+  });
+
+  const [currentUser, setCurrentUser] = useState<Profile | null>(() => {
+    try {
+      const savedProfileId = localStorage.getItem('wham_active_profile_id');
+      const stored = localStorage.getItem('wham_profiles');
+      const list: Profile[] = stored ? JSON.parse(stored) : INITIAL_PROFILES;
+      if (savedProfileId) {
+        const found = list.find((p) => p.id === savedProfileId);
+        if (found) {
+          return {
+            ...found,
+            accent_color: found.accent_color || CLIMBER_ACCENT_PALETTE[0].hex
+          };
+        }
+      }
+      return list[0] || null;
+    } catch {
+      return INITIAL_PROFILES[0] || null;
+    }
+  });
+
   const [isDemoMode, setIsDemoMode] = useState<boolean>(!isSupabaseConfigured);
   const [loading, setLoading] = useState<boolean>(true);
+
+  // Dynamically update CSS custom properties for app accent colour to match active user
+  useEffect(() => {
+    const accent = currentUser?.accent_color || '#F59E0B';
+    document.documentElement.style.setProperty('--color-accent', accent);
+    document.documentElement.style.setProperty('--wham-accent', accent);
+  }, [currentUser?.accent_color]);
 
   // Initialize session and profiles
   useEffect(() => {

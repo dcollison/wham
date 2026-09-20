@@ -1,5 +1,6 @@
 import React from 'react';
 import { Compass, Zap, BarChart2, Users } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 interface NavigationProps {
   currentTab: 'boulders' | 'beta' | 'stats' | 'settings';
@@ -20,6 +21,9 @@ export const Navigation: React.FC<NavigationProps> = ({
   onSelectTab,
   unreadCommentsCount = 0
 }) => {
+  const { currentUser } = useAuth();
+  const activeColor = currentUser?.accent_color || '#F59E0B';
+
   const tabs: TabItem[] = [
     { id: 'boulders', label: 'Boulders', icon: Compass, hash: '#/boulders' },
     { id: 'beta', label: 'Crew Feed', icon: Zap, hash: '#/feed', badge: unreadCommentsCount },
@@ -45,14 +49,18 @@ export const Navigation: React.FC<NavigationProps> = ({
               }}
               className={`flex flex-col items-center justify-center py-1.5 rounded-xl transition-all active-press relative ${
                 isActive
-                  ? 'text-amber-400 font-bold'
+                  ? 'font-bold'
                   : 'text-slate-400 hover:text-slate-200 font-medium'
               }`}
+              style={isActive ? { color: activeColor } : undefined}
             >
               <div className="relative">
                 <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
                 {Boolean(tab.badge && tab.badge > 0) && (
-                  <span className="absolute -top-1 -right-2 w-4 h-4 bg-amber-400 text-black text-[10px] font-black rounded-full flex items-center justify-center shadow">
+                  <span
+                    className="absolute -top-1 -right-2 w-4 h-4 text-black text-[10px] font-black rounded-full flex items-center justify-center shadow"
+                    style={{ backgroundColor: activeColor }}
+                  >
                     {tab.badge}
                   </span>
                 )}

@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Gym, GymArea, Profile } from '../types';
 import { ClimberAvatar } from './ClimberAvatar';
-import { Zap, ChevronDown, Plus, Archive, Layers, Trophy } from 'lucide-react';
+import { Zap, ChevronDown, Plus, Archive, Layers, Trophy, MoreHorizontal, Check, Eye } from 'lucide-react';
 
 interface HeaderProps {
   currentTab?: 'boulders' | 'beta' | 'stats' | 'settings';
@@ -42,26 +42,46 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleShowArchived,
   isDemoMode
 }) => {
+  const activeColor = currentUser?.accent_color || '#F59E0B';
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState<boolean>(false);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close more menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setIsMoreMenuOpen(false);
+      }
+    };
+    if (isMoreMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMoreMenuOpen]);
+
   const currentGymAreas = areas
     .filter(a => a.gym_id === currentGym?.id)
     .sort((a, b) => a.sort_order - b.sort_order);
 
   return (
-    <header className="sticky top-0 z-30 bg-slate-950/95 backdrop-blur-md border-b border-slate-800/80 px-4 pt-3 pb-2.5 flex flex-col gap-3">
+    <header className="sticky top-0 z-30 bg-slate-950/95 backdrop-blur-md border-b border-slate-800/80 px-4 pt-3 pb-2.5 flex flex-col gap-2.5">
       {/* Top Bar: Brand, Gym Selector, Profile & Settings */}
       <div className="flex items-center justify-between gap-3">
         {/* Brand Logo */}
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-amber-400 text-black flex items-center justify-center font-black shadow-md shadow-amber-400/20 active:scale-95 transition-transform">
+          <div
+            className="w-8 h-8 rounded-xl text-black flex items-center justify-center font-black shadow-md active:scale-95 transition-transform"
+            style={{ backgroundColor: activeColor, boxShadow: `0 4px 14px ${activeColor}30` }}
+          >
             <Zap className="w-4 h-4 fill-black text-black stroke-[2.5]" />
           </div>
           <div>
             <span className="text-xl font-black tracking-tight text-white font-heading flex items-center gap-0.5">
-              Wham<span className="text-amber-400">.</span>
+              Wham<span style={{ color: activeColor }}>.</span>
             </span>
           </div>
           {isDemoMode && (
-            <span className="hidden sm:inline-block text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-slate-800/90 text-amber-300 border border-slate-700">
+            <span className="hidden sm:inline-block text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-800/90 text-slate-300 border border-slate-700">
               Demo
             </span>
           )}
@@ -75,7 +95,7 @@ export const Header: React.FC<HeaderProps> = ({
               const selected = gyms.find(g => g.id === e.target.value);
               if (selected) onSelectGym(selected);
             }}
-            className="appearance-none bg-slate-900 hover:bg-slate-850 border border-slate-700/90 hover:border-slate-600 text-slate-100 font-bold text-xs sm:text-sm rounded-xl py-2 pl-3.5 pr-8 outline-none focus:border-amber-400 cursor-pointer shadow-sm transition-colors"
+            className="appearance-none bg-slate-900 hover:bg-slate-850 border border-slate-700/90 hover:border-slate-600 text-slate-100 font-bold text-xs sm:text-sm rounded-xl py-2 pl-3.5 pr-8 outline-none cursor-pointer shadow-sm transition-colors"
           >
             {gyms.map((gym) => (
               <option key={gym.id} value={gym.id}>
@@ -92,10 +112,10 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={onOpenLeaderboard}
-              className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-700/80 hover:border-amber-400/50 rounded-xl py-2 px-3 transition-colors active-press shadow-sm group"
+              className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-700/80 rounded-xl py-2 px-3 transition-colors active-press shadow-sm group"
               title="Open Gym Comp Leaderboard"
             >
-              <Trophy className="w-4 h-4 text-amber-400 stroke-[2.5] group-hover:scale-110 transition-transform" />
+              <Trophy className="w-4 h-4 text-slate-300 group-hover:scale-110 transition-transform" />
               <span className="text-xs sm:text-sm font-bold text-slate-200 hidden sm:inline">Comp</span>
             </button>
           )}
@@ -117,96 +137,122 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Area Tabs Slider & Boulder Controls (Only on Boulders tab) */}
       {currentTab === 'boulders' && (
-        <>
+        <div className="flex items-center justify-between gap-2 pt-0.5">
           {/* Area Tabs Slider with "All Areas" option */}
-          {currentGymAreas.length > 0 && (
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-              <button
-                type="button"
-                onClick={() => onSelectArea(null)}
-                className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all active-press shrink-0 flex items-center gap-1.5 ${
-                  currentArea === null
-                    ? 'bg-amber-400 text-black shadow-md shadow-amber-400/20'
-                    : 'bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-850'
-                }`}
-              >
-                <span>All Areas</span>
-              </button>
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 flex-1 min-w-0">
+            <button
+              type="button"
+              onClick={() => onSelectArea(null)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all active-press shrink-0 flex items-center gap-1 ${
+                currentArea === null
+                  ? 'text-black shadow-md'
+                  : 'bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-850'
+              }`}
+              style={currentArea === null ? { backgroundColor: activeColor, color: '#000' } : undefined}
+            >
+              <span>All Areas</span>
+            </button>
 
-              {currentGymAreas.map((area) => {
-                const isSelected = currentArea?.id === area.id;
-                return (
-                  <button
-                    key={area.id}
-                    type="button"
-                    onClick={() => onSelectArea(area)}
-                    className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all active-press shrink-0 ${
-                      isSelected
-                        ? 'bg-amber-400 text-black shadow-md shadow-amber-400/20'
-                        : 'bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-850'
-                    }`}
-                  >
-                    {area.name}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Filter & Action Controls: Show Archived, Add Boulder, Area Reset */}
-          <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-900 text-xs">
-            <div className="flex items-center gap-2">
-              {/* Show Archived Toggle */}
-              <button
-                type="button"
-                onClick={onToggleShowArchived}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                  showArchived
-                    ? 'bg-purple-500/20 text-purple-300 border border-purple-500/50'
-                    : 'text-slate-400 hover:text-slate-200 bg-slate-900/60 border border-slate-800'
-                }`}
-                title="Show historically archived climbs from wall resets"
-              >
-                {showArchived ? 'Showing Archived' : 'Archived Climbs'}
-              </button>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {/* Area Reset Action */}
-              <button
-                type="button"
-                onClick={onOpenAreaReset}
-                className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-slate-900 border border-transparent hover:border-rose-900/50 transition-colors"
-                title="Bulk Reset: Archive Entire Area"
-              >
-                <Archive className="w-4 h-4" />
-              </button>
-
-              {/* Bulk Add Action */}
-              {onOpenBulkAdd && (
+            {currentGymAreas.map((area) => {
+              const isSelected = currentArea?.id === area.id;
+              return (
                 <button
+                  key={area.id}
                   type="button"
-                  onClick={onOpenBulkAdd}
-                  className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white border border-slate-700/80 font-bold text-xs sm:text-sm px-3 py-2 rounded-xl shadow transition-all active-press"
-                  title="Bulk add climbs to this area"
+                  onClick={() => onSelectArea(area)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all active-press shrink-0 ${
+                    isSelected
+                      ? 'text-black shadow-md'
+                      : 'bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-850'
+                  }`}
+                  style={isSelected ? { backgroundColor: activeColor, color: '#000' } : undefined}
                 >
-                  <Layers className="w-4 h-4 text-amber-400" />
-                  <span className="hidden xs:inline">Bulk Log</span>
+                  {area.name}
                 </button>
-              )}
+              );
+            })}
+          </div>
 
-              {/* Add Boulder Action */}
+          {/* Clean Action Cluster: Add Climb + More Menu */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Primary Action: Add Climb */}
+            <button
+              type="button"
+              onClick={onOpenAddBoulder}
+              className="flex items-center gap-1.5 font-bold text-xs px-3 py-1.5 rounded-xl shadow transition-all active-press"
+              style={{ backgroundColor: activeColor, color: '#000000' }}
+              title="Add a new problem to this area"
+            >
+              <Plus className="w-3.5 h-3.5 stroke-[3]" />
+              <span>Add Climb</span>
+            </button>
+
+            {/* Overflow More Actions Menu */}
+            <div className="relative" ref={moreMenuRef}>
               <button
                 type="button"
-                onClick={onOpenAddBoulder}
-                className="flex items-center gap-1.5 bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs sm:text-sm px-3.5 py-2 rounded-xl shadow transition-all active-press"
+                onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
+                className={`p-2 rounded-xl border transition-colors ${
+                  showArchived
+                    ? 'bg-purple-500/20 border-purple-500/40 text-purple-300'
+                    : isMoreMenuOpen
+                    ? 'bg-slate-800 border-slate-700 text-white'
+                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-850'
+                }`}
+                title="Area management options (Bulk log, Archive, Reset)"
               >
-                <Plus className="w-4 h-4 stroke-[3]" />
-                <span>Add Climb</span>
+                <MoreHorizontal className="w-4 h-4" />
               </button>
+
+              {/* Dropdown sheet */}
+              {isMoreMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-56 bg-slate-900 border border-slate-700/90 rounded-2xl p-1.5 shadow-2xl z-50 flex flex-col gap-1 animate-in fade-in zoom-in-95 duration-150">
+                  {onOpenBulkAdd && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMoreMenuOpen(false);
+                        onOpenBulkAdd();
+                      }}
+                      className="flex items-center gap-2.5 w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:bg-slate-800 transition-colors"
+                    >
+                      <Layers className="w-4 h-4 text-slate-400" />
+                      <span>Bulk Add Climbs</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onToggleShowArchived();
+                    }}
+                    className="flex items-center justify-between w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:bg-slate-800 transition-colors"
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <Eye className="w-4 h-4 text-slate-400" />
+                      <span>Show Archived</span>
+                    </span>
+                    {showArchived && <Check className="w-3.5 h-3.5 text-purple-400" />}
+                  </button>
+
+                  <div className="h-px bg-slate-800 my-0.5" />
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMoreMenuOpen(false);
+                      onOpenAreaReset();
+                    }}
+                    className="flex items-center gap-2.5 w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-rose-400 hover:bg-rose-950/30 transition-colors"
+                  >
+                    <Archive className="w-4 h-4 text-rose-400" />
+                    <span>Reset Area (Archive All)</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
-        </>
+        </div>
       )}
     </header>
   );

@@ -76,6 +76,9 @@ export const CrewFeedView: React.FC<CrewFeedViewProps> = ({
     }
   };
 
+  const activeClimber = climbers.find((c) => c.id === currentUserId);
+  const activeColor = activeClimber?.accent_color || '#F59E0B';
+
   return (
     <div className="flex flex-col gap-4 animate-in fade-in duration-200">
       {/* Top Segmented Sub-Tab Switcher */}
@@ -88,11 +91,12 @@ export const CrewFeedView: React.FC<CrewFeedViewProps> = ({
           }}
           className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all active-press ${
             activeSubTab === 'sends'
-              ? 'bg-amber-500 text-black shadow-md'
+              ? 'text-black shadow-md'
               : 'text-slate-400 hover:text-white'
           }`}
+          style={activeSubTab === 'sends' ? { backgroundColor: activeColor, color: '#000' } : undefined}
         >
-          <Zap className={`w-3.5 h-3.5 ${activeSubTab === 'sends' ? 'fill-black' : 'fill-amber-400 text-amber-400'}`} />
+          <Zap className={`w-3.5 h-3.5 ${activeSubTab === 'sends' ? 'fill-black' : 'text-slate-400'}`} />
           <span>Recent Sends</span>
           <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-black ${
             activeSubTab === 'sends' ? 'bg-black/20 text-black' : 'bg-slate-800 text-slate-300'
@@ -109,9 +113,10 @@ export const CrewFeedView: React.FC<CrewFeedViewProps> = ({
           }}
           className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all active-press ${
             activeSubTab === 'beta'
-              ? 'bg-amber-500 text-black shadow-md'
+              ? 'text-black shadow-md'
               : 'text-slate-400 hover:text-white'
           }`}
+          style={activeSubTab === 'beta' ? { backgroundColor: activeColor, color: '#000' } : undefined}
         >
           <MessageSquare className="w-3.5 h-3.5" />
           <span>Beta Spray</span>
@@ -186,7 +191,8 @@ export const CrewFeedView: React.FC<CrewFeedViewProps> = ({
               <button
                 type="submit"
                 disabled={!selectedBoulderId || !newContent.trim() || submitting}
-                className="p-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black active-press transition-colors disabled:opacity-30"
+                className="p-2.5 rounded-xl text-black active-press transition-colors disabled:opacity-30"
+                style={{ backgroundColor: activeColor }}
               >
                 <Send className="w-4 h-4" />
               </button>

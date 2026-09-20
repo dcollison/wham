@@ -129,123 +129,120 @@ ALTER TABLE public.attempts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 
 -- 4.1 Profiles policies
--- Authenticated users can read all profiles
-CREATE POLICY "Authenticated users can read all profiles"
+CREATE POLICY "Public can read all profiles"
     ON public.profiles FOR SELECT
-    TO authenticated
+    TO public
     USING (true);
 
--- Climbers can update their own profile
-CREATE POLICY "Users can update their own profile"
-    ON public.profiles FOR UPDATE
-    TO authenticated
-    USING (auth.uid() = id);
-
--- Climbers can insert their own profile
-CREATE POLICY "Users can insert their own profile"
+CREATE POLICY "Public can insert profiles"
     ON public.profiles FOR INSERT
-    TO authenticated
-    WITH CHECK (auth.uid() = id);
-
--- 4.2 Gyms policies
-CREATE POLICY "Authenticated users can view gyms"
-    ON public.gyms FOR SELECT
-    TO authenticated
-    USING (true);
-
-CREATE POLICY "Authenticated users can insert gyms"
-    ON public.gyms FOR INSERT
-    TO authenticated
+    TO public
     WITH CHECK (true);
 
-CREATE POLICY "Authenticated users can update gyms"
+CREATE POLICY "Public can update profiles"
+    ON public.profiles FOR UPDATE
+    TO public
+    USING (true);
+
+-- 4.2 Gyms policies
+CREATE POLICY "Public can view gyms"
+    ON public.gyms FOR SELECT
+    TO public
+    USING (true);
+
+CREATE POLICY "Public can insert gyms"
+    ON public.gyms FOR INSERT
+    TO public
+    WITH CHECK (true);
+
+CREATE POLICY "Public can update gyms"
     ON public.gyms FOR UPDATE
-    TO authenticated
+    TO public
     USING (true);
 
 -- 4.3 Gym Areas policies
-CREATE POLICY "Authenticated users can view gym areas"
+CREATE POLICY "Public can view gym areas"
     ON public.gym_areas FOR SELECT
-    TO authenticated
+    TO public
     USING (true);
 
-CREATE POLICY "Authenticated users can insert gym areas"
+CREATE POLICY "Public can insert gym areas"
     ON public.gym_areas FOR INSERT
-    TO authenticated
+    TO public
     WITH CHECK (true);
 
-CREATE POLICY "Authenticated users can update gym areas"
+CREATE POLICY "Public can update gym areas"
     ON public.gym_areas FOR UPDATE
-    TO authenticated
+    TO public
     USING (true);
 
-CREATE POLICY "Authenticated users can delete gym areas"
+CREATE POLICY "Public can delete gym areas"
     ON public.gym_areas FOR DELETE
-    TO authenticated
+    TO public
     USING (true);
 
 -- 4.4 Boulders policies
-CREATE POLICY "Authenticated users can view boulders"
+CREATE POLICY "Public can view boulders"
     ON public.boulders FOR SELECT
-    TO authenticated
+    TO public
     USING (true);
 
-CREATE POLICY "Authenticated users can insert boulders"
+CREATE POLICY "Public can insert boulders"
     ON public.boulders FOR INSERT
-    TO authenticated
+    TO public
     WITH CHECK (true);
 
-CREATE POLICY "Authenticated users can update boulders"
+CREATE POLICY "Public can update boulders"
     ON public.boulders FOR UPDATE
-    TO authenticated
+    TO public
     USING (true);
 
-CREATE POLICY "Authenticated users can delete boulders"
+CREATE POLICY "Public can delete boulders"
     ON public.boulders FOR DELETE
-    TO authenticated
+    TO public
     USING (true);
 
--- 4.5 Attempts policies (Crew members can view and log/update attempts on behalf of each other)
-CREATE POLICY "Authenticated users can view all attempts"
+-- 4.5 Attempts policies (Crew members can view, log, and sync attempts across devices)
+CREATE POLICY "Public can view all attempts"
     ON public.attempts FOR SELECT
-    TO authenticated
+    TO public
     USING (true);
 
-CREATE POLICY "Authenticated users can insert attempts"
+CREATE POLICY "Public can insert attempts"
     ON public.attempts FOR INSERT
-    TO authenticated
+    TO public
     WITH CHECK (true);
 
-CREATE POLICY "Authenticated users can update attempts"
+CREATE POLICY "Public can update attempts"
     ON public.attempts FOR UPDATE
-    TO authenticated
+    TO public
     USING (true);
 
-CREATE POLICY "Authenticated users can delete attempts"
+CREATE POLICY "Public can delete attempts"
     ON public.attempts FOR DELETE
-    TO authenticated
+    TO public
     USING (true);
 
 -- 4.6 Comments policies
-CREATE POLICY "Authenticated users can view all comments"
+CREATE POLICY "Public can view all comments"
     ON public.comments FOR SELECT
-    TO authenticated
+    TO public
     USING (true);
 
-CREATE POLICY "Authenticated users can insert comments"
+CREATE POLICY "Public can insert comments"
     ON public.comments FOR INSERT
-    TO authenticated
-    WITH CHECK (auth.uid() = user_id);
+    TO public
+    WITH CHECK (true);
 
-CREATE POLICY "Users can update their own comments"
+CREATE POLICY "Public can update comments"
     ON public.comments FOR UPDATE
-    TO authenticated
-    USING (auth.uid() = user_id);
+    TO public
+    USING (true);
 
-CREATE POLICY "Users can delete their own comments"
+CREATE POLICY "Public can delete comments"
     ON public.comments FOR DELETE
-    TO authenticated
-    USING (auth.uid() = user_id);
+    TO public
+    USING (true);
 
 -- =========================================================
 -- 5. STORAGE BUCKET CONFIGURATION
@@ -268,21 +265,22 @@ ON CONFLICT (id) DO UPDATE SET
 -- Storage bucket RLS policies
 CREATE POLICY "Public access to boulder-photos"
     ON storage.objects FOR SELECT
+    TO public
     USING (bucket_id = 'boulder-photos');
 
-CREATE POLICY "Authenticated users can upload boulder-photos"
+CREATE POLICY "Public can upload boulder-photos"
     ON storage.objects FOR INSERT
-    TO authenticated
+    TO public
     WITH CHECK (bucket_id = 'boulder-photos');
 
-CREATE POLICY "Authenticated users can update boulder-photos"
+CREATE POLICY "Public can update boulder-photos"
     ON storage.objects FOR UPDATE
-    TO authenticated
+    TO public
     USING (bucket_id = 'boulder-photos');
 
-CREATE POLICY "Authenticated users can delete boulder-photos"
+CREATE POLICY "Public can delete boulder-photos"
     ON storage.objects FOR DELETE
-    TO authenticated
+    TO public
     USING (bucket_id = 'boulder-photos');
 
 -- =========================================================

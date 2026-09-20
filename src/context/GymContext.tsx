@@ -221,12 +221,25 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             }
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'attempts' }, (payload) => {
-            if (payload.eventType === 'INSERT') {
-              setAttempts(prev => [...prev.filter(a => !(a.boulder_id === payload.new.boulder_id && a.user_id === payload.new.user_id)), payload.new as Attempt]);
-            } else if (payload.eventType === 'UPDATE') {
-              setAttempts(prev => prev.map(a => a.id === payload.new.id ? { ...a, ...payload.new } : a));
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              const incoming = payload.new as Attempt;
+              setAttempts(prev => {
+                const targetClimber = climbers.find(c => c.id === incoming.user_id);
+                const enriched: Attempt = {
+                  ...incoming,
+                  profile: targetClimber || undefined
+                };
+                const filtered = prev.filter(a =>
+                  a.id !== incoming.id &&
+                  !(a.boulder_id === incoming.boulder_id && a.user_id === incoming.user_id)
+                );
+                return [...filtered, enriched];
+              });
             } else if (payload.eventType === 'DELETE') {
-              setAttempts(prev => prev.filter(a => a.id !== payload.old.id));
+              setAttempts(prev => prev.filter(a =>
+                a.id !== payload.old.id &&
+                !(a.boulder_id === payload.old.boulder_id && a.user_id === payload.old.user_id)
+              ));
             }
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, (payload) => {
@@ -247,7 +260,45 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     fetchData();
-  }, []);
+  }, [climbers]);
+
+  // Multi-device sync: poll periodically and re-fetch when tab becomes visible or receives window focus
+  useEffect(() => {
+    const client = supabase;
+    if (!isSupabaseConfigured || !client) return;
+
+    const refreshAttempts = async () => {
+      try {
+        const { data, error } = await client
+          .from('attempts')
+          .select('*, profile:profiles(*)');
+
+        if (!error && data && data.length > 0) {
+          setAttempts(data);
+        }
+      } catch (err) {
+        console.warn('Background attempts sync error:', err);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshAttempts();
+      }
+    };
+
+    window.addEventListener('focus', refreshAttempts);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Periodic poll every 25 seconds for reliable multi-device syncing
+    const interval = setInterval(refreshAttempts, 25000);
+
+    return () => {
+      window.removeEventListener('focus', refreshAttempts);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(interval);
+    };
+  }, [climbers]);
 
   // Save to localStorage whenever state changes (for offline/demo mode)
   useEffect(() => {
@@ -370,7 +421,12 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           logged_at: loggedAt || new Date().toISOString()
         }, { onConflict: 'boulder_id,user_id' });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Failed to log attempt to Supabase:', error);
+          if (error.code === '42501' || error.message?.includes('row-level security')) {
+            console.warn('⚠️ Supabase Row-Level Security policy blocked writing attempt. To resolve, ensure public access is enabled for public.attempts in supabase_schema.sql.');
+          }
+        }
       } catch (err) {
         console.error('Failed to log attempt to Supabase:', err);
       }

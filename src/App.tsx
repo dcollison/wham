@@ -104,25 +104,33 @@ export function App() {
   });
 
   // Boulder filters state (Grade Range, Status, Hold Colour, Climber, Search, Sort)
-  const [boulderFilters, setBoulderFilters] = useState<BoulderFiltersState>(() => ({
-    minGrade: null,
-    maxGrade: null,
-    statusFilter: hideSent ? 'unsent' : 'all',
-    selectedColour: null,
-    targetClimberId: currentUser?.id || '',
-    searchQuery: '',
-    sortBy: 'position'
-  }));
+  const [boulderFilters, setBoulderFilters] = useState<BoulderFiltersState>(() => {
+    const savedUserId = localStorage.getItem('wham_active_profile_id') || currentUser?.id || '';
+    return {
+      minGrade: null,
+      maxGrade: null,
+      statusFilter: hideSent ? 'unsent' : 'all',
+      selectedColour: null,
+      targetClimberId: savedUserId,
+      searchQuery: '',
+      sortBy: 'position'
+    };
+  });
 
-  // Sync targetClimberId with currentUser when available
+  // Track the previous user ID so we know when currentUser changes
+  const prevUserIdRef = React.useRef<string | undefined>(currentUser?.id);
+
+  // Sync targetClimberId with currentUser when active profile changes
   useEffect(() => {
     if (currentUser?.id) {
       setBoulderFilters((prev) => {
-        if (!prev.targetClimberId) {
+        // If targetClimberId was empty or was following the previous active user, follow new currentUser.id
+        if (!prev.targetClimberId || prev.targetClimberId === prevUserIdRef.current) {
           return { ...prev, targetClimberId: currentUser.id };
         }
         return prev;
       });
+      prevUserIdRef.current = currentUser.id;
     }
   }, [currentUser?.id]);
 
@@ -154,7 +162,7 @@ export function App() {
       maxGrade: null,
       statusFilter: 'all',
       selectedColour: null,
-      targetClimberId: currentUser?.id || '',
+      targetClimberId: currentUser?.id || localStorage.getItem('wham_active_profile_id') || '',
       searchQuery: '',
       sortBy: 'position'
     });
@@ -305,7 +313,7 @@ export function App() {
         {/* TAB 1: Clockwise Boulders View */}
         {currentTab === 'boulders' && (
           <div className="flex flex-col gap-4 pb-20 animate-in fade-in duration-200">
-            {/* Area Header & Info Banner */}
+            {/* Area Header & Info */}
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-lg font-black tracking-tight text-white flex items-center gap-1.5">
@@ -319,46 +327,7 @@ export function App() {
               </div>
             </div>
 
-            {/* Easy-to-See Gym Comp Leaderboard Banner / Standings */}
-            <GymCompBanner
-              gym={currentGym}
-              gyms={gyms}
-              boulders={boulders}
-              attempts={attempts}
-              climbers={climbers}
-              currentUserId={currentUser?.id}
-              onOpenFullLeaderboard={() => setIsLeaderboardOpen(true)}
-            />
-
-            {/* Quick Live Send Ticker Banner */}
-            {latestSendInfo && (
-              <div
-                onClick={() => {
-                  window.location.hash = '#/feed';
-                  setCurrentTab('beta');
-                }}
-                className="flex items-center justify-between p-2.5 px-3 rounded-2xl bg-gradient-to-r from-amber-500/10 via-slate-900 to-slate-900 border border-amber-500/25 hover:border-amber-500/50 cursor-pointer active-press transition-all shadow-sm group"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="p-1 rounded-lg bg-amber-400/20 text-amber-400 shrink-0">
-                    <Zap className="w-3.5 h-3.5 fill-amber-400" />
-                  </div>
-                  <div className="text-xs truncate">
-                    <span className="font-semibold text-slate-400">Latest Crew Send: </span>
-                    <strong className="text-amber-400 font-bold">{latestSendInfo.climber.display_name}</strong>
-                    <span className="text-slate-300"> {latestSendInfo.attempt.status === 'flashed' ? 'flashed' : 'topped'} </span>
-                    <span className="text-white font-bold">{latestSendInfo.boulder.hold_colour} {latestSendInfo.boulder.grade}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1 text-[11px] font-bold text-amber-400 shrink-0 group-hover:translate-x-0.5 transition-transform pl-2">
-                  <span>Feed</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </div>
-              </div>
-            )}
-
-            {/* Boulder Filters: Grade Range, Status, Hold Colour, Search */}
+            {/* Compact Boulder Filters: Search Bar & Single Filters Icon */}
             <BoulderFilters
               filters={boulderFilters}
               onUpdateFilters={handleUpdateFilters}

@@ -202,18 +202,27 @@ ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS accent_color TEXT,
   ADD COLUMN IF NOT EXISTS avatar_icon TEXT;
 
+-- Drop legacy restrictive authenticated-only policies
 DROP POLICY IF EXISTS "Users can insert their own attempts" ON public.attempts;
 DROP POLICY IF EXISTS "Users can update their own attempts" ON public.attempts;
 DROP POLICY IF EXISTS "Users can delete their own attempts" ON public.attempts;
+DROP POLICY IF EXISTS "Authenticated users can view all attempts" ON public.attempts;
+DROP POLICY IF EXISTS "Authenticated users can insert attempts" ON public.attempts;
+DROP POLICY IF EXISTS "Authenticated users can update attempts" ON public.attempts;
+DROP POLICY IF EXISTS "Authenticated users can delete attempts" ON public.attempts;
 
-CREATE POLICY "Authenticated users can insert attempts"
-    ON public.attempts FOR INSERT TO authenticated WITH CHECK (true);
+-- Enable public policies for zero-friction crew sync across shared and personal devices
+CREATE POLICY "Public can view all attempts"
+    ON public.attempts FOR SELECT TO public USING (true);
 
-CREATE POLICY "Authenticated users can update attempts"
-    ON public.attempts FOR UPDATE TO authenticated USING (true);
+CREATE POLICY "Public can insert attempts"
+    ON public.attempts FOR INSERT TO public WITH CHECK (true);
 
-CREATE POLICY "Authenticated users can delete attempts"
-    ON public.attempts FOR DELETE TO authenticated USING (true);
+CREATE POLICY "Public can update attempts"
+    ON public.attempts FOR UPDATE TO public USING (true);
+
+CREATE POLICY "Public can delete attempts"
+    ON public.attempts FOR DELETE TO public USING (true);
 ```
 
 ---
