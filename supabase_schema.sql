@@ -258,6 +258,10 @@ CREATE POLICY "Public can delete comments"
     USING (true);
 
 -- 4.7 Send Props policies
+DROP POLICY IF EXISTS "Public can view all props" ON public.send_props;
+DROP POLICY IF EXISTS "Public can insert props" ON public.send_props;
+DROP POLICY IF EXISTS "Public can delete props" ON public.send_props;
+
 CREATE POLICY "Public can view all props"
     ON public.send_props FOR SELECT
     TO public
