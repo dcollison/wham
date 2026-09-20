@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Boulder, Grade, GRADES, HOLD_COLORS, GymArea } from '../../types';
 import { compressImage, CompressionResult } from '../../lib/imageCompressor';
-import { X, Camera, Upload, Plus, AlertCircle, ArrowDown } from 'lucide-react';
+import { X, Camera, Upload, Plus, AlertCircle, ArrowDown, Layers } from 'lucide-react';
 
 interface AddBoulderModalProps {
   isOpen: boolean;
@@ -12,6 +12,7 @@ interface AddBoulderModalProps {
   areas?: GymArea[];
   existingBoulders: Boulder[];
   defaultInsertAfterId?: string | null;
+  onSwitchToBulk?: () => void;
   onAdd: (params: {
     gymId: string;
     areaId: string;
@@ -33,6 +34,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
   areas = [],
   existingBoulders,
   defaultInsertAfterId,
+  onSwitchToBulk,
   onAdd
 }) => {
   const gymAreas = useMemo(() => {
@@ -140,13 +142,28 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
             </h2>
             <p className="text-xs text-slate-400">Positioned sequentially in clockwise order</p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {onSwitchToBulk && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onSwitchToBulk();
+                }}
+                className="flex items-center gap-1.5 text-xs font-bold text-amber-300 hover:text-amber-200 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/20 px-2.5 py-1.5 rounded-xl transition-all active-press"
+              >
+                <Layers className="w-3.5 h-3.5 text-amber-400" />
+                <span>Bulk Mode</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">

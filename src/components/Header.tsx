@@ -1,6 +1,6 @@
 import React from 'react';
 import { Gym, GymArea, Profile } from '../types';
-import { Zap, ChevronDown, Filter, Plus, Archive, Settings, RefreshCw } from 'lucide-react';
+import { Zap, ChevronDown, Filter, Plus, Archive, Settings, RefreshCw, Layers } from 'lucide-react';
 
 interface HeaderProps {
   currentTab?: 'boulders' | 'beta' | 'stats' | 'settings';
@@ -14,6 +14,7 @@ interface HeaderProps {
   climbers: Profile[];
   onOpenProfileSwitcher: () => void;
   onOpenAddBoulder: () => void;
+  onOpenBulkAdd?: () => void;
   onOpenAreaReset: () => void;
   hideSent: boolean;
   onToggleHideSent: () => void;
@@ -34,6 +35,7 @@ export const Header: React.FC<HeaderProps> = ({
   climbers,
   onOpenProfileSwitcher,
   onOpenAddBoulder,
+  onOpenBulkAdd,
   onOpenAreaReset,
   hideSent,
   onToggleHideSent,
@@ -199,6 +201,19 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <Archive className="w-4 h-4" />
               </button>
+
+              {/* Bulk Add Action */}
+              {onOpenBulkAdd && (
+                <button
+                  type="button"
+                  onClick={onOpenBulkAdd}
+                  className="flex items-center gap-1 bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white border border-slate-700/80 font-bold text-xs px-2.5 py-1.5 rounded-xl shadow transition-all active-press"
+                  title="Bulk add climbs to this area (resets or initial logging)"
+                >
+                  <Layers className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="hidden xs:inline">Bulk Log</span>
+                </button>
+              )}
 
               {/* Add Boulder Action */}
               <button

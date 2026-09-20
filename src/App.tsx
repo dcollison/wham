@@ -6,6 +6,7 @@ import { Navigation } from './components/Navigation';
 import { BoulderCard } from './components/boulders/BoulderCard';
 import { QuickLogModal } from './components/boulders/QuickLogModal';
 import { AddBoulderModal } from './components/boulders/AddBoulderModal';
+import { BulkAddBouldersModal } from './components/boulders/BulkAddBouldersModal';
 import { BoulderDetailModal } from './components/boulders/BoulderDetailModal';
 import { AreaResetModal } from './components/boulders/AreaResetModal';
 import { StatsDashboard } from './components/stats/StatsDashboard';
@@ -13,7 +14,7 @@ import { BetaDiscussionView } from './components/beta/BetaDiscussionView';
 import { SettingsModal } from './components/settings/SettingsModal';
 import { BoulderFilters, BoulderFiltersState } from './components/boulders/BoulderFilters';
 import { Boulder, GRADES } from './types';
-import { Plus, Compass, Sparkles, Filter, RotateCcw } from 'lucide-react';
+import { Plus, Compass, Sparkles, Filter, RotateCcw, Layers } from 'lucide-react';
 
 export function App() {
   const {
@@ -44,6 +45,7 @@ export function App() {
     logAttempt,
     deleteAttempt,
     addBoulder,
+    bulkAddBoulders,
     archiveBoulder,
     archiveAreaBoulders,
     addComment,
@@ -77,6 +79,7 @@ export function App() {
   const [quickLogBoulder, setQuickLogBoulder] = useState<Boulder | null>(null);
   const [detailBoulder, setDetailBoulder] = useState<Boulder | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
+  const [isBulkAddOpen, setIsBulkAddOpen] = useState<boolean>(false);
   const [isAreaResetOpen, setIsAreaResetOpen] = useState<boolean>(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [hasChosenClimber, setHasChosenClimber] = useState<boolean>(() => {
@@ -258,6 +261,7 @@ export function App() {
         climbers={climbers}
         onOpenProfileSwitcher={() => setIsSettingsOpen(true)}
         onOpenAddBoulder={() => setIsAddModalOpen(true)}
+        onOpenBulkAdd={() => setIsBulkAddOpen(true)}
         onOpenAreaReset={() => {
           if (!currentArea) {
             alert('To archive an entire wall, please select a specific Area tab first.');
@@ -362,14 +366,24 @@ export function App() {
                     Be the first to log a new problem in this sector.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsAddModalOpen(true)}
-                  className="mt-2 flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black active-press shadow"
-                >
-                  <Plus className="w-4 h-4 stroke-[3]" />
-                  <span>Add First Problem</span>
-                </button>
+                <div className="flex items-center gap-2.5 flex-wrap justify-center mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black active-press shadow"
+                  >
+                    <Plus className="w-4 h-4 stroke-[3]" />
+                    <span>Add Single Climb</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsBulkAddOpen(true)}
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-400/30 active-press shadow"
+                  >
+                    <Layers className="w-4 h-4" />
+                    <span>Bulk Log Wall Set</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -461,8 +475,28 @@ export function App() {
         areaName={currentArea?.name || `${currentGym?.name || 'Gym'} • All Areas`}
         areas={areas}
         existingBoulders={boulders.filter(b => b.gym_id === (currentGym?.id || gyms[0]?.id || ''))}
+        onSwitchToBulk={() => setIsBulkAddOpen(true)}
         onAdd={async (p) => {
           await addBoulder(p);
+        }}
+      />
+
+      {/* Bulk Add Boulders Modal (for wall resets or initial gym logging) */}
+      <BulkAddBouldersModal
+        key={`bulk-${currentGym?.id || 'gym'}-${currentArea?.id || 'all'}-${isBulkAddOpen ? 'open' : 'closed'}`}
+        isOpen={isBulkAddOpen}
+        onClose={() => setIsBulkAddOpen(false)}
+        gymId={currentGym?.id || gyms[0]?.id || ''}
+        areaId={currentArea?.id || null}
+        areaName={currentArea?.name || `${currentGym?.name || 'Gym'} • All Areas`}
+        areas={areas}
+        existingBoulders={boulders.filter(b => b.gym_id === (currentGym?.id || gyms[0]?.id || ''))}
+        onBulkAdd={async (p) => {
+          await bulkAddBoulders(p);
+        }}
+        onSwitchToSingle={() => {
+          setIsBulkAddOpen(false);
+          setIsAddModalOpen(true);
         }}
       />
 
@@ -475,6 +509,12 @@ export function App() {
         onConfirm={async () => {
           if (currentArea) {
             await archiveAreaBoulders(currentArea.id);
+          }
+        }}
+        onConfirmAndBulkAdd={async () => {
+          if (currentArea) {
+            await archiveAreaBoulders(currentArea.id);
+            setIsBulkAddOpen(true);
           }
         }}
       />

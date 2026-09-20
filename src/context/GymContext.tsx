@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { supabase, isSupabaseConfigured, uploadBoulderPhoto } from '../lib/supabase';
-import { Boulder, Attempt, Comment, Gym, GymArea, Grade, AttemptStatus } from '../types';
+import { Boulder, Attempt, Comment, Gym, GymArea, Grade, AttemptStatus, BulkAddBoulderItem, BulkAddBouldersParams } from '../types';
 import {
   INITIAL_GYMS,
   INITIAL_AREAS,
@@ -47,6 +47,7 @@ interface GymContextType {
   logAttempt: (params: LogAttemptParams) => Promise<void>;
   deleteAttempt: (boulderId: string) => Promise<void>;
   addBoulder: (params: AddBoulderParams) => Promise<Boulder>;
+  bulkAddBoulders: (params: BulkAddBouldersParams) => Promise<Boulder[]>;
   archiveBoulder: (boulderId: string, archive?: boolean) => Promise<void>;
   archiveAreaBoulders: (areaId: string) => Promise<void>;
   addComment: (boulderId: string, content: string) => Promise<void>;
@@ -486,6 +487,124 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return newBoulder;
   };
 
+  // Bulk add multiple boulders to an area (for resets or initial gym setup)
+  const bulkAddBoulders = async ({
+    gymId,
+    areaId,
+    boulders: newItems,
+    archiveExistingAreaBoulders = false,
+    dateAdded
+  }: BulkAddBouldersParams): Promise<Boulder[]> => {
+    if (!newItems || newItems.length === 0) return [];
+
+    const effectiveDate = dateAdded || new Date().toISOString().split('T')[0];
+
+    // If archiveExistingAreaBoulders is true, archive current active boulders in this area
+    if (archiveExistingAreaBoulders) {
+      setBoulders(prev => prev.map(b => (b.area_id === areaId && !b.is_archived) ? { ...b, is_archived: true } : b));
+      if (isSupabaseConfigured && supabase) {
+        try {
+          await supabase.from('boulders').update({ is_archived: true }).eq('area_id', areaId).eq('is_archived', false);
+        } catch (err) {
+          console.error('Failed to archive existing area boulders during bulk add:', err);
+        }
+      }
+    }
+
+    // Determine starting position order
+    let startPosition = 1.0;
+    if (!archiveExistingAreaBoulders) {
+      const existingInArea = boulders.filter(b => b.gym_id === gymId && b.area_id === areaId && !b.is_archived);
+      const maxPos = existingInArea.reduce((max, b) => Math.max(max, b.position_order), 0);
+      startPosition = maxPos > 0 ? maxPos + 1.0 : 1.0;
+    }
+
+    // Process each item (upload photos if any)
+    const timestamp = Date.now();
+    const preparedBoulders: Boulder[] = [];
+
+    for (let i = 0; i < newItems.length; i++) {
+      const item = newItems[i];
+      const tempId = `bould-${timestamp}-${i}-${Math.random().toString(36).substring(2, 6)}`;
+      let finalImageUrl: string | null = null;
+
+      if (item.imageFile && item.imageDataUrl) {
+        try {
+          finalImageUrl = await uploadBoulderPhoto(item.imageFile, item.imageDataUrl, tempId);
+        } catch (err) {
+          console.error('Failed to upload photo for bulk boulder:', err);
+          finalImageUrl = item.imageDataUrl;
+        }
+      } else if (item.imageDataUrl) {
+        finalImageUrl = item.imageDataUrl;
+      }
+
+      preparedBoulders.push({
+        id: tempId,
+        gym_id: gymId,
+        area_id: areaId,
+        hold_colour: item.holdColour,
+        grade: item.grade,
+        position_order: startPosition + (i * 1.0),
+        notes: item.notes?.trim() || null,
+        image_url: finalImageUrl,
+        date_added: effectiveDate,
+        is_archived: false,
+        created_by: currentUser?.id || null,
+        created_at: new Date().toISOString()
+      });
+    }
+
+    // Optimistically update boulders state
+    setBoulders(prev => {
+      const updated = archiveExistingAreaBoulders
+        ? prev.map(b => (b.area_id === areaId && !b.is_archived) ? { ...b, is_archived: true } : b)
+        : [...prev];
+      return [...updated, ...preparedBoulders];
+    });
+
+    // Confetti celebration
+    confetti({
+      particleCount: 70,
+      spread: 60,
+      origin: { y: 0.6 },
+      colors: ['#F59E0B', '#10B981', '#3B82F6', '#EC4899']
+    });
+
+    // Sync to Supabase
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const payload = preparedBoulders.map(b => ({
+          gym_id: b.gym_id,
+          area_id: b.area_id,
+          hold_colour: b.hold_colour,
+          grade: b.grade,
+          position_order: b.position_order,
+          notes: b.notes,
+          image_url: b.image_url,
+          date_added: b.date_added,
+          is_archived: false,
+          created_by: currentUser?.id || null
+        }));
+
+        const { data, error } = await supabase.from('boulders').insert(payload).select();
+        if (!error && data && data.length > 0) {
+          // Replace temporary IDs with database UUIDs
+          setBoulders(prev => {
+            const tempIds = new Set(preparedBoulders.map(pb => pb.id));
+            const filtered = prev.filter(b => !tempIds.has(b.id));
+            return [...filtered, ...data];
+          });
+          return data;
+        }
+      } catch (err) {
+        console.error('Failed to bulk insert boulders to Supabase:', err);
+      }
+    }
+
+    return preparedBoulders;
+  };
+
   // Archive / unarchive single climb
   const archiveBoulder = async (boulderId: string, archive = true) => {
     setBoulders(prev => prev.map(b => b.id === boulderId ? { ...b, is_archived: archive } : b));
@@ -590,6 +709,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         logAttempt,
         deleteAttempt,
         addBoulder,
+        bulkAddBoulders,
         archiveBoulder,
         archiveAreaBoulders,
         addComment,

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, AlertTriangle, Archive } from 'lucide-react';
+import { X, AlertTriangle, Archive, Layers } from 'lucide-react';
 
 interface AreaResetModalProps {
   isOpen: boolean;
@@ -7,6 +7,7 @@ interface AreaResetModalProps {
   areaName: string;
   activeCount: number;
   onConfirm: () => Promise<void>;
+  onConfirmAndBulkAdd?: () => Promise<void>;
 }
 
 export const AreaResetModal: React.FC<AreaResetModalProps> = ({
@@ -14,16 +15,21 @@ export const AreaResetModal: React.FC<AreaResetModalProps> = ({
   onClose,
   areaName,
   activeCount,
-  onConfirm
+  onConfirm,
+  onConfirmAndBulkAdd
 }) => {
   const [resetting, setResetting] = useState<boolean>(false);
 
   if (!isOpen) return null;
 
-  const handleReset = async () => {
+  const handleReset = async (andBulkAdd = false) => {
     setResetting(true);
     try {
-      await onConfirm();
+      if (andBulkAdd && onConfirmAndBulkAdd) {
+        await onConfirmAndBulkAdd();
+      } else {
+        await onConfirm();
+      }
       onClose();
     } finally {
       setResetting(false);
@@ -61,24 +67,38 @@ export const AreaResetModal: React.FC<AreaResetModalProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-3 pt-2">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={resetting}
-            className="flex-1 py-3 px-4 rounded-xl font-semibold text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 active-press transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleReset}
-            disabled={resetting || activeCount === 0}
-            className="flex-1 py-3 px-4 rounded-xl font-bold text-xs bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center gap-2 shadow-lg shadow-rose-600/20 active-press transition-all disabled:opacity-40"
-          >
-            <Archive className="w-4 h-4" />
-            <span>{resetting ? 'Archiving...' : `Archive ${activeCount} Climbs`}</span>
-          </button>
+        <div className="flex flex-col gap-2 pt-2">
+          {onConfirmAndBulkAdd && (
+            <button
+              type="button"
+              onClick={() => handleReset(true)}
+              disabled={resetting || activeCount === 0}
+              className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-amber-400 hover:bg-amber-300 text-black flex items-center justify-center gap-2 shadow-lg shadow-amber-400/20 active-press transition-all disabled:opacity-40"
+            >
+              <Layers className="w-4 h-4" />
+              <span>{resetting ? 'Archiving...' : `Archive & Bulk Log New Set`}</span>
+            </button>
+          )}
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={resetting}
+              className="flex-1 py-2.5 px-4 rounded-xl font-semibold text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 active-press transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => handleReset(false)}
+              disabled={resetting || activeCount === 0}
+              className="flex-1 py-2.5 px-4 rounded-xl font-bold text-xs bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center gap-2 shadow-lg shadow-rose-600/20 active-press transition-all disabled:opacity-40"
+            >
+              <Archive className="w-4 h-4" />
+              <span>{resetting ? 'Archiving...' : `Archive Only (${activeCount})`}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

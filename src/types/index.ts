@@ -82,6 +82,23 @@ export interface Boulder {
   adjacent_next?: { hold_colour: string; grade: Grade } | null;
 }
 
+export interface BulkAddBoulderItem {
+  id?: string;
+  holdColour: string;
+  grade: Grade;
+  notes?: string;
+  imageFile?: File | null;
+  imageDataUrl?: string | null;
+}
+
+export interface BulkAddBouldersParams {
+  gymId: string;
+  areaId: string;
+  boulders: BulkAddBoulderItem[];
+  archiveExistingAreaBoulders?: boolean;
+  dateAdded?: string;
+}
+
 export interface Attempt {
   id: string;
   boulder_id: string;
