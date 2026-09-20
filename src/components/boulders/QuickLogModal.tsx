@@ -225,41 +225,6 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
           </div>
         </div>
 
-        {/* Automatic Status Resolution Banner */}
-        <div
-          className={`p-3.5 rounded-xl border flex items-center gap-3 transition-all ${
-            computedStatus === 'flashed'
-              ? 'bg-amber-500/15 border-amber-400/60 text-amber-300'
-              : computedStatus === 'sent'
-              ? 'bg-emerald-500/15 border-emerald-400/60 text-emerald-300'
-              : 'bg-blue-500/15 border-blue-400/60 text-blue-300'
-          }`}
-        >
-          <div className="shrink-0 p-2 rounded-lg bg-black/30">
-            {computedStatus === 'flashed' && <Zap className="w-6 h-6 text-amber-400 fill-amber-400" />}
-            {computedStatus === 'sent' && <Check className="w-6 h-6 text-emerald-400 stroke-[3]" />}
-            {computedStatus === 'attempted' && <Clock className="w-6 h-6 text-blue-400" />}
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase font-mono font-bold px-1.5 py-0.5 rounded bg-black/40">
-                Auto-Detected
-              </span>
-              <h4 className="font-bold text-sm tracking-tight text-white">
-                {computedStatus === 'flashed' && '⚡ FLASH'}
-                {computedStatus === 'sent' && '✅ SENT'}
-                {computedStatus === 'attempted' && '⏳ PROJECTING'}
-              </h4>
-            </div>
-            <p className="text-xs opacity-90 mt-0.5">
-              {computedStatus === 'flashed' && 'Topped on 1st attempt with no prior falls.'}
-              {computedStatus === 'sent' && `Sent successfully in ${attemptCount} attempts.`}
-              {computedStatus === 'attempted' && `Currently projecting with ${attemptCount} attempts logged.`}
-            </p>
-          </div>
-        </div>
-
         {/* Session Date Selector */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-800/40 border border-slate-700/60 text-xs">
