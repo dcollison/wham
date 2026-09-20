@@ -99,6 +99,9 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
   const [selectedGymId, setSelectedGymId] = useState<string>('all');
   const [selectedClimberId, setSelectedClimberId] = useState<string>(currentUserId || climbers[0]?.id || '');
 
+  const activeUser = climbers.find((c) => c.id === currentUserId);
+  const activeColor = activeUser?.accent_color || '#F59E0B';
+
   // User preference to show or hide crew accolades
   const [showAccolades, setShowAccolades] = useState<boolean>(() => {
     const saved = localStorage.getItem('wham_show_accolades');
@@ -809,9 +812,10 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('overview')}
+            style={activeTab === 'overview' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all active-press ${
               activeTab === 'overview'
-                ? 'bg-amber-400 text-black shadow-md shadow-amber-400/20'
+                ? 'text-black shadow-md'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -822,9 +826,10 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('leaderboard')}
+            style={activeTab === 'leaderboard' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all active-press ${
               activeTab === 'leaderboard'
-                ? 'bg-amber-400 text-black shadow-md shadow-amber-400/20'
+                ? 'text-black shadow-md'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -835,9 +840,10 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('comparison')}
+            style={activeTab === 'comparison' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all active-press ${
               activeTab === 'comparison'
-                ? 'bg-amber-400 text-black shadow-md shadow-amber-400/20'
+                ? 'text-black shadow-md'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -848,9 +854,10 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('timeline')}
+            style={activeTab === 'timeline' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all active-press ${
               activeTab === 'timeline'
-                ? 'bg-amber-400 text-black shadow-md shadow-amber-400/20'
+                ? 'text-black shadow-md'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -861,9 +868,10 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('pyramid')}
+            style={activeTab === 'pyramid' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all active-press ${
               activeTab === 'pyramid'
-                ? 'bg-amber-400 text-black shadow-md shadow-amber-400/20'
+                ? 'text-black shadow-md'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -874,9 +882,10 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('circuits')}
+            style={activeTab === 'circuits' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all active-press ${
               activeTab === 'circuits'
-                ? 'bg-amber-400 text-black shadow-md shadow-amber-400/20'
+                ? 'text-black shadow-md'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -928,9 +937,10 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
               <button
                 type="button"
                 onClick={() => setViewMode('my')}
+                style={viewMode === 'my' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all active-press ${
                   viewMode === 'my'
-                    ? 'bg-amber-500 text-black shadow-md'
+                    ? 'text-black shadow-md'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -940,9 +950,10 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
               <button
                 type="button"
                 onClick={() => setViewMode('group')}
+                style={viewMode === 'group' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all active-press ${
                   viewMode === 'group'
-                    ? 'bg-amber-500 text-black shadow-md'
+                    ? 'text-black shadow-md'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -952,7 +963,10 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
             </div>
 
             {viewMode === 'group' && (
-              <span className="text-xs font-mono font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+              <span
+                style={{ color: activeColor, backgroundColor: `${activeColor}15`, borderColor: `${activeColor}40` }}
+                className="text-xs font-mono font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 border"
+              >
                 <Users className="w-3.5 h-3.5" />
                 <span>Crew Aggregate</span>
               </span>
@@ -994,12 +1008,18 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
 
           {/* Group Header Banner (In 'Group Stats' mode) */}
           {viewMode === 'group' && (
-            <div className="flex items-center justify-between p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-semibold">
+            <div
+              style={{ borderColor: `${activeColor}30`, backgroundColor: `${activeColor}15`, color: activeColor }}
+              className="flex items-center justify-between p-3.5 rounded-2xl border text-xs font-semibold"
+            >
               <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-amber-400 shrink-0" />
+                <Users className="w-4 h-4 shrink-0" style={{ color: activeColor }} />
                 <span>Combined Wham Crew Stats ({climbers.map((c) => c.display_name).join(', ')})</span>
               </div>
-              <span className="text-[10px] font-mono font-bold bg-amber-500/20 px-2.5 py-0.5 rounded-full">
+              <span
+                style={{ backgroundColor: `${activeColor}30`, color: activeColor }}
+                className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full"
+              >
                 {climbers.length} Climbers
               </span>
             </div>
@@ -1593,9 +1613,10 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
               <button
                 type="button"
                 onClick={() => setTimelineChartMode('grade')}
+                style={timelineChartMode === 'grade' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
                 className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active-press ${
                   timelineChartMode === 'grade'
-                    ? 'bg-amber-400 text-black shadow-md'
+                    ? 'text-black shadow-md'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -1606,9 +1627,10 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
               <button
                 type="button"
                 onClick={() => setTimelineChartMode('cumulative')}
+                style={timelineChartMode === 'cumulative' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
                 className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active-press ${
                   timelineChartMode === 'cumulative'
-                    ? 'bg-amber-400 text-black shadow-md'
+                    ? 'text-black shadow-md'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -1619,9 +1641,10 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
               <button
                 type="button"
                 onClick={() => setTimelineChartMode('volume')}
+                style={timelineChartMode === 'volume' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
                 className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active-press ${
                   timelineChartMode === 'volume'
-                    ? 'bg-amber-400 text-black shadow-md'
+                    ? 'text-black shadow-md'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -1635,9 +1658,10 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
               <button
                 type="button"
                 onClick={() => setTimelineClimberFilter('all')}
+                style={timelineClimberFilter === 'all' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all active-press ${
                   timelineClimberFilter === 'all'
-                    ? 'bg-amber-400 text-black shadow'
+                    ? 'text-black shadow'
                     : 'bg-slate-800/80 text-slate-300 hover:text-white'
                 }`}
               >
@@ -1670,7 +1694,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <LineChart className="w-4 h-4 text-amber-400" />
+                  <LineChart className="w-4 h-4" style={{ color: activeColor }} />
                   <span>
                     {timelineChartMode === 'grade' && 'Grade Breakthroughs & Top Grade Progression'}
                     {timelineChartMode === 'cumulative' && 'Total Sends Growth Over Time'}
@@ -1696,205 +1720,320 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
             </div>
 
             {/* SVG Interactive Chart */}
-            <div className="w-full h-64 bg-slate-950/60 rounded-xl border border-slate-800/80 p-3 pt-4 relative overflow-hidden">
+            <div className="w-full bg-slate-950/70 rounded-2xl border border-slate-800/90 p-3 sm:p-4 flex flex-col gap-2">
               {timelineData.dates.length < 2 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center p-4 text-slate-400 text-xs">
+                <div className="h-64 flex flex-col items-center justify-center text-center p-4 text-slate-400 text-xs">
                   <Calendar className="w-8 h-8 text-slate-600 mb-2" />
                   <span>Log sends across multiple dates to view your progression curve.</span>
                 </div>
-              ) : (
-                <svg className="w-full h-full" viewBox="0 0 600 200" preserveAspectRatio="none">
-                  <defs>
-                    <linearGradient id="gridGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#334155" stopOpacity="0.2" />
-                      <stop offset="100%" stopColor="#1E293B" stopOpacity="0.05" />
-                    </linearGradient>
-                  </defs>
+              ) : (() => {
+                const chartWidth = Math.max(680, timelineData.dates.length * 80);
+                const chartHeight = 270;
+                const plotLeft = 60;
+                const plotRight = chartWidth - 45;
+                const plotTop = 36;
+                const plotBottom = 215;
+                const plotHeight = plotBottom - plotTop;
+                const plotWidth = plotRight - plotLeft;
 
-                  {/* Horizontal Gridlines & Y-Axis Labels */}
-                  {timelineChartMode === 'grade' &&
-                    [0, 2, 4, 6, 8].map((gIndex) => {
-                      const y = 170 - (gIndex / 8) * 140;
-                      return (
-                        <g key={gIndex}>
-                          <line x1="45" y1={y} x2="580" y2={y} stroke="#334155" strokeWidth="1" strokeDasharray="3 3" opacity="0.4" />
-                          <text x="35" y={y + 4} fill="#94A3B8" fontSize="10" fontFamily="monospace" textAnchor="end" fontWeight="bold">
-                            {GRADES[gIndex]}
-                          </text>
-                        </g>
-                      );
-                    })}
+                return (
+                  <>
+                    <div className="w-full overflow-x-auto no-scrollbar pb-1">
+                      <div style={{ minWidth: `${chartWidth}px`, height: `${chartHeight}px` }} className="relative">
+                        <svg
+                          viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+                          className="w-full h-full block"
+                        >
+                          <defs>
+                            <linearGradient id="gridGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#334155" stopOpacity="0.25" />
+                              <stop offset="100%" stopColor="#1E293B" stopOpacity="0.05" />
+                            </linearGradient>
+                          </defs>
 
-                  {timelineChartMode === 'cumulative' &&
-                    [0, 25, 50, 75, 100].map((val) => {
-                      const maxVal = Math.max(...timelineData.climberSeries.map((s) => s.points[s.points.length - 1]?.cumulativeSends || 1), 10);
-                      const y = 170 - (val / 100) * 140;
-                      const displayVal = Math.round((val / 100) * maxVal);
-                      return (
-                        <g key={val}>
-                          <line x1="45" y1={y} x2="580" y2={y} stroke="#334155" strokeWidth="1" strokeDasharray="3 3" opacity="0.4" />
-                          <text x="35" y={y + 4} fill="#94A3B8" fontSize="10" fontFamily="monospace" textAnchor="end" fontWeight="bold">
-                            {displayVal}
-                          </text>
-                        </g>
-                      );
-                    })}
+                          {/* Horizontal Gridlines & Y-Axis Labels */}
+                          {timelineChartMode === 'grade' &&
+                            [0, 2, 4, 6, 8].map((gIndex) => {
+                              const y = plotBottom - (gIndex / 8) * plotHeight;
+                              return (
+                                <g key={gIndex}>
+                                  <line
+                                    x1={plotLeft}
+                                    y1={y}
+                                    x2={plotRight}
+                                    y2={y}
+                                    stroke="#334155"
+                                    strokeWidth="1.5"
+                                    strokeDasharray="4 4"
+                                    opacity="0.5"
+                                  />
+                                  <text
+                                    x={plotLeft - 12}
+                                    y={y + 4}
+                                    fill="#CBD5E1"
+                                    fontSize="11"
+                                    fontFamily="monospace"
+                                    fontWeight="bold"
+                                    textAnchor="end"
+                                  >
+                                    {GRADES[gIndex]}
+                                  </text>
+                                </g>
+                              );
+                            })}
 
-                  {/* X-Axis Dates */}
-                  {timelineData.dates.map((dateStr, i) => {
-                    const x = 50 + (i / Math.max(timelineData.dates.length - 1, 1)) * 520;
-                    return (
-                      <g key={dateStr}>
-                        <line x1={x} y1="30" x2={x} y2="170" stroke="#334155" strokeWidth="1" strokeDasharray="2 2" opacity="0.2" />
-                        <text x={x} y="190" fill="#94A3B8" fontSize="9" fontFamily="monospace" textAnchor="middle">
-                          {formatShortDate(dateStr)}
-                        </text>
-                      </g>
-                    );
-                  })}
+                          {timelineChartMode === 'cumulative' &&
+                            [0, 25, 50, 75, 100].map((val) => {
+                              const maxVal = Math.max(
+                                ...timelineData.climberSeries.map(
+                                  (s) => s.points[s.points.length - 1]?.cumulativeSends || 1
+                                ),
+                                10
+                              );
+                              const y = plotBottom - (val / 100) * plotHeight;
+                              const displayVal = Math.round((val / 100) * maxVal);
+                              return (
+                                <g key={val}>
+                                  <line
+                                    x1={plotLeft}
+                                    y1={y}
+                                    x2={plotRight}
+                                    y2={y}
+                                    stroke="#334155"
+                                    strokeWidth="1.5"
+                                    strokeDasharray="4 4"
+                                    opacity="0.5"
+                                  />
+                                  <text
+                                    x={plotLeft - 12}
+                                    y={y + 4}
+                                    fill="#CBD5E1"
+                                    fontSize="11"
+                                    fontFamily="monospace"
+                                    fontWeight="bold"
+                                    textAnchor="end"
+                                  >
+                                    {displayVal}
+                                  </text>
+                                </g>
+                              );
+                            })}
 
-                  {/* CHART MODE 1: Max Grade Progression Curves */}
-                  {timelineChartMode === 'grade' &&
-                    climberSeriesToDisplay.map((series) => {
-                      const points = series.points.map((pt, i) => {
-                        const x = 50 + (i / Math.max(series.points.length - 1, 1)) * 520;
-                        const gradeIdx = pt.sessionMaxIdx !== null ? pt.sessionMaxIdx : 0;
-                        const y = 170 - (gradeIdx / 8) * 140;
-                        return { x, y, pt };
-                      });
-
-                      const pathData = points.reduce((acc, p, idx) => {
-                        return idx === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`;
-                      }, '');
-
-                      return (
-                        <g key={series.climber.id}>
-                          <path
-                            d={pathData}
-                            fill="none"
-                            stroke={series.color.hex}
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="transition-all duration-500"
-                          />
-                          {points.map((p, idx) => (
-                            <g key={idx}>
-                              <circle
-                                cx={p.x}
-                                cy={p.y}
-                                r={p.pt.sessionMaxGrade ? '4' : '2'}
-                                fill={p.pt.sessionMaxGrade ? series.color.hex : '#475569'}
-                                stroke="#0F172A"
-                                strokeWidth="2"
-                              />
-                              {p.pt.sessionMaxGrade && (
+                          {/* X-Axis Dates */}
+                          {timelineData.dates.map((dateStr, i) => {
+                            const x =
+                              plotLeft + (i / Math.max(timelineData.dates.length - 1, 1)) * plotWidth;
+                            return (
+                              <g key={dateStr}>
+                                <line
+                                  x1={x}
+                                  y1={plotTop}
+                                  x2={x}
+                                  y2={plotBottom}
+                                  stroke="#334155"
+                                  strokeWidth="1.5"
+                                  strokeDasharray="3 3"
+                                  opacity="0.3"
+                                />
                                 <text
-                                  x={p.x}
-                                  y={p.y - 8}
-                                  fill={series.color.hex}
-                                  fontSize="9"
+                                  x={x}
+                                  y={plotBottom + 26}
+                                  fill="#CBD5E1"
+                                  fontSize="11"
                                   fontFamily="monospace"
                                   fontWeight="bold"
                                   textAnchor="middle"
                                 >
-                                  {p.pt.sessionMaxGrade}
+                                  {formatShortDate(dateStr)}
                                 </text>
-                              )}
-                            </g>
-                          ))}
-                        </g>
-                      );
-                    })}
+                              </g>
+                            );
+                          })}
 
-                  {/* CHART MODE 2: Cumulative Sends Curves */}
-                  {timelineChartMode === 'cumulative' &&
-                    climberSeriesToDisplay.map((series) => {
-                      const maxVal = Math.max(...timelineData.climberSeries.map((s) => s.points[s.points.length - 1]?.cumulativeSends || 1), 10);
-                      const points = series.points.map((pt, i) => {
-                        const x = 50 + (i / Math.max(series.points.length - 1, 1)) * 520;
-                        const y = 170 - (pt.cumulativeSends / maxVal) * 140;
-                        return { x, y, pt };
-                      });
+                          {/* CHART MODE 1: Max Grade Progression Curves */}
+                          {timelineChartMode === 'grade' &&
+                            climberSeriesToDisplay.map((series) => {
+                              const points = series.points.map((pt, i) => {
+                                const x =
+                                  plotLeft + (i / Math.max(series.points.length - 1, 1)) * plotWidth;
+                                const gradeIdx = pt.sessionMaxIdx !== null ? pt.sessionMaxIdx : 0;
+                                const y = plotBottom - (gradeIdx / 8) * plotHeight;
+                                return { x, y, pt };
+                              });
 
-                      const pathData = points.reduce((acc, p, idx) => {
-                        return idx === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`;
-                      }, '');
+                              const pathData = points.reduce((acc, p, idx) => {
+                                return idx === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`;
+                              }, '');
 
-                      return (
-                        <g key={series.climber.id}>
-                          <path
-                            d={pathData}
-                            fill="none"
-                            stroke={series.color.hex}
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="transition-all duration-500"
-                          />
-                          {points.map((p, idx) => (
-                            <circle
-                              key={idx}
-                              cx={p.x}
-                              cy={p.y}
-                              r="3.5"
-                              fill={series.color.hex}
-                              stroke="#0F172A"
-                              strokeWidth="1.5"
-                            />
-                          ))}
-                        </g>
-                      );
-                    })}
+                              return (
+                                <g key={series.climber.id}>
+                                  <path
+                                    d={pathData}
+                                    fill="none"
+                                    stroke={series.color.hex}
+                                    strokeWidth="3.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="transition-all duration-500"
+                                  />
+                                  {points.map((p, idx) => (
+                                    <g key={idx}>
+                                      <circle
+                                        cx={p.x}
+                                        cy={p.y}
+                                        r={p.pt.sessionMaxGrade ? '5.5' : '3'}
+                                        fill={p.pt.sessionMaxGrade ? series.color.hex : '#475569'}
+                                        stroke="#0F172A"
+                                        strokeWidth="2.5"
+                                      />
+                                      {p.pt.sessionMaxGrade && (
+                                        <g>
+                                          <rect
+                                            x={p.x - 16}
+                                            y={p.y - 25}
+                                            width="32"
+                                            height="16"
+                                            rx="4"
+                                            fill="#0F172A"
+                                            stroke={series.color.hex}
+                                            strokeWidth="1.5"
+                                          />
+                                          <text
+                                            x={p.x}
+                                            y={p.y - 13}
+                                            fill="#FFFFFF"
+                                            fontSize="10"
+                                            fontFamily="monospace"
+                                            fontWeight="bold"
+                                            textAnchor="middle"
+                                          >
+                                            {p.pt.sessionMaxGrade}
+                                          </text>
+                                        </g>
+                                      )}
+                                    </g>
+                                  ))}
+                                </g>
+                              );
+                            })}
 
-                  {/* CHART MODE 3: Session Volume Bars */}
-                  {timelineChartMode === 'volume' &&
-                    timelineData.sessions.map((sess, i) => {
-                      const x = 50 + (i / Math.max(timelineData.sessions.length - 1, 1)) * 520;
-                      const maxSessVolume = timelineData.maxVolumeAnySession;
-                      const barWidth = 24;
-                      const totalH = (sess.totalSends / maxSessVolume) * 140;
-                      const flashH = (sess.totalFlashes / maxSessVolume) * 140;
-                      const sendH = totalH - flashH;
+                          {/* CHART MODE 2: Cumulative Sends Curves */}
+                          {timelineChartMode === 'cumulative' &&
+                            climberSeriesToDisplay.map((series) => {
+                              const maxVal = Math.max(
+                                ...timelineData.climberSeries.map(
+                                  (s) => s.points[s.points.length - 1]?.cumulativeSends || 1
+                                ),
+                                10
+                              );
+                              const points = series.points.map((pt, i) => {
+                                const x =
+                                  plotLeft + (i / Math.max(series.points.length - 1, 1)) * plotWidth;
+                                const y = plotBottom - (pt.cumulativeSends / maxVal) * plotHeight;
+                                return { x, y, pt };
+                              });
 
-                      return (
-                        <g key={sess.date}>
-                          {sendH > 0 && (
-                            <rect
-                              x={x - barWidth / 2}
-                              y={170 - totalH}
-                              width={barWidth}
-                              height={sendH}
-                              fill="#10B981"
-                              rx="2"
-                            />
-                          )}
-                          {flashH > 0 && (
-                            <rect
-                              x={x - barWidth / 2}
-                              y={170 - flashH}
-                              width={barWidth}
-                              height={flashH}
-                              fill="#F59E0B"
-                              rx="2"
-                            />
-                          )}
-                          <text
-                            x={x}
-                            y={170 - totalH - 6}
-                            fill="#F1F5F9"
-                            fontSize="9"
-                            fontFamily="monospace"
-                            fontWeight="bold"
-                            textAnchor="middle"
-                          >
-                            {sess.totalSends}
-                          </text>
-                        </g>
-                      );
-                    })}
-                </svg>
-              )}
+                              const pathData = points.reduce((acc, p, idx) => {
+                                return idx === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`;
+                              }, '');
+
+                              return (
+                                <g key={series.climber.id}>
+                                  <path
+                                    d={pathData}
+                                    fill="none"
+                                    stroke={series.color.hex}
+                                    strokeWidth="3.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="transition-all duration-500"
+                                  />
+                                  {points.map((p, idx) => (
+                                    <g key={idx}>
+                                      <circle
+                                        cx={p.x}
+                                        cy={p.y}
+                                        r="5"
+                                        fill={series.color.hex}
+                                        stroke="#0F172A"
+                                        strokeWidth="2.5"
+                                      />
+                                      {p.pt.cumulativeSends > 0 && (
+                                        <text
+                                          x={p.x}
+                                          y={p.y - 10}
+                                          fill="#CBD5E1"
+                                          fontSize="11"
+                                          fontFamily="monospace"
+                                          fontWeight="bold"
+                                          textAnchor="middle"
+                                        >
+                                          {p.pt.cumulativeSends}
+                                        </text>
+                                      )}
+                                    </g>
+                                  ))}
+                                </g>
+                              );
+                            })}
+
+                          {/* CHART MODE 3: Session Volume Bars */}
+                          {timelineChartMode === 'volume' &&
+                            timelineData.sessions.map((sess, i) => {
+                              const x =
+                                plotLeft + (i / Math.max(timelineData.sessions.length - 1, 1)) * plotWidth;
+                              const maxSessVolume = timelineData.maxVolumeAnySession;
+                              const barWidth = 32;
+                              const totalH = (sess.totalSends / maxSessVolume) * plotHeight;
+                              const flashH = (sess.totalFlashes / maxSessVolume) * plotHeight;
+                              const sendH = totalH - flashH;
+
+                              return (
+                                <g key={sess.date}>
+                                  {sendH > 0 && (
+                                    <rect
+                                      x={x - barWidth / 2}
+                                      y={plotBottom - totalH}
+                                      width={barWidth}
+                                      height={sendH}
+                                      fill="#10B981"
+                                      rx="4"
+                                    />
+                                  )}
+                                  {flashH > 0 && (
+                                    <rect
+                                      x={x - barWidth / 2}
+                                      y={plotBottom - flashH}
+                                      width={barWidth}
+                                      height={flashH}
+                                      fill="#F59E0B"
+                                      rx="4"
+                                    />
+                                  )}
+                                  <text
+                                    x={x}
+                                    y={plotBottom - totalH - 8}
+                                    fill="#F8FAFC"
+                                    fontSize="11"
+                                    fontFamily="monospace"
+                                    fontWeight="bold"
+                                    textAnchor="middle"
+                                  >
+                                    {sess.totalSends}
+                                  </text>
+                                </g>
+                              );
+                            })}
+                        </svg>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 pt-1 border-t border-slate-900 px-1">
+                      <span>Progression Timeline ({timelineData.dates.length} sessions)</span>
+                      <span className="sm:hidden text-slate-400 font-semibold">Swipe horizontally to explore →</span>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
 
@@ -1902,7 +2041,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-amber-400" />
+                <Calendar className="w-5 h-5" style={{ color: activeColor }} />
                 <h3 className="text-sm font-bold text-white">Chronological Session Log</h3>
               </div>
               <span className="text-xs text-slate-400 font-mono">
@@ -2020,9 +2159,10 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
               <button
                 type="button"
                 onClick={() => setViewMode('group')}
+                style={viewMode === 'group' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all active-press ${
                   viewMode === 'group'
-                    ? 'bg-amber-400 text-black shadow-md shadow-amber-400/20'
+                    ? 'text-black shadow-md'
                     : 'bg-slate-800/80 border border-slate-700/80 text-slate-300 hover:text-white'
                 }`}
               >

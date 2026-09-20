@@ -9,7 +9,6 @@ import {
   Clock,
   CircleDashed,
   SlidersHorizontal,
-  Search,
   ArrowUpDown,
   User
 } from 'lucide-react';
@@ -83,13 +82,20 @@ export const BoulderFilters: React.FC<BoulderFiltersProps> = ({
     (filters.sortBy !== 'position' ? 1 : 0) +
     (currentUserId && filters.targetClimberId !== currentUserId ? 1 : 0);
 
+  // Count how many modal-only filters are active (colour, sort, climber, custom fine-tuned grade)
+  const modalActiveFiltersCount =
+    (filters.selectedColour !== null ? 1 : 0) +
+    (filters.sortBy !== 'position' ? 1 : 0) +
+    (currentUserId && filters.targetClimberId !== currentUserId ? 1 : 0) +
+    (isCustomGradeRange ? 1 : 0);
+
   const isAnyFilterActive =
     filters.minGrade !== null ||
     filters.maxGrade !== null ||
     filters.statusFilter !== 'all' ||
     filters.selectedColour !== null ||
-    filters.searchQuery.trim() !== '' ||
-    filters.sortBy !== 'position';
+    filters.sortBy !== 'position' ||
+    (currentUserId && filters.targetClimberId !== currentUserId);
 
   const targetClimber = climbers.find((c) => c.id === filters.targetClimberId);
   const targetClimberName =
@@ -145,67 +151,121 @@ export const BoulderFilters: React.FC<BoulderFiltersProps> = ({
 
   return (
     <div className="flex flex-col gap-2">
-      {/* COMPACT FILTER BAR: Search + Single Filter Icon/Button */}
+      {/* ROW 1: Quick Send Status Switcher + Filters Modal Button */}
       <div className="flex items-center gap-2">
-        {/* Search input */}
-        <div className="relative flex-1">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <input
-            type="text"
-            value={filters.searchQuery}
-            onChange={(e) => onUpdateFilters((p) => ({ ...p, searchQuery: e.target.value }))}
-            placeholder="Search climbs, beta, holds..."
-            className="w-full bg-slate-900/90 border border-slate-800 rounded-xl pl-8.5 pr-8 py-2 text-xs text-slate-100 placeholder:text-slate-500 outline-none transition-colors"
-          />
-          {filters.searchQuery && (
-            <button
-              type="button"
-              onClick={() => onUpdateFilters((p) => ({ ...p, searchQuery: '' }))}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-white"
-              title="Clear search"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          )}
+        {/* Send Status Segmented Pills */}
+        <div className="flex-1 flex p-1 bg-slate-900/90 border border-slate-800 rounded-xl overflow-x-auto no-scrollbar">
+          <button
+            type="button"
+            onClick={() => onUpdateFilters((p) => ({ ...p, statusFilter: 'all' }))}
+            className={`flex-1 min-w-[50px] py-1.5 px-2 rounded-lg text-xs font-bold text-center transition-all active-press ${
+              filters.statusFilter === 'all'
+                ? 'bg-slate-800 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            All
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onUpdateFilters((p) => ({ ...p, statusFilter: 'unsent' }))}
+            className={`flex-1 min-w-[62px] flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold text-center transition-all active-press ${
+              filters.statusFilter === 'unsent'
+                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <CircleDashed className="w-3 h-3 text-amber-400 shrink-0" />
+            <span>To Do</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onUpdateFilters((p) => ({ ...p, statusFilter: 'sent' }))}
+            className={`flex-1 min-w-[56px] flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold text-center transition-all active-press ${
+              filters.statusFilter === 'sent'
+                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Check className="w-3 h-3 text-emerald-400 stroke-[3] shrink-0" />
+            <span>Sent</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onUpdateFilters((p) => ({ ...p, statusFilter: 'projecting' }))}
+            className={`flex-1 min-w-[68px] flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold text-center transition-all active-press ${
+              filters.statusFilter === 'projecting'
+                ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40 shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Clock className="w-3 h-3 text-blue-400 shrink-0" />
+            <span>Projects</span>
+          </button>
         </div>
 
-        {/* Single Filter Button */}
+        {/* Filters Button (Modal for Hold Colours, Climber, Sorting) */}
         <button
           type="button"
           onClick={() => setIsModalOpen(true)}
           className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all active-press shrink-0 border ${
-            activeFilterCount > 0
+            modalActiveFiltersCount > 0
               ? 'bg-slate-850 text-white shadow-sm'
               : 'bg-slate-900/90 hover:bg-slate-850 text-slate-300 border-slate-800'
           }`}
-          style={activeFilterCount > 0 ? { borderColor: `${activeColor}80` } : undefined}
-          title="Filter and sort boulders"
+          style={modalActiveFiltersCount > 0 ? { borderColor: `${activeColor}80` } : undefined}
+          title="More filters: hold colours, climber, sort order"
         >
           <Filter
             className="w-3.5 h-3.5"
-            style={activeFilterCount > 0 ? { color: activeColor } : undefined}
+            style={modalActiveFiltersCount > 0 ? { color: activeColor } : undefined}
           />
-          <span>Filters</span>
-          {activeFilterCount > 0 && (
+          <span className="hidden xs:inline">Filters</span>
+          {modalActiveFiltersCount > 0 && (
             <span
               className="w-4 h-4 rounded-full text-[10px] font-black flex items-center justify-center text-black"
               style={{ backgroundColor: activeColor }}
             >
-              {activeFilterCount}
+              {modalActiveFiltersCount}
             </span>
           )}
         </button>
       </div>
 
-      {/* ACTIVE FILTER CHIPS & COUNT SUMMARY (Only shown when filters are applied or count needed) */}
+      {/* ROW 2: Quick Grade Range Presets Strip */}
+      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+        {GRADE_PRESETS.map((preset) => {
+          const isSelected = activePreset?.label === preset.label;
+          return (
+            <button
+              key={preset.label}
+              type="button"
+              onClick={() => handleSelectPreset(preset.min, preset.max)}
+              className={`flex-1 min-w-[58px] py-1.5 px-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all text-center border active-press ${
+                isSelected
+                  ? 'text-black shadow-sm font-extrabold'
+                  : 'bg-slate-900/80 text-slate-400 border-slate-800/80 hover:text-slate-200'
+              }`}
+              style={isSelected ? { backgroundColor: activeColor, borderColor: activeColor, color: '#000000' } : undefined}
+            >
+              {preset.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ACTIVE FILTER CHIPS & COUNT SUMMARY */}
       {isAnyFilterActive ? (
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 text-xs">
           <span className="font-mono text-slate-400 text-[11px] shrink-0">
-            <strong className="text-white">{filteredBouldersCount}</strong>/{totalBouldersCount}
+            <strong className="text-white">{filteredBouldersCount}</strong>/{totalBouldersCount} climbs
           </span>
 
-          {/* Grade filter chip */}
-          {(filters.minGrade || filters.maxGrade) && (
+          {/* Custom grade range chip */}
+          {isCustomGradeRange && (
             <span className="inline-flex items-center gap-1 bg-slate-850 text-slate-200 border border-slate-700 px-2 py-0.5 rounded-lg text-[11px] font-semibold shrink-0">
               <span>
                 {filters.minGrade || 'VB'} – {filters.maxGrade || 'V10+'}
@@ -220,17 +280,14 @@ export const BoulderFilters: React.FC<BoulderFiltersProps> = ({
             </span>
           )}
 
-          {/* Status filter chip */}
-          {filters.statusFilter !== 'all' && (
+          {/* Climber perspective chip (if filtered for someone other than active user) */}
+          {currentUserId && filters.targetClimberId !== currentUserId && (
             <span className="inline-flex items-center gap-1 bg-slate-850 text-slate-200 border border-slate-700 px-2 py-0.5 rounded-lg text-[11px] font-semibold shrink-0">
-              <span>
-                {filters.statusFilter === 'unsent' && `To Do (${targetClimberName})`}
-                {filters.statusFilter === 'sent' && `Sent (${targetClimberName})`}
-                {filters.statusFilter === 'projecting' && `Projecting (${targetClimberName})`}
-              </span>
+              <User className="w-3 h-3 text-slate-400" />
+              <span>{targetClimberName}</span>
               <button
                 type="button"
-                onClick={() => onUpdateFilters((p) => ({ ...p, statusFilter: 'all' }))}
+                onClick={() => onUpdateFilters((p) => ({ ...p, targetClimberId: currentUserId }))}
                 className="hover:text-white"
               >
                 <X className="w-3 h-3" />
@@ -282,7 +339,7 @@ export const BoulderFilters: React.FC<BoulderFiltersProps> = ({
             className="flex items-center gap-1 text-[11px] font-bold text-slate-400 hover:text-white transition-colors ml-auto shrink-0 pl-1"
           >
             <RotateCcw className="w-3 h-3" />
-            <span>Clear</span>
+            <span>Reset</span>
           </button>
         </div>
       ) : (

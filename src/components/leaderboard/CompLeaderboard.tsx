@@ -46,6 +46,9 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
   const [expandedClimberId, setExpandedClimberId] = useState<string | null>(null);
   const [showRules, setShowRules] = useState<boolean>(false);
 
+  const activeUser = climbers.find((c) => c.id === currentUserId);
+  const activeColor = activeUser?.accent_color || '#F59E0B';
+
   // Compute leaderboard data for the selected gym
   const leaderboardData = useMemo(() => {
     return computeGymCompLeaderboard(
@@ -60,48 +63,36 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
   const { standings, activeBouldersCount, totalPossiblePoints, totalBasePoints, gymName } =
     leaderboardData;
 
-  const topThree = useMemo(() => {
-    return standings.slice(0, 3);
-  }, [standings]);
-
-  const firstPlace = topThree[0];
-  const secondPlace = topThree[1];
-  const thirdPlace = topThree[2];
-
-  const currentUserStanding = useMemo(() => {
-    return standings.find((s) => s.climber.id === currentUserId);
-  }, [standings, currentUserId]);
+  const firstPlace = standings[0];
+  const secondPlace = standings[1];
+  const thirdPlace = standings[2];
 
   const toggleExpandClimber = (id: string) => {
     setExpandedClimberId((prev) => (prev === id ? null : id));
   };
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-200">
-      {/* Top Header & Gym Selector */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+    <div className="flex flex-col gap-5">
+      {/* Header Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-sm">
         <div>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-amber-400 text-black flex items-center justify-center font-black shadow-md shadow-amber-400/20">
-              <Trophy className="w-4 h-4 text-slate-950 stroke-[2.5]" />
-            </div>
-            <div>
-              <h2 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-1.5">
-                <span>{gymName} Comp Leaderboard</span>
-              </h2>
-              <p className="text-xs text-slate-400 font-mono">
-                {activeBouldersCount} active {activeBouldersCount === 1 ? 'boulder' : 'boulders'} • Redpoint Comp Scoring
-              </p>
-            </div>
+            <Trophy className="w-5 h-5 text-amber-400" />
+            <h2 className="text-base sm:text-lg font-black text-white font-heading">
+              {gymName} Comp Leaderboard
+            </h2>
           </div>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Real-time points scored on active problems ({activeBouldersCount} active boulders)
+          </p>
         </div>
 
-        {/* Action Buttons: Scoring Rules Toggle & Gym Tabs */}
+        {/* Controls: Rules toggle & Gym filter */}
         <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
-            onClick={() => setShowRules((prev) => !prev)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors ${
+            onClick={() => setShowRules(!showRules)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
               showRules
                 ? 'bg-amber-400/20 text-amber-300 border-amber-400/40'
                 : 'bg-slate-900 border-slate-700/80 text-slate-400 hover:text-slate-200 hover:border-slate-600'
@@ -116,9 +107,10 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
               <button
                 type="button"
                 onClick={() => setSelectedGymId('all')}
+                style={selectedGymId === 'all' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all active-press ${
                   selectedGymId === 'all'
-                    ? 'bg-amber-400 text-black shadow-md shadow-amber-400/20'
+                    ? 'text-black shadow-md'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -129,9 +121,10 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                   key={gym.id}
                   type="button"
                   onClick={() => setSelectedGymId(gym.id)}
+                  style={selectedGymId === gym.id ? { backgroundColor: activeColor, color: '#000000' } : undefined}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all active-press ${
                     selectedGymId === gym.id
-                      ? 'bg-amber-400 text-black shadow-md shadow-amber-400/20'
+                      ? 'text-black shadow-md'
                       : 'text-slate-400 hover:text-white'
                   }`}
                 >
@@ -226,7 +219,12 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                     {secondPlace.climber.display_name}
                   </span>
                   {secondPlace.climber.id === currentUserId && (
-                    <span className="text-[10px] px-1.5 py-0.2 bg-amber-400 text-black font-bold rounded-full">YOU</span>
+                    <span
+                      style={{ backgroundColor: activeColor, color: '#000000' }}
+                      className="text-[10px] px-1.5 py-0.2 font-bold rounded-full"
+                    >
+                      YOU
+                    </span>
                   )}
                 </div>
                 <span className="text-xs text-slate-400 font-mono">Silver Medal</span>
@@ -268,7 +266,12 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                     {firstPlace.climber.display_name}
                   </span>
                   {firstPlace.climber.id === currentUserId && (
-                    <span className="text-[10px] px-1.5 py-0.2 bg-amber-400 text-black font-bold rounded-full">YOU</span>
+                    <span
+                      style={{ backgroundColor: activeColor, color: '#000000' }}
+                      className="text-[10px] px-1.5 py-0.2 font-bold rounded-full"
+                    >
+                      YOU
+                    </span>
                   )}
                 </div>
                 <span className="text-xs text-amber-400/90 font-mono font-bold flex items-center justify-center gap-1">
@@ -317,7 +320,12 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                     {thirdPlace.climber.display_name}
                   </span>
                   {thirdPlace.climber.id === currentUserId && (
-                    <span className="text-[10px] px-1.5 py-0.2 bg-amber-400 text-black font-bold rounded-full">YOU</span>
+                    <span
+                      style={{ backgroundColor: activeColor, color: '#000000' }}
+                      className="text-[10px] px-1.5 py-0.2 font-bold rounded-full"
+                    >
+                      YOU
+                    </span>
                   )}
                 </div>
                 <span className="text-xs text-amber-600/90 font-mono">Bronze Medal</span>
@@ -401,7 +409,10 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                           {standing.climber.display_name}
                         </span>
                         {isMe && (
-                          <span className="text-[9px] px-1.5 py-0.2 bg-amber-400 text-black font-extrabold rounded-full">
+                          <span
+                            style={{ backgroundColor: activeColor, color: '#000000' }}
+                            className="text-[9px] px-1.5 py-0.2 font-extrabold rounded-full"
+                          >
                             YOU
                           </span>
                         )}

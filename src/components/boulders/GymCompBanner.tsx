@@ -45,6 +45,8 @@ export const GymCompBanner: React.FC<GymCompBannerProps> = ({
 
   const topThree = standings.slice(0, 3);
   const currentUserStanding = standings.find((s) => s.climber.id === currentUserId);
+  const activeUser = climbers.find((c) => c.id === currentUserId);
+  const activeColor = activeUser?.accent_color || '#F59E0B';
 
   if (activeBouldersCount === 0 || standings.length === 0) {
     return null;
@@ -59,7 +61,10 @@ export const GymCompBanner: React.FC<GymCompBannerProps> = ({
           onClick={onOpenFullLeaderboard}
           className="flex items-center gap-3 min-w-0 cursor-pointer group select-none"
         >
-          <div className="w-9 h-9 rounded-xl bg-amber-400 text-black flex items-center justify-center font-black shrink-0 shadow-md shadow-amber-400/20 group-hover:scale-105 transition-transform">
+          <div
+            style={{ backgroundColor: activeColor }}
+            className="w-9 h-9 rounded-xl text-black flex items-center justify-center font-black shrink-0 shadow-md group-hover:scale-105 transition-transform"
+          >
             <Trophy className="w-4.5 h-4.5 text-slate-950 stroke-[2.5]" />
           </div>
 
@@ -83,7 +88,7 @@ export const GymCompBanner: React.FC<GymCompBannerProps> = ({
               )}
               {currentUserStanding && (
                 <span className="text-slate-400 hidden sm:inline">
-                  • You: <strong className="text-amber-400">#{currentUserStanding.rank}</strong> ({currentUserStanding.totalPoints.toLocaleString()} pts)
+                  • You: <strong style={{ color: activeColor }}>#{currentUserStanding.rank}</strong> ({currentUserStanding.totalPoints.toLocaleString()} pts)
                 </span>
               )}
             </div>
@@ -111,7 +116,8 @@ export const GymCompBanner: React.FC<GymCompBannerProps> = ({
           <button
             type="button"
             onClick={onOpenFullLeaderboard}
-            className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold bg-amber-400 hover:bg-amber-300 text-black active-press shadow-sm transition-all"
+            style={{ backgroundColor: activeColor, color: '#000000' }}
+            className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold active-press shadow-sm transition-all"
           >
             <span>Leaderboard</span>
             <ChevronRight className="w-4 h-4 stroke-[2.5]" />
