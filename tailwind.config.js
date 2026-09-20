@@ -23,7 +23,7 @@ export default {
       },
       fontFamily: {
         sans: [
-          'Inter',
+          '"Plus Jakarta Sans"',
           '-apple-system',
           'BlinkMacSystemFont',
           'Segoe UI',
@@ -31,7 +31,19 @@ export default {
           'sans-serif'
         ],
         mono: [
-          'JetBrains Mono',
+          '"Space Mono"',
+          'ui-monospace',
+          'SFMono-Regular',
+          'monospace'
+        ],
+        heading: [
+          '"Space Mono"',
+          'ui-monospace',
+          'SFMono-Regular',
+          'monospace'
+        ],
+        display: [
+          '"Space Mono"',
           'ui-monospace',
           'SFMono-Regular',
           'monospace'

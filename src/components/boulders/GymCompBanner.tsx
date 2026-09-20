@@ -65,7 +65,7 @@ export const GymCompBanner: React.FC<GymCompBannerProps> = ({
 
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-xs sm:text-sm font-black text-amber-300 tracking-tight flex items-center gap-1 group-hover:text-amber-200 transition-colors">
+              <span className="text-xs sm:text-sm font-black text-amber-300 tracking-tight flex items-center gap-1 group-hover:text-amber-200 transition-colors font-heading">
                 <span>{gym?.name || 'Gym'} Comp Standings</span>
               </span>
               <span className="text-[10px] px-2 py-0.5 bg-amber-400/20 text-amber-400 font-mono font-bold rounded-md border border-amber-400/30">

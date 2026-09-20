@@ -2,7 +2,7 @@ import React from 'react';
 import { Boulder, Attempt, Profile, HOLD_COLORS, getHoldCardStyle, getHoldSwatchStyle } from '../../types';
 import { HoldBadge } from './HoldBadge';
 import { ClimberStatusPills } from './ClimberStatusPills';
-import { Zap, Check, Clock, MessageSquare, ChevronRight, Image as ImageIcon } from 'lucide-react';
+import { Zap, Check, Clock, MessageSquare, ChevronRight, Image as ImageIcon, FileText } from 'lucide-react';
 
 interface BoulderCardProps {
   boulder: Boulder;
@@ -88,21 +88,11 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
         </div>
       </div>
 
-      {/* Middle row: Notes & Photo Thumbnail Preview */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          {boulder.notes ? (
-            <p className="text-sm text-slate-200 line-clamp-2 leading-relaxed">
-              {boulder.notes}
-            </p>
-          ) : (
-            <p className="text-sm text-slate-400 italic">
-              No beta notes added yet.
-            </p>
-          )}
-
+      {/* Middle row: Clockwise Sequence Indicators & Photo Thumbnail Preview */}
+      {(boulder.adjacent_prev || boulder.adjacent_next || boulder.image_url) && (
+        <div className="flex items-center justify-between gap-3">
           {/* Adjacent Indicators (Clockwise Sequence) */}
-          <div className="flex items-center gap-2 text-xs text-slate-300 mt-2.5 font-mono flex-wrap">
+          <div className="flex items-center gap-2 text-xs text-slate-300 font-mono flex-wrap">
             {boulder.adjacent_prev && (
               <span className="inline-flex items-center gap-1.5 text-slate-300 truncate max-w-[150px]">
                 <span className="text-slate-500">←</span>
@@ -127,26 +117,26 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
               </span>
             )}
           </div>
-        </div>
 
-        {/* Thumbnail Preview if photo exists */}
-        {boulder.image_url ? (
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenDetails(boulder);
-            }}
-            className="w-16 h-16 rounded-xl overflow-hidden border border-slate-700/80 bg-slate-800 shrink-0 relative group/thumb shadow"
-          >
-            <img
-              src={boulder.image_url}
-              alt={`${boulder.hold_colour} ${boulder.grade}`}
-              className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform"
-              loading="lazy"
-            />
-          </div>
-        ) : null}
-      </div>
+          {/* Thumbnail Preview if photo exists */}
+          {boulder.image_url ? (
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenDetails(boulder);
+              }}
+              className="w-12 h-12 rounded-xl overflow-hidden border border-slate-700/80 bg-slate-800 shrink-0 relative group/thumb shadow"
+            >
+              <img
+                src={boulder.image_url}
+                alt={`${boulder.hold_colour} ${boulder.grade}`}
+                className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform"
+                loading="lazy"
+              />
+            </div>
+          ) : null}
+        </div>
+      )}
 
       {/* Bottom row: Climber chips & quick actions */}
       <div className="flex items-center justify-between border-t border-slate-800/80 pt-2.5 mt-0.5">
@@ -159,6 +149,20 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
         />
 
         <div className="flex items-center gap-1 text-slate-400">
+          {boulder.notes && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenDetails(boulder);
+              }}
+              className="p-1 rounded-md text-slate-400 hover:text-amber-300 hover:bg-slate-800 transition-colors"
+              title="Has Beta Notes – Click to view details"
+            >
+              <FileText className="w-3.5 h-3.5" />
+            </button>
+          )}
+
           {commentCount > 0 && (
             <button
               type="button"
@@ -167,6 +171,7 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
                 onOpenDetails(boulder);
               }}
               className="flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 font-medium px-1.5 py-0.5 rounded hover:bg-slate-800"
+              title="Crew Comments"
             >
               <MessageSquare className="w-3.5 h-3.5" />
               <span>{commentCount}</span>

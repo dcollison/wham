@@ -56,7 +56,7 @@ export const Header: React.FC<HeaderProps> = ({
             <Zap className="w-4 h-4 fill-black text-black stroke-[2.5]" />
           </div>
           <div>
-            <span className="text-xl font-black tracking-tight text-white font-sans flex items-center gap-0.5">
+            <span className="text-xl font-black tracking-tight text-white font-heading flex items-center gap-0.5">
               Wham<span className="text-amber-400">.</span>
             </span>
           </div>

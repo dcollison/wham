@@ -272,7 +272,7 @@ export function App() {
   }, [attempts, boulders, climbers]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
       {/* Persistent Header */}
       <Header
         currentTab={currentTab}
