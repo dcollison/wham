@@ -1,1 +1,5 @@
 - Either make the main accent colour of the app match the user's selected accent colour, or use a neutral unimposing colour as the accent colour, there are too many competing colours at the moment.
+- If realistic, add a bug report option that I can view and resolve
+- The filter for status for climber defaulted to Alex even though the active profile is Dale.
+- A user can give props as many times as they want for a given send.
+- It seems to have hallucinated session days. the only two session days at the moment should be 10/09/2026 (Alex, Dale, Taiye) and 15/09/2026 (All crew)
