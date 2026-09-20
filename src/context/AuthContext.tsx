@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { Profile, CLIMBER_ACCENT_PALETTE } from '../types';
 import { INITIAL_PROFILES } from '../lib/mockData';
+import { updateWhamFavicon } from '../components/WhamLogo';
 
 interface AuthContextType {
   currentUser: Profile | null;
@@ -64,11 +65,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isDemoMode, setIsDemoMode] = useState<boolean>(!isSupabaseConfigured);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Dynamically update CSS custom properties for app accent colour to match active user
+  // Dynamically update CSS custom properties and browser favicon to match active user
   useEffect(() => {
     const accent = currentUser?.accent_color || '#3B82F6';
     document.documentElement.style.setProperty('--color-accent', accent);
     document.documentElement.style.setProperty('--wham-accent', accent);
+    updateWhamFavicon(accent);
   }, [currentUser?.accent_color]);
 
   // Initialize session and profiles

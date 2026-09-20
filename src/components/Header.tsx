@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Gym, GymArea, Profile } from '../types';
 import { ClimberAvatar } from './ClimberAvatar';
 import { Zap, ChevronDown, Plus, Archive, Layers, Trophy, MoreHorizontal, Check, Eye } from 'lucide-react';
+import { WhamLogo } from './WhamLogo';
 
 interface HeaderProps {
   currentTab?: 'boulders' | 'beta' | 'stats' | 'settings';
@@ -73,7 +74,7 @@ export const Header: React.FC<HeaderProps> = ({
             className="w-8 h-8 rounded-xl text-black flex items-center justify-center font-black shadow-md active:scale-95 transition-transform"
             style={{ backgroundColor: activeColor, boxShadow: `0 4px 14px ${activeColor}30` }}
           >
-            <Zap className="w-4 h-4 fill-black text-black stroke-[2.5]" />
+            <WhamLogo className="w-4 h-4" color="#000000" />
           </div>
           <div>
             <span className="text-xl font-black tracking-tight text-white font-heading flex items-center gap-0.5">

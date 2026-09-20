@@ -18,6 +18,7 @@ import { BoulderFilters, BoulderFiltersState } from './components/boulders/Bould
 import { ClimberAvatar } from './components/ClimberAvatar';
 import { Boulder, GRADES } from './types';
 import { Plus, Compass, Sparkles, Filter, RotateCcw, Layers, Zap, ChevronRight } from 'lucide-react';
+import { WhamLogo } from './components/WhamLogo';
 
 export function App() {
   const {
@@ -608,7 +609,7 @@ export function App() {
               className="w-14 h-14 rounded-2xl text-black flex items-center justify-center font-black shadow-lg"
               style={{ backgroundColor: activeColor }}
             >
-              <Zap className="w-7 h-7 fill-black text-black stroke-[2.5]" />
+              <WhamLogo className="w-7 h-7" color="#000000" />
             </div>
             <div>
               <h2 className="text-xl font-black text-white">Welcome to Wham!</h2>
