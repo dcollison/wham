@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, useRef } from 'react';
 import { supabase, isSupabaseConfigured, uploadBoulderPhoto } from '../lib/supabase';
 import { Boulder, Attempt, Comment, Gym, GymArea, Grade, AttemptStatus, BulkAddBoulderItem, BulkAddBouldersParams } from '../types';
 import {
@@ -27,6 +27,7 @@ interface AddBoulderParams {
   notes?: string;
   imageFile?: File | null;
   imageDataUrl?: string | null;
+  positionOrder?: number;
   insertAfterBoulderId?: string | null; // For adjacent insertion
 }
 
@@ -40,6 +41,8 @@ interface GymContextType {
   boulders: Boulder[];
   attempts: Attempt[];
   comments: Comment[];
+  propsMap: Record<string, string[]>;
+  toggleProp: (attemptId: string, userId: string) => Promise<void>;
   loading: boolean;
   hideSent: boolean;
   setHideSent: (hide: boolean | ((prev: boolean) => boolean)) => void;
@@ -131,6 +134,27 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return INITIAL_COMMENTS;
   });
 
+  const [propsMap, setPropsMap] = useState<Record<string, string[]>>(() => {
+    try {
+      const saved = localStorage.getItem('wham_sends_props');
+      if (!saved) return {};
+      const parsed = JSON.parse(saved);
+      const migrated: Record<string, string[]> = {};
+      for (const [key, val] of Object.entries(parsed)) {
+        if (Array.isArray(val)) {
+          migrated[key] = val.filter((id) => typeof id === 'string');
+        } else if (typeof val === 'number' && val > 0) {
+          migrated[key] = Array.from({ length: val }, (_, i) => `legacy-climber-${i}`);
+        }
+      }
+      return migrated;
+    } catch {
+      return {};
+    }
+  });
+
+  const channelRef = useRef<any>(null);
+
   const [loading, setLoading] = useState<boolean>(true);
   const [hideSent, setHideSent] = useState<boolean>(false);
   const [showArchived, setShowArchived] = useState<boolean>(false);
@@ -209,9 +233,67 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (attemptsRes.data && attemptsRes.data.length > 0) setAttempts(attemptsRes.data);
         if (commentsRes.data && commentsRes.data.length > 0) setComments(commentsRes.data);
 
+        // Fetch send_props if table exists
+        try {
+          const { data: propsData, error: propsErr } = await supabase
+            .from('send_props')
+            .select('attempt_id, user_id');
+          if (!propsErr && Array.isArray(propsData)) {
+            const remoteMap: Record<string, string[]> = {};
+            for (const row of propsData) {
+              if (!remoteMap[row.attempt_id]) remoteMap[row.attempt_id] = [];
+              if (!remoteMap[row.attempt_id].includes(row.user_id)) {
+                remoteMap[row.attempt_id].push(row.user_id);
+              }
+            }
+            setPropsMap(prev => {
+              const merged = { ...prev };
+              for (const [attId, uIds] of Object.entries(remoteMap)) {
+                merged[attId] = Array.from(new Set([...(merged[attId] || []), ...uIds]));
+              }
+              return merged;
+            });
+          }
+        } catch {
+          // Table may not exist yet
+        }
+
         // Setup real-time subscriptions
         const channel = supabase
           .channel('wham-realtime')
+          .on('broadcast', { event: 'prop_toggled' }, ({ payload }) => {
+            if (!payload?.attemptId || !payload?.userId) return;
+            const { attemptId, userId, action } = payload;
+            setPropsMap((prev) => {
+              const currentList = Array.isArray(prev[attemptId]) ? prev[attemptId] : [];
+              let updatedList: string[];
+              if (action === 'remove') {
+                updatedList = currentList.filter((id) => id !== userId);
+              } else {
+                if (currentList.includes(userId)) return prev;
+                updatedList = [...currentList, userId];
+              }
+              return { ...prev, [attemptId]: updatedList };
+            });
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'send_props' }, (payload) => {
+            if (payload.eventType === 'INSERT') {
+              const row = payload.new as { attempt_id: string; user_id: string };
+              if (!row?.attempt_id || !row?.user_id) return;
+              setPropsMap((prev) => {
+                const currentList = Array.isArray(prev[row.attempt_id]) ? prev[row.attempt_id] : [];
+                if (currentList.includes(row.user_id)) return prev;
+                return { ...prev, [row.attempt_id]: [...currentList, row.user_id] };
+              });
+            } else if (payload.eventType === 'DELETE') {
+              const row = payload.old as { attempt_id: string; user_id: string };
+              if (!row?.attempt_id || !row?.user_id) return;
+              setPropsMap((prev) => {
+                const currentList = Array.isArray(prev[row.attempt_id]) ? prev[row.attempt_id] : [];
+                return { ...prev, [row.attempt_id]: currentList.filter((id) => id !== row.user_id) };
+              });
+            }
+          })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'boulders' }, (payload) => {
             if (payload.eventType === 'INSERT') {
               setBoulders(prev => [...prev, payload.new as Boulder]);
@@ -278,7 +360,10 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           })
           .subscribe();
 
+        channelRef.current = channel;
+
         return () => {
+          channelRef.current = null;
           supabase?.removeChannel(channel);
         };
       } catch (err) {
@@ -298,9 +383,10 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const refreshData = async () => {
       try {
-        const [attRes, commRes] = await Promise.all([
+        const [attRes, commRes, propsRes] = await Promise.all([
           client.from('attempts').select('*, profile:profiles(*)'),
-          client.from('comments').select('*, profile:profiles(*)')
+          client.from('comments').select('*, profile:profiles(*)'),
+          client.from('send_props').select('attempt_id, user_id')
         ]);
 
         if (!attRes.error && attRes.data && attRes.data.length > 0) {
@@ -308,6 +394,22 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         if (!commRes.error && commRes.data && commRes.data.length > 0) {
           setComments(commRes.data);
+        }
+        if (!propsRes.error && Array.isArray(propsRes.data)) {
+          const remoteMap: Record<string, string[]> = {};
+          for (const row of propsRes.data) {
+            if (!remoteMap[row.attempt_id]) remoteMap[row.attempt_id] = [];
+            if (!remoteMap[row.attempt_id].includes(row.user_id)) {
+              remoteMap[row.attempt_id].push(row.user_id);
+            }
+          }
+          setPropsMap(prev => {
+            const merged = { ...prev };
+            for (const [attId, uIds] of Object.entries(remoteMap)) {
+              merged[attId] = Array.from(new Set([...(merged[attId] || []), ...uIds]));
+            }
+            return merged;
+          });
         }
       } catch (err) {
         console.warn('Background sync error:', err);
@@ -353,6 +455,10 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     localStorage.setItem('wham_comments', JSON.stringify(comments));
   }, [comments]);
+
+  useEffect(() => {
+    localStorage.setItem('wham_sends_props', JSON.stringify(propsMap));
+  }, [propsMap]);
 
   // Compute Clockwise ordered active boulders in current area (or across the entire gym if currentArea is null)
   const orderedActiveBouldersInCurrentArea = useMemo(() => {
@@ -806,6 +912,57 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return attempts.find(a => a.boulder_id === boulderId && a.user_id === targetUserId);
   };
 
+  const toggleProp = async (attemptId: string, userId: string) => {
+    let willBePropped = false;
+    setPropsMap((prev) => {
+      const currentList = Array.isArray(prev[attemptId]) ? prev[attemptId] : [];
+      const hasPropped = currentList.includes(userId);
+      willBePropped = !hasPropped;
+      let updatedList: string[];
+      if (hasPropped) {
+        updatedList = currentList.filter((id) => id !== userId);
+      } else {
+        updatedList = [...currentList, userId];
+      }
+      return { ...prev, [attemptId]: updatedList };
+    });
+
+    if (isSupabaseConfigured && supabase) {
+      // 1. Instant WebSocket broadcast across all open clients/tabs
+      try {
+        channelRef.current?.send({
+          type: 'broadcast',
+          event: 'prop_toggled',
+          payload: {
+            attemptId,
+            userId,
+            action: willBePropped ? 'add' : 'remove'
+          }
+        });
+      } catch (broadcastErr) {
+        console.warn('Realtime prop broadcast warning:', broadcastErr);
+      }
+
+      // 2. Persist to database table if available
+      try {
+        if (willBePropped) {
+          await supabase.from('send_props').insert({
+            attempt_id: attemptId,
+            user_id: userId
+          });
+        } else {
+          await supabase.from('send_props').delete().match({
+            attempt_id: attemptId,
+            user_id: userId
+          });
+        }
+      } catch (dbErr) {
+        // Table may not exist yet if user hasn't run the migration
+        console.warn('Supabase send_props persistence warning:', dbErr);
+      }
+    }
+  };
+
   return (
     <GymContext.Provider
       value={{
@@ -818,6 +975,8 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         boulders,
         attempts,
         comments,
+        propsMap,
+        toggleProp,
         loading,
         hideSent,
         setHideSent,

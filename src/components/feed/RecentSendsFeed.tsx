@@ -16,6 +16,7 @@ import {
   Search
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { useGym } from '../../context/GymContext';
 
 interface RecentSendsFeedProps {
   attempts: Attempt[];
@@ -46,51 +47,23 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
   const activeClimber = climbers.find((c) => c.id === currentUserId);
   const activeColor = activeClimber?.accent_color || '#3B82F6';
 
-  // Props / reactions state stored in local storage: map of attemptId -> string[] (user IDs)
-  const [propsMap, setPropsMap] = useState<Record<string, string[]>>(() => {
-    try {
-      const saved = localStorage.getItem('wham_sends_props');
-      if (!saved) return {};
-      const parsed = JSON.parse(saved);
-      const migrated: Record<string, string[]> = {};
-      for (const [key, val] of Object.entries(parsed)) {
-        if (Array.isArray(val)) {
-          migrated[key] = val.filter((id) => typeof id === 'string');
-        } else if (typeof val === 'number' && val > 0) {
-          // Backward compatibility for legacy numeric counts
-          migrated[key] = Array.from({ length: val }, (_, i) => `legacy-climber-${i}`);
-        }
-      }
-      return migrated;
-    } catch {
-      return {};
-    }
-  });
+  // Props / reactions state provided by GymContext (synced via Supabase Realtime & Broadcast)
+  const { propsMap, toggleProp } = useGym();
 
-  const handleGiveProps = (attemptId: string) => {
+  const handleGiveProps = async (attemptId: string) => {
     const userId = currentUserId || 'local-climber';
-    setPropsMap((prev) => {
-      const currentList = Array.isArray(prev[attemptId]) ? prev[attemptId] : [];
-      const hasPropped = currentList.includes(userId);
-      let updatedList: string[];
-      if (hasPropped) {
-        // Toggle off / remove prop
-        updatedList = currentList.filter((id) => id !== userId);
-      } else {
-        // Add prop (strictly limited to 1 per climber)
-        updatedList = [...currentList, userId];
-        // Celebration confetti only when giving props
-        confetti({
-          particleCount: 25,
-          spread: 45,
-          origin: { y: 0.8 },
-          colors: [activeColor, '#FACC15', '#EF4444']
-        });
-      }
-      const updated = { ...prev, [attemptId]: updatedList };
-      localStorage.setItem('wham_sends_props', JSON.stringify(updated));
-      return updated;
-    });
+    const currentList = Array.isArray(propsMap[attemptId]) ? propsMap[attemptId] : [];
+    const hasPropped = currentList.includes(userId);
+    if (!hasPropped) {
+      // Celebration confetti only when giving props
+      confetti({
+        particleCount: 25,
+        spread: 45,
+        origin: { y: 0.8 },
+        colors: [activeColor, '#FACC15', '#EF4444']
+      });
+    }
+    await toggleProp(attemptId, userId);
   };
 
   // Helper relative time formatter

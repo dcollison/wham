@@ -74,6 +74,15 @@ CREATE TABLE IF NOT EXISTS public.comments (
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
+-- 1.7 Send Props table (Social hype / props for sends)
+CREATE TABLE IF NOT EXISTS public.send_props (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    attempt_id UUID NOT NULL REFERENCES public.attempts(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    CONSTRAINT unique_attempt_user_prop UNIQUE (attempt_id, user_id)
+);
+
 -- =========================================================
 -- 2. INDEXES
 -- =========================================================
@@ -83,6 +92,8 @@ CREATE INDEX IF NOT EXISTS idx_boulders_gym ON public.boulders(gym_id);
 CREATE INDEX IF NOT EXISTS idx_attempts_boulder ON public.attempts(boulder_id);
 CREATE INDEX IF NOT EXISTS idx_attempts_user ON public.attempts(user_id);
 CREATE INDEX IF NOT EXISTS idx_comments_boulder ON public.comments(boulder_id);
+CREATE INDEX IF NOT EXISTS idx_send_props_attempt ON public.send_props(attempt_id);
+CREATE INDEX IF NOT EXISTS idx_send_props_user ON public.send_props(user_id);
 
 -- =========================================================
 -- 3. AUTOMATIC PROFILE CREATION TRIGGER
@@ -127,6 +138,7 @@ ALTER TABLE public.gym_areas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.boulders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.attempts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.send_props ENABLE ROW LEVEL SECURITY;
 
 -- 4.1 Profiles policies
 CREATE POLICY "Public can read all profiles"
@@ -244,6 +256,22 @@ CREATE POLICY "Public can delete comments"
     TO public
     USING (true);
 
+-- 4.7 Send Props policies
+CREATE POLICY "Public can view all props"
+    ON public.send_props FOR SELECT
+    TO public
+    USING (true);
+
+CREATE POLICY "Public can insert props"
+    ON public.send_props FOR INSERT
+    TO public
+    WITH CHECK (true);
+
+CREATE POLICY "Public can delete props"
+    ON public.send_props FOR DELETE
+    TO public
+    USING (true);
+
 -- =========================================================
 -- 5. STORAGE BUCKET CONFIGURATION
 -- =========================================================
@@ -290,3 +318,4 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.boulders;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.attempts;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.comments;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.gym_areas;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.send_props;
