@@ -3,3 +3,4 @@
 - The filter for status for climber defaulted to Alex even though the active profile is Dale.
 - A user can give props as many times as they want for a given send.
 - It seems to have hallucinated session days. the only two session days at the moment should be 10/09/2026 (Alex, Dale, Taiye) and 15/09/2026 (All crew)
+- there's so much going on with the UI, can it be simplified? fewer things to click, hide the filtering behind a single icon, etc.
