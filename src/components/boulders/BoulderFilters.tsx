@@ -270,6 +270,68 @@ export const BoulderFilters: React.FC<BoulderFiltersProps> = ({
         </button>
       </div>
 
+      {/* ROW 3: Quick Hold Colour / Circuit Strip */}
+      {availableColours.length > 0 && (
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+          <button
+            type="button"
+            onClick={() => onUpdateFilters((p) => ({ ...p, selectedColour: null }))}
+            className={`px-2.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all active-press shrink-0 flex items-center gap-1.5 ${
+              filters.selectedColour === null
+                ? 'bg-slate-800 text-white border border-slate-700 shadow-sm'
+                : 'bg-slate-950/70 text-slate-400 hover:text-slate-200 border border-slate-800/80'
+            }`}
+          >
+            <span>All Holds</span>
+            <span className="text-[10px] font-mono text-slate-400">({totalBouldersCount})</span>
+          </button>
+
+          {availableColours.map((col) => {
+            const colorConfig = HOLD_COLORS[col];
+            const isSelected = filters.selectedColour?.toLowerCase() === col.toLowerCase();
+            const count = colourCounts[col] || 0;
+            const hex = colorConfig?.hex || '#94A3B8';
+
+            return (
+              <button
+                key={col}
+                type="button"
+                onClick={() =>
+                  onUpdateFilters((p) => ({
+                    ...p,
+                    selectedColour: isSelected ? null : col
+                  }))
+                }
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all active-press shrink-0 border ${
+                  isSelected
+                    ? 'text-white shadow-md ring-1'
+                    : 'bg-slate-950/70 text-slate-300 hover:text-white border-slate-800/80 hover:border-slate-700'
+                }`}
+                style={
+                  isSelected
+                    ? {
+                        backgroundColor: `${hex}28`,
+                        borderColor: hex,
+                        boxShadow: `0 0 12px ${hex}35`
+                      }
+                    : {
+                        borderColor: `${hex}40`
+                      }
+                }
+                title={`Filter by ${col} circuit (${count} boulders)`}
+              >
+                <span
+                  className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm ring-1 ring-black/40"
+                  style={{ backgroundColor: hex }}
+                />
+                <span>{col}</span>
+                <span className="text-[10px] font-mono text-slate-400">({count})</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* EXPANDABLE ADVANCED FILTER DRAWER */}
       {isExpanded && (
         <div className="flex flex-col gap-3.5 pt-2 border-t border-slate-800/80 animate-in fade-in duration-150">
