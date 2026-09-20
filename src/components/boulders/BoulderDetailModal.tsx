@@ -1,9 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Boulder, Attempt, Comment, Profile } from '../../types';
 import { HoldBadge } from './HoldBadge';
 import { ClimberStatusPills } from './ClimberStatusPills';
 import { ClimberAvatar } from '../ClimberAvatar';
-import { X, Send, Calendar, Archive, MessageSquare, Zap, Check, Clock, ZoomIn, Users } from 'lucide-react';
+import {
+  X,
+  Send,
+  Calendar,
+  Zap,
+  Check,
+  Clock,
+  Archive,
+  MessageSquare,
+  ZoomIn,
+  Users,
+  Compass,
+  CornerDownRight,
+  ExternalLink,
+  ChevronRight,
+  Trash2
+} from 'lucide-react';
 
 interface BoulderDetailModalProps {
   boulder: Boulder | null;
@@ -15,6 +31,7 @@ interface BoulderDetailModalProps {
   currentUserId?: string;
   onQuickLog: (boulder: Boulder, targetUserId?: string) => void;
   onAddComment: (boulderId: string, content: string) => Promise<void>;
+  onDeleteComment?: (commentId: string) => Promise<void>;
   onToggleArchive: (boulderId: string, archive: boolean) => Promise<void>;
 }
 
@@ -28,6 +45,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
   currentUserId,
   onQuickLog,
   onAddComment,
+  onDeleteComment,
   onToggleArchive
 }) => {
   const [newComment, setNewComment] = useState<string>('');
@@ -36,8 +54,13 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
 
   if (!isOpen || !boulder) return null;
 
-  const boulderComments = comments.filter(c => c.boulder_id === boulder.id);
+  const boulderComments = useMemo(() => {
+    const matching = comments.filter(c => c.boulder_id === boulder.id);
+    const unique = Array.from(new Map(matching.map(c => [c.id, c])).values());
+    return unique.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  }, [comments, boulder.id]);
   const userAttempt = attempts.find(a => a.user_id === currentUserId);
+  const activeColor = climbers.find(c => c.id === currentUserId)?.accent_color || '#3B82F6';
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +94,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
             <button
               type="button"
               onClick={() => onToggleArchive(boulder.id, !boulder.is_archived)}
-              className="p-2 rounded-lg text-slate-400 hover:text-amber-400 hover:bg-slate-800 transition-colors"
+              className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
               title={boulder.is_archived ? 'Restore / Unarchive Climb' : 'Archive Climb'}
             >
               <Archive className="w-4 h-4" />
@@ -146,7 +169,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                   className="px-2.5 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 active-press transition-all flex items-center gap-1.5 shadow"
                   title="Log on behalf of someone in your crew"
                 >
-                  <Users className="w-3.5 h-3.5 text-amber-400" />
+                  <Users className="w-3.5 h-3.5" style={{ color: activeColor }} />
                   <span>Log for Crew</span>
                 </button>
               )}
@@ -157,7 +180,8 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                   onClose();
                   onQuickLog(boulder, currentUserId);
                 }}
-                className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-amber-400 hover:bg-amber-300 text-black active-press transition-all shadow"
+                style={{ backgroundColor: activeColor, color: '#000000' }}
+                className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold active-press transition-all shadow"
               >
                 {userAttempt ? 'Update Log' : 'Quick Log'}
               </button>
@@ -228,21 +252,44 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                   return (
                     <div
                       key={comment.id}
+                      style={isCurrent ? {
+                        backgroundColor: `${author?.accent_color || activeColor}12`,
+                        borderColor: `${author?.accent_color || activeColor}30`
+                      } : undefined}
                       className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 ${
                         isCurrent
-                          ? 'bg-amber-500/5 border-amber-500/20'
+                          ? ''
                           : 'bg-slate-800/50 border-slate-800'
                       }`}
                     >
                       <ClimberAvatar profile={author || comment.profile} size="xs" />
                       <div className="flex-1 min-w-0 flex flex-col gap-1">
                         <div className="flex items-center justify-between text-[11px]">
-                          <span className="font-bold text-amber-400">
+                          <span
+                            className="font-bold"
+                            style={{ color: author?.accent_color || (isCurrent ? activeColor : '#e2e8f0') }}
+                          >
                             {author?.display_name || comment.profile?.display_name || 'Climber'}
                           </span>
-                          <span className="text-slate-400">
-                            {new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-slate-400">
+                              {new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            {isCurrent && onDeleteComment && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (window.confirm('Delete this comment?')) {
+                                    onDeleteComment(comment.id);
+                                  }
+                                }}
+                                className="p-0.5 rounded text-slate-500 hover:text-rose-400 hover:bg-slate-700 transition-colors"
+                                title="Delete comment"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <p className="text-slate-200 leading-relaxed">{comment.content}</p>
                       </div>
@@ -259,12 +306,13 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Add beta, sequence advice, or hype..."
-                className="flex-1 bg-slate-800 border border-slate-700 text-slate-100 placeholder:text-slate-500 text-xs rounded-xl px-3.5 py-2.5 outline-none focus:border-amber-400"
+                className="flex-1 bg-slate-800 border border-slate-700 text-slate-100 placeholder:text-slate-500 text-xs rounded-xl px-3.5 py-2.5 outline-none focus:border-slate-500"
               />
               <button
                 type="submit"
                 disabled={!newComment.trim() || submittingComment}
-                className="p-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black active-press transition-colors disabled:opacity-40"
+                style={{ backgroundColor: activeColor, color: '#000000' }}
+                className="p-2.5 rounded-xl active-press transition-colors disabled:opacity-40"
               >
                 <Send className="w-4 h-4" />
               </button>

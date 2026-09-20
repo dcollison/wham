@@ -65,7 +65,7 @@ export const HoldBadge: React.FC<HoldBadgeProps> = ({
       {showGrade && grade && (
         <>
           <span className="text-slate-500 text-[10px]">•</span>
-          <span className="font-mono font-black tracking-tight text-amber-400 bg-slate-950/80 px-1.5 py-0.5 rounded-md border border-slate-700/80 text-[11px] leading-tight shadow-inner">
+          <span className="font-mono font-black tracking-tight text-white bg-slate-950/80 px-1.5 py-0.5 rounded-md border border-slate-700/80 text-[11px] leading-tight shadow-inner">
             {grade}
           </span>
         </>

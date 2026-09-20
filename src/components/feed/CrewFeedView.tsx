@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Comment, Attempt, Boulder, Profile, Gym, GymArea } from '../../types';
 import { RecentSendsFeed } from './RecentSendsFeed';
-import { HoldBadge } from '../boulders/HoldBadge';
-import { ClimberAvatar } from '../ClimberAvatar';
-import { MessageSquare, Send, Zap, Flame, Calendar, Sparkles } from 'lucide-react';
+import { BetaDiscussionView } from '../beta/BetaDiscussionView';
+import { MessageSquare, Zap } from 'lucide-react';
 
 interface CrewFeedViewProps {
   comments: Comment[];
@@ -16,6 +15,7 @@ interface CrewFeedViewProps {
   onSelectBoulder: (boulder: Boulder) => void;
   onQuickLog: (boulder: Boulder, targetUserId?: string) => void;
   onAddComment: (boulderId: string, content: string) => Promise<void>;
+  onDeleteComment?: (commentId: string) => Promise<void>;
 }
 
 export const CrewFeedView: React.FC<CrewFeedViewProps> = ({
@@ -28,7 +28,8 @@ export const CrewFeedView: React.FC<CrewFeedViewProps> = ({
   currentUserId,
   onSelectBoulder,
   onQuickLog,
-  onAddComment
+  onAddComment,
+  onDeleteComment
 }) => {
   // Determine default active sub-tab from hash if present
   const [activeSubTab, setActiveSubTab] = useState<'sends' | 'beta'>(() => {
@@ -50,34 +51,11 @@ export const CrewFeedView: React.FC<CrewFeedViewProps> = ({
     return () => window.removeEventListener('hashchange', handleHash);
   }, []);
 
-  // Beta spray form state
-  const [selectedBoulderId, setSelectedBoulderId] = useState<string>('');
-  const [newContent, setNewContent] = useState<string>('');
-  const [submitting, setSubmitting] = useState<boolean>(false);
-
-  // Sorted comments descending
-  const sortedComments = [...comments].sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  );
-
   // Total sends count for badge
   const totalSendsCount = attempts.filter(a => a.status === 'sent' || a.status === 'flashed').length;
 
-  const handleCommentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedBoulderId || !newContent.trim() || submitting) return;
-
-    setSubmitting(true);
-    try {
-      await onAddComment(selectedBoulderId, newContent.trim());
-      setNewContent('');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const activeClimber = climbers.find((c) => c.id === currentUserId);
-  const activeColor = activeClimber?.accent_color || '#F59E0B';
+  const activeColor = activeClimber?.accent_color || '#3B82F6';
 
   return (
     <div className="flex flex-col gap-4 animate-in fade-in duration-200">
@@ -89,18 +67,20 @@ export const CrewFeedView: React.FC<CrewFeedViewProps> = ({
             setActiveSubTab('sends');
             window.location.hash = '#/sends';
           }}
-          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all active-press ${
+          style={activeSubTab === 'sends' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all active-press ${
             activeSubTab === 'sends'
-              ? 'text-black shadow-md'
+              ? 'shadow-sm'
               : 'text-slate-400 hover:text-white'
           }`}
-          style={activeSubTab === 'sends' ? { backgroundColor: activeColor, color: '#000' } : undefined}
         >
-          <Zap className={`w-3.5 h-3.5 ${activeSubTab === 'sends' ? 'fill-black' : 'text-slate-400'}`} />
-          <span>Recent Sends</span>
-          <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-black ${
-            activeSubTab === 'sends' ? 'bg-black/20 text-black' : 'bg-slate-800 text-slate-300'
-          }`}>
+          <Zap className="w-3.5 h-3.5" />
+          <span>Sends Feed</span>
+          <span
+            className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+              activeSubTab === 'sends' ? 'bg-black/20 text-black' : 'bg-slate-800 text-slate-300'
+            }`}
+          >
             {totalSendsCount}
           </span>
         </button>
@@ -111,18 +91,20 @@ export const CrewFeedView: React.FC<CrewFeedViewProps> = ({
             setActiveSubTab('beta');
             window.location.hash = '#/beta';
           }}
-          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all active-press ${
+          style={activeSubTab === 'beta' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all active-press ${
             activeSubTab === 'beta'
-              ? 'text-black shadow-md'
+              ? 'shadow-sm'
               : 'text-slate-400 hover:text-white'
           }`}
-          style={activeSubTab === 'beta' ? { backgroundColor: activeColor, color: '#000' } : undefined}
         >
           <MessageSquare className="w-3.5 h-3.5" />
           <span>Beta Spray</span>
-          <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-black ${
-            activeSubTab === 'beta' ? 'bg-black/20 text-black' : 'bg-slate-800 text-slate-300'
-          }`}>
+          <span
+            className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+              activeSubTab === 'beta' ? 'bg-black/20 text-black' : 'bg-slate-800 text-slate-300'
+            }`}
+          >
             {comments.length}
           </span>
         </button>
@@ -144,111 +126,17 @@ export const CrewFeedView: React.FC<CrewFeedViewProps> = ({
 
       {/* Sub-Tab 2: Beta Spray & Discussion Feed */}
       {activeSubTab === 'beta' && (
-        <div className="flex flex-col gap-4 pb-20 animate-in fade-in duration-300">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-amber-400" />
-                Beta Discussion & Spray
-              </h2>
-              <p className="text-xs text-slate-400">
-                Crux sequences, foot placements, and sequence beta from the crew
-              </p>
-            </div>
-          </div>
-
-          {/* Post Beta Quick Form */}
-          <form onSubmit={handleCommentSubmit} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col gap-3 shadow">
-            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-              Share Beta on a Boulder
-            </span>
-
-            <select
-              value={selectedBoulderId}
-              onChange={(e) => setSelectedBoulderId(e.target.value)}
-              className="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-xl p-2.5 outline-none focus:border-amber-400"
-            >
-              <option value="">Select a Boulder to drop beta on...</option>
-              {boulders.filter(b => !b.is_archived).map(b => {
-                const area = areas.find(a => a.id === b.area_id);
-                const gym = gyms.find(g => g.id === b.gym_id);
-                return (
-                  <option key={b.id} value={b.id}>
-                    {gym?.name} • {area?.name}: #{Math.round(b.position_order)} {b.hold_colour} {b.grade}
-                  </option>
-                );
-              })}
-            </select>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={newContent}
-                onChange={(e) => setNewContent(e.target.value)}
-                placeholder="e.g. Right drop knee into the gaston makes the match easy..."
-                className="flex-1 bg-slate-800 border border-slate-700 text-slate-100 placeholder:text-slate-500 text-xs rounded-xl px-3.5 py-2.5 outline-none focus:border-amber-400"
-              />
-              <button
-                type="submit"
-                disabled={!selectedBoulderId || !newContent.trim() || submitting}
-                className="p-2.5 rounded-xl text-black active-press transition-colors disabled:opacity-30"
-                style={{ backgroundColor: activeColor }}
-              >
-                <Send className="w-4 h-4" />
-              </button>
-            </div>
-          </form>
-
-          {/* Beta Feed Stream */}
-          <div className="space-y-3">
-            {sortedComments.map((comment) => {
-              const boulder = boulders.find(b => b.id === comment.boulder_id);
-              const author = climbers.find(c => c.id === comment.user_id);
-              const area = boulder ? areas.find(a => a.id === boulder.area_id) : null;
-              const isCurrentUser = comment.user_id === currentUserId;
-
-              return (
-                <div
-                  key={comment.id}
-                  className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col gap-2.5 hover:border-slate-700 transition-colors shadow-sm"
-                >
-                  {/* Header with Boulder info */}
-                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-                    {boulder && (
-                      <button
-                        type="button"
-                        onClick={() => onSelectBoulder(boulder)}
-                        className="flex items-center gap-2 text-left hover:opacity-80 transition-opacity"
-                      >
-                        <HoldBadge color={boulder.hold_colour} grade={boulder.grade} size="sm" />
-                        <span className="text-xs font-semibold text-slate-300">
-                          {area?.name}
-                        </span>
-                      </button>
-                    )}
-
-                    <span className="text-[11px] text-slate-400 font-mono">
-                      {new Date(comment.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                    </span>
-                  </div>
-
-                  {/* Author & Content */}
-                  <div className="flex items-start gap-2.5">
-                    <ClimberAvatar profile={author || comment.profile} size="sm" />
-                    <div className="flex-1 min-w-0">
-                      <span className={`text-xs font-bold ${isCurrentUser ? 'text-amber-400' : 'text-slate-200'}`}>
-                        {author?.display_name || comment.profile?.display_name || 'Climber'}
-                      </span>
-                      <p className="text-xs text-slate-300 leading-relaxed mt-1">
-                        {comment.content}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <BetaDiscussionView
+          comments={comments}
+          boulders={boulders}
+          climbers={climbers}
+          gyms={gyms}
+          areas={areas}
+          currentUserId={currentUserId}
+          onSelectBoulder={onSelectBoulder}
+          onAddComment={onAddComment}
+          onDeleteComment={onDeleteComment}
+        />
       )}
     </div>
   );

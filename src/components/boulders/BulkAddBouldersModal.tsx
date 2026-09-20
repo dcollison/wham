@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { Boulder, Grade, GRADES, HOLD_COLORS, GymArea, BulkAddBoulderItem, BulkAddBouldersParams, getHoldSwatchStyle } from '../../types';
 import { compressImage } from '../../lib/imageCompressor';
 import {
@@ -45,6 +46,9 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
   onBulkAdd,
   onSwitchToSingle
 }) => {
+  const { currentUser } = useAuth();
+  const activeColor = currentUser?.accent_color || '#3B82F6';
+
   const gymAreas = useMemo(() => {
     return areas.filter((a) => a.gym_id === gymId).sort((a, b) => a.sort_order - b.sort_order);
   }, [areas, gymId]);
@@ -304,13 +308,27 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+            <div
+              className="p-2 rounded-xl"
+              style={{
+                backgroundColor: `${activeColor}15`,
+                border: `1px solid ${activeColor}30`,
+                color: activeColor
+              }}
+            >
               <Layers className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-bold text-white">Bulk Log Wall Set</h2>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                <span
+                  style={{
+                    backgroundColor: `${activeColor}20`,
+                    color: activeColor,
+                    borderColor: `${activeColor}40`
+                  }}
+                  className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border"
+                >
                   Clockwise Sequence
                 </span>
               </div>
@@ -324,7 +342,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
               <button
                 type="button"
                 onClick={onSwitchToSingle}
-                className="hidden sm:inline-block text-xs font-semibold text-slate-400 hover:text-amber-300 px-2 py-1 transition-colors"
+                className="hidden sm:inline-block text-xs font-semibold text-slate-400 hover:text-white px-2 py-1 transition-colors"
               >
                 Single Add
               </button>
@@ -349,7 +367,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
             <select
               value={effectiveAreaId}
               onChange={(e) => setSelectedAreaId(e.target.value)}
-              className="bg-slate-900 border border-slate-700 text-slate-100 text-xs rounded-xl p-2.5 outline-none focus:border-amber-400 font-semibold"
+              className="bg-slate-900 border border-slate-700 text-slate-100 text-xs rounded-xl p-2.5 outline-none focus:border-slate-500 font-semibold"
             >
               {gymAreas.map((a) => (
                 <option key={a.id} value={a.id}>
@@ -369,7 +387,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
               type="date"
               value={dateAdded}
               onChange={(e) => setDateAdded(e.target.value)}
-              className="bg-slate-900 border border-slate-700 text-slate-100 text-xs rounded-xl p-2 outline-none focus:border-amber-400 font-mono"
+              className="bg-slate-900 border border-slate-700 text-slate-100 text-xs rounded-xl p-2 outline-none focus:border-slate-500 font-mono"
             />
           </div>
 
@@ -380,7 +398,8 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                 type="checkbox"
                 checked={archiveExisting}
                 onChange={(e) => setArchiveExisting(e.target.checked)}
-                className="w-4 h-4 rounded text-amber-500 bg-slate-900 border-slate-700 focus:ring-amber-400"
+                className="w-4 h-4 rounded bg-slate-900 border-slate-700"
+                style={{ accentColor: activeColor }}
               />
               <div className="text-xs">
                 <span className="font-bold text-slate-200">
@@ -403,9 +422,10 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('visual')}
+            style={activeTab === 'visual' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
               activeTab === 'visual'
-                ? 'bg-amber-400 text-black shadow-sm'
+                ? 'shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -415,9 +435,10 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('paste')}
+            style={activeTab === 'paste' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
               activeTab === 'paste'
-                ? 'bg-amber-400 text-black shadow-sm'
+                ? 'shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -440,7 +461,8 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                     type="checkbox"
                     checked={autoAddOnGrade}
                     onChange={(e) => setAutoAddOnGrade(e.target.checked)}
-                    className="w-3.5 h-3.5 rounded text-amber-500 bg-slate-900 border-slate-700"
+                    style={{ accentColor: activeColor }}
+                    className="w-3.5 h-3.5 rounded bg-slate-900 border-slate-700"
                   />
                   <span>1-Tap Add on Grade</span>
                 </label>
@@ -493,9 +515,10 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                         key={gr}
                         type="button"
                         onClick={() => handleSelectGrade(gr)}
+                        style={isSelected ? { backgroundColor: activeColor, color: '#000000' } : undefined}
                         className={`py-1.5 rounded-lg text-xs font-bold transition-all active-press ${
                           isSelected
-                            ? 'bg-amber-400 text-black shadow-md ring-1 ring-amber-300'
+                            ? 'shadow-md ring-1'
                             : 'bg-slate-900 border border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white'
                         }`}
                       >
@@ -519,12 +542,13 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                     }
                   }}
                   placeholder="Optional notes (e.g. dyno, crimpy, slab volume)..."
-                  className="flex-1 bg-slate-900 border border-slate-700 text-slate-100 text-xs rounded-xl px-3 py-2 outline-none focus:border-amber-400"
+                  className="flex-1 bg-slate-900 border border-slate-700 text-slate-100 text-xs rounded-xl px-3 py-2 outline-none focus:border-slate-500"
                 />
                 <button
                   type="button"
                   onClick={() => handleAddDraft()}
-                  className="px-4 py-2 rounded-xl font-bold text-xs bg-amber-400 hover:bg-amber-300 text-black flex items-center gap-1.5 active-press transition-colors shadow shrink-0"
+                  style={{ backgroundColor: activeColor, color: '#000000' }}
+                  className="px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 active-press transition-colors shadow shrink-0"
                 >
                   <Plus className="w-3.5 h-3.5 stroke-[3]" />
                   <span>Add #{draftQueue.length + 1}</span>
@@ -539,7 +563,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
           <div className="flex flex-col gap-3">
             <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800 text-xs text-slate-300 space-y-1">
               <p className="font-bold text-white flex items-center gap-1">
-                <FileText className="w-4 h-4 text-amber-400" />
+                <FileText className="w-4 h-4" style={{ color: activeColor }} />
                 <span>Paste Route Setter Notes or CSV</span>
               </p>
               <p className="text-slate-400 text-[11px]">
@@ -552,7 +576,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
               value={pasteText}
               onChange={(e) => setPasteText(e.target.value)}
               placeholder={`Yellow V2\nBlue V3 Dyno\nGreen V1 Slab\nRed V4 Pinch problem\nBlack V6\nPurple V3 Heel hook`}
-              className="w-full bg-slate-950 border border-slate-700 text-slate-100 text-xs rounded-xl p-3 font-mono outline-none focus:border-amber-400 placeholder:text-slate-600"
+              className="w-full bg-slate-950 border border-slate-700 text-slate-100 text-xs rounded-xl p-3 font-mono outline-none focus:border-slate-500 placeholder:text-slate-600"
             />
 
             <div className="flex items-center justify-between">
@@ -563,7 +587,8 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                 type="button"
                 onClick={handleParseText}
                 disabled={!pasteText.trim()}
-                className="px-4 py-2 rounded-xl font-bold text-xs bg-amber-400 hover:bg-amber-300 text-black flex items-center gap-1.5 active-press transition-colors disabled:opacity-40"
+                style={{ backgroundColor: activeColor, color: '#000000' }}
+                className="px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 active-press transition-colors disabled:opacity-40"
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Parse & Add to Queue</span>
@@ -586,7 +611,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                 )}
                 {pasteFeedback.warnings.length > 0 && (
                   <div className="mt-1 text-[11px] text-slate-400">
-                    <span className="font-semibold text-amber-400">Warnings:</span>
+                    <span className="font-semibold text-rose-400">Warnings:</span>
                     <ul className="list-disc list-inside mt-0.5 space-y-0.5 font-mono">
                       {pasteFeedback.warnings.slice(0, 3).map((w, idx) => (
                         <li key={idx}>{w}</li>
@@ -676,7 +701,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                           title={item.holdColour}
                         />
                         <span className="text-xs font-semibold text-slate-200">{item.holdColour}</span>
-                        <span className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-400 font-mono font-bold text-xs border border-slate-700">
+                        <span className="px-1.5 py-0.5 rounded bg-slate-800 text-white font-mono font-bold text-xs border border-slate-700">
                           {item.grade}
                         </span>
                       </div>
@@ -699,7 +724,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                           <img
                             src={item.imageDataUrl}
                             alt="Preview"
-                            className="w-7 h-7 rounded-lg object-cover border border-amber-400/50"
+                            className="w-7 h-7 rounded-lg object-cover border border-slate-700"
                           />
                           <button
                             type="button"
@@ -802,7 +827,8 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
             type="button"
             onClick={handleSaveAll}
             disabled={isSubmitting || draftQueue.length === 0}
-            className="py-2.5 px-5 rounded-xl text-xs font-bold bg-amber-400 hover:bg-amber-300 text-black flex items-center justify-center gap-2 active-press transition-all shadow-lg shadow-amber-400/20 disabled:opacity-40"
+            style={{ backgroundColor: activeColor, color: '#000000' }}
+            className="py-2.5 px-5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 active-press transition-all shadow-lg disabled:opacity-40"
           >
             <Check className="w-4 h-4 stroke-[3]" />
             <span>

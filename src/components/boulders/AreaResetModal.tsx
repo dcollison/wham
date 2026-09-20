@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { X, AlertTriangle, Archive, Layers } from 'lucide-react';
 
 interface AreaResetModalProps {
@@ -18,6 +19,8 @@ export const AreaResetModal: React.FC<AreaResetModalProps> = ({
   onConfirm,
   onConfirmAndBulkAdd
 }) => {
+  const { currentUser } = useAuth();
+  const activeColor = currentUser?.accent_color || '#3B82F6';
   const [resetting, setResetting] = useState<boolean>(false);
 
   if (!isOpen) return null;
@@ -60,7 +63,7 @@ export const AreaResetModal: React.FC<AreaResetModalProps> = ({
 
         <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/60 text-xs text-slate-300 space-y-2">
           <p>
-            You are about to archive all <strong className="text-white font-mono text-sm">{activeCount}</strong> active boulders in <strong className="text-amber-400">{areaName}</strong>.
+            You are about to archive all <strong className="text-white font-mono text-sm">{activeCount}</strong> active boulders in <strong className="text-white font-bold">{areaName}</strong>.
           </p>
           <p className="text-slate-400">
             This represents a complete wall reset. Historical attempts and beta comments will be saved for statistics and can still be reviewed by enabling "Show Archived".
@@ -73,7 +76,8 @@ export const AreaResetModal: React.FC<AreaResetModalProps> = ({
               type="button"
               onClick={() => handleReset(true)}
               disabled={resetting || activeCount === 0}
-              className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-amber-400 hover:bg-amber-300 text-black flex items-center justify-center gap-2 shadow-lg shadow-amber-400/20 active-press transition-all disabled:opacity-40"
+              style={{ backgroundColor: activeColor, color: '#000000' }}
+              className="w-full py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg active-press transition-all disabled:opacity-40"
             >
               <Layers className="w-4 h-4" />
               <span>{resetting ? 'Archiving...' : `Archive & Bulk Log New Set`}</span>

@@ -28,7 +28,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onAddClimber,
   onRemoveClimber
 }) => {
-  const activeColor = currentUser?.accent_color || '#F59E0B';
+  const activeColor = currentUser?.accent_color || '#3B82F6';
   const activeIcon =
     currentUser?.avatar_icon ||
     (currentUser?.avatar_url?.startsWith('icon:')
@@ -140,7 +140,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+            <div
+              className="p-2 rounded-xl"
+              style={{
+                backgroundColor: `${activeColor}15`,
+                border: `1px solid ${activeColor}30`,
+                color: activeColor
+              }}
+            >
               <Users className="w-5 h-5" />
             </div>
             <div>
@@ -180,7 +187,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <button
                 type="button"
                 onClick={() => setIsAddingClimber(true)}
-                className="flex items-center gap-1.5 text-xs font-bold text-amber-400 hover:text-amber-300 px-2 py-1 rounded-lg hover:bg-amber-400/10 transition-colors"
+                style={{ color: activeColor }}
+                className="flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded-lg hover:brightness-125 transition-colors"
               >
                 <UserPlus className="w-3.5 h-3.5" />
                 <span>+ Add Climber</span>
@@ -264,7 +272,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <button
                 type="button"
                 onClick={() => setIsAddingClimber(true)}
-                className="p-3 rounded-xl border border-dashed border-slate-700 hover:border-amber-400/60 bg-slate-800/30 hover:bg-amber-500/5 text-slate-400 hover:text-amber-300 flex flex-col items-center justify-center gap-1.5 transition-all active-press"
+                className="p-3 rounded-xl border border-dashed border-slate-700 hover:border-slate-500 bg-slate-800/30 hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 flex flex-col items-center justify-center gap-1.5 transition-all active-press"
               >
                 <div className="w-9 h-9 rounded-full border border-dashed border-slate-600 flex items-center justify-center text-slate-400">
                   <UserPlus className="w-4 h-4" />
@@ -279,11 +287,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         {isAddingClimber && (
           <form
             onSubmit={handleCreateClimber}
-            className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 flex flex-col gap-3 animate-in fade-in duration-150"
+            style={{
+              backgroundColor: `${activeColor}08`,
+              borderColor: `${activeColor}30`
+            }}
+            className="p-4 rounded-2xl border flex flex-col gap-3 animate-in fade-in duration-150"
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
-                <UserPlus className="w-4 h-4 text-amber-400" />
+              <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                <UserPlus className="w-4 h-4" style={{ color: activeColor }} />
                 <span>Add New Crew Member</span>
               </span>
               <button
@@ -302,11 +314,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 onChange={(e) => setNewClimberName(e.target.value)}
                 placeholder="Enter climber name..."
                 autoFocus
-                className="flex-1 bg-slate-900 border border-slate-700 text-slate-100 text-xs rounded-xl px-3.5 py-2.5 outline-none focus:border-amber-400"
+                className="flex-1 bg-slate-900 border border-slate-700 text-slate-100 text-xs rounded-xl px-3.5 py-2.5 outline-none focus:border-slate-500"
               />
               <button
                 type="submit"
-                className="px-4 py-2.5 rounded-xl font-bold text-xs bg-amber-400 hover:bg-amber-300 text-black flex items-center gap-1.5 active-press transition-colors shrink-0"
+                style={{ backgroundColor: activeColor, color: '#000000' }}
+                className="px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 active-press transition-colors shrink-0"
               >
                 <Check className="w-3.5 h-3.5 stroke-[3]" />
                 <span>Add</span>
@@ -518,7 +531,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder="Display name..."
-              className="flex-1 bg-slate-800 border border-slate-700 text-slate-100 text-xs rounded-xl px-3.5 py-2.5 outline-none focus:border-amber-400"
+              className="flex-1 bg-slate-800 border border-slate-700 text-slate-100 text-xs rounded-xl px-3.5 py-2.5 outline-none focus:border-slate-500"
             />
             <button
               type="submit"
@@ -531,7 +544,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
         {/* Information Note */}
         <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-800 text-xs text-slate-400 leading-relaxed flex items-start gap-2">
-          <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          <Info className="w-4 h-4 shrink-0 mt-0.5" style={{ color: activeColor }} />
           <span>
             <strong className="text-slate-300">Tip:</strong> Tap any climber above to instantly switch accounts and log climbs. Your selected accent colour highlights your personal progress on comparison charts and timeline graphs.
           </span>

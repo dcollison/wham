@@ -44,7 +44,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   const activeClimber = climbers.find((c) => c.id === currentUserId);
-  const activeColor = activeClimber?.accent_color || '#F59E0B';
+  const activeColor = activeClimber?.accent_color || '#3B82F6';
 
   // Props / reactions state stored in local storage: map of attemptId -> string[] (user IDs)
   const [propsMap, setPropsMap] = useState<Record<string, string[]>>(() => {
@@ -264,9 +264,10 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                 key={c.id}
                 type="button"
                 onClick={() => setSelectedClimberId(c.id)}
+                style={isSelected ? { borderColor: c.accent_color || activeColor, boxShadow: `0 0 0 1px ${(c.accent_color || activeColor)}80` } : undefined}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 transition-all active-press border ${
                   isSelected
-                    ? 'bg-slate-800 border-amber-400 text-white shadow ring-1 ring-amber-400/50'
+                    ? 'bg-slate-800 text-white shadow'
                     : 'bg-slate-850/70 border-slate-800 text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -331,7 +332,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search climber, grade, hold..."
-              className="w-full bg-slate-900 border border-slate-800 text-slate-200 placeholder:text-slate-500 text-xs rounded-xl pl-8 pr-3 py-1.5 outline-none focus:border-amber-400 transition-colors"
+              className="w-full bg-slate-900 border border-slate-800 text-slate-200 placeholder:text-slate-500 text-xs rounded-xl pl-8 pr-3 py-1.5 outline-none focus:border-slate-500 transition-colors"
             />
           </div>
         </div>
@@ -340,7 +341,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
       {/* Feed Stream */}
       {filteredSends.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-8 bg-slate-900/60 border border-slate-800 rounded-2xl text-center gap-3 my-6">
-          <div className="p-3 bg-slate-800 text-amber-400 rounded-2xl">
+          <div className="p-3 bg-slate-800 rounded-2xl" style={{ color: activeColor }}>
             <Trophy className="w-6 h-6 opacity-60" />
           </div>
           <div>
@@ -356,7 +357,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
             <div key={dateLabel} className="space-y-3">
               {/* Date Group Header */}
               <div className="flex items-center gap-2 px-1">
-                <Calendar className="w-3.5 h-3.5 text-amber-400" />
+                <Calendar className="w-3.5 h-3.5" style={{ color: activeColor }} />
                 <span className="text-xs font-bold text-slate-300 tracking-wide uppercase">
                   {dateLabel}
                 </span>
@@ -484,7 +485,10 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                           } : undefined}
                           title={isProppedByMe ? 'You gave props! Tap to remove' : 'Give props (limit 1 per climber)'}
                         >
-                          <Flame className={`w-3.5 h-3.5 ${isProppedByMe ? 'fill-current' : propsCount > 0 ? 'text-amber-400 fill-amber-400' : 'text-slate-400'}`} />
+                          <Flame
+                            className={`w-3.5 h-3.5 ${isProppedByMe ? 'fill-current' : propsCount > 0 ? 'fill-current' : 'text-slate-400'}`}
+                            style={!isProppedByMe && propsCount > 0 ? { color: activeColor } : undefined}
+                          />
                           <span className="font-semibold text-xs">{isProppedByMe ? 'Propped' : 'Props'}</span>
                           {propsCount > 0 && (
                             <span
@@ -500,7 +504,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                           <button
                             type="button"
                             onClick={() => onQuickLog(boulder, currentUserId)}
-                            className="text-xs font-semibold text-slate-400 hover:text-amber-400 px-2.5 py-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+                            className="text-xs font-semibold text-slate-400 hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-slate-800 transition-colors"
                           >
                             Log Send
                           </button>
@@ -508,7 +512,8 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                           <button
                             type="button"
                             onClick={() => onSelectBoulder(boulder)}
-                            className="text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-0.5 px-2 py-1.5"
+                            style={{ color: activeColor }}
+                            className="text-xs font-bold flex items-center gap-0.5 px-2 py-1.5 hover:brightness-125 transition-all"
                           >
                             <span>Details</span>
                             <ChevronRight className="w-3.5 h-3.5" />

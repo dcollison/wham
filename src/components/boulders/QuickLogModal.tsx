@@ -50,6 +50,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
   }, [isOpen, initialTargetUserId, currentUserId]);
 
   const selectedClimber = climbers.find(c => c.id === selectedUserId) || climbers[0];
+  const selectedClimberColor = selectedClimber?.accent_color || '#3B82F6';
   const isLoggingForOther = Boolean(currentUserId && selectedClimber && selectedClimber.id !== currentUserId);
 
   // Selected climber's existing attempt on this boulder
@@ -109,7 +110,8 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
   };
 
   const handleDelete = async () => {
-    if (onDelete && selectedAttempt && selectedClimber) {
+    if (!boulder || !selectedClimber || !onDelete) return;
+    if (window.confirm(`Clear logged attempt on this climb for ${selectedClimber.display_name}?`)) {
       setSaving(true);
       try {
         await onDelete(boulder.id, selectedClimber.id);
@@ -121,16 +123,16 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div
-        className="w-full max-w-lg bg-slate-900 border-t sm:border border-slate-700/80 rounded-t-3xl sm:rounded-2xl p-5 shadow-2xl flex flex-col gap-4 max-h-[92vh] overflow-y-auto"
+        className="w-full max-w-lg bg-slate-900 border-t sm:border border-slate-700/80 rounded-t-3xl sm:rounded-2xl p-4 sm:p-5 shadow-2xl flex flex-col gap-4 max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
+        {/* Header with Boulder info */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <HoldBadge color={boulder.hold_colour} grade={boulder.grade} size="md" />
-            <span className="text-xs font-mono text-slate-400 bg-slate-800 px-2 py-0.5 rounded">
+            <span className="font-mono text-xs text-slate-400 font-bold">
               #{Math.round(boulder.position_order)}
             </span>
           </div>
@@ -147,11 +149,18 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
         <div className="flex flex-col gap-2 bg-slate-800/40 p-3 rounded-2xl border border-slate-800">
           <div className="flex items-center justify-between text-xs">
             <span className="font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5 text-amber-400" />
+              <Users className="w-3.5 h-3.5" style={{ color: selectedClimberColor }} />
               Log for Climber:
             </span>
             {isLoggingForOther ? (
-              <span className="text-[11px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-full flex items-center gap-1 animate-in fade-in">
+              <span
+                style={{
+                  color: selectedClimberColor,
+                  backgroundColor: `${selectedClimberColor}15`,
+                  borderColor: `${selectedClimberColor}40`
+                }}
+                className="text-[11px] font-semibold border px-2 py-0.5 rounded-full flex items-center gap-1 animate-in fade-in"
+              >
                 On behalf of {selectedClimber.display_name}
               </span>
             ) : (
@@ -178,9 +187,10 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                     setSelectedUserId(climber.id);
                     setJustSavedName(null);
                   }}
+                  style={isSelected ? { borderColor: climber.accent_color || selectedClimberColor, boxShadow: `0 0 0 1px ${(climber.accent_color || selectedClimberColor)}80` } : undefined}
                   className={`flex items-center gap-2 px-2.5 py-2 rounded-xl border text-xs font-semibold shrink-0 transition-all active-press ${
                     isSelected
-                      ? 'bg-slate-800 border-amber-400 text-white shadow-md ring-1 ring-amber-400/50'
+                      ? 'bg-slate-800 text-white shadow-md'
                       : 'bg-slate-850/70 border-slate-700/80 text-slate-400 hover:text-slate-200 hover:border-slate-600'
                   }`}
                 >
@@ -209,7 +219,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
           <div className="flex items-center justify-between text-xs text-slate-400 pt-1 border-t border-slate-750/50">
             <span className="flex items-center gap-1.5">
               <span>Active:</span>
-              <strong className="text-amber-400 font-semibold">{selectedClimber?.display_name}</strong>
+              <strong className="font-semibold" style={{ color: selectedClimberColor }}>{selectedClimber?.display_name}</strong>
               {isLoggingForOther && (
                 <button
                   type="button"
@@ -328,9 +338,10 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                 key={num}
                 type="button"
                 onClick={() => setAttemptCount(num)}
+                style={attemptCount === num ? { backgroundColor: selectedClimberColor, color: '#000000' } : undefined}
                 className={`px-3 py-1 rounded-lg text-xs font-mono font-bold transition-all ${
                   attemptCount === num
-                    ? 'bg-amber-400 text-black shadow'
+                    ? 'shadow'
                     : 'bg-slate-700/60 text-slate-300 hover:bg-slate-700'
                 }`}
               >
@@ -344,9 +355,9 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-800/40 border border-slate-700/60 text-xs">
             <div className="flex items-center gap-2 text-slate-300">
-              <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
+              <Calendar className="w-4 h-4 shrink-0" style={{ color: selectedClimberColor }} />
               <span className="font-semibold">Session Date:</span>
-              <span className="font-mono font-bold text-amber-400">
+              <span className="font-mono font-bold" style={{ color: selectedClimberColor }}>
                 {logDate === getTodayIsoDate() ? 'Today' : logDate}
               </span>
             </div>
@@ -358,9 +369,10 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                   setLogDate(getTodayIsoDate());
                   setShowDatePicker(false);
                 }}
+                style={logDate === getTodayIsoDate() ? { backgroundColor: selectedClimberColor, color: '#000000' } : undefined}
                 className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
                   logDate === getTodayIsoDate()
-                    ? 'bg-amber-400 text-black shadow'
+                    ? 'shadow'
                     : 'bg-slate-700/60 text-slate-300 hover:text-white'
                 }`}
               >
@@ -399,7 +411,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                 type="date"
                 value={logDate}
                 onChange={(e) => setLogDate(e.target.value)}
-                className="bg-slate-900 border border-slate-700 text-slate-100 text-xs rounded-xl px-3 py-1.5 outline-none focus:border-amber-400 font-mono"
+                className="bg-slate-900 border border-slate-700 text-slate-100 text-xs rounded-xl px-3 py-1.5 outline-none focus:border-slate-500 font-mono"
               />
             </div>
           )}
@@ -427,7 +439,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
               className="py-3.5 px-3.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 active-press transition-all flex items-center justify-center gap-1.5 shrink-0"
               title="Save this climber's log and keep modal open to log for another"
             >
-              <Users className="w-4 h-4 text-amber-400" />
+              <Users className="w-4 h-4" style={{ color: selectedClimberColor }} />
               <span>Save & Log Next</span>
             </button>
           )}

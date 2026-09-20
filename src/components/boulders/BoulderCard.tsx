@@ -170,7 +170,7 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
                 e.stopPropagation();
                 onOpenDetails(boulder);
               }}
-              className="flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 font-medium px-1.5 py-0.5 rounded hover:bg-slate-800"
+              className="flex items-center gap-1 text-xs text-slate-300 hover:text-white font-mono font-medium px-1.5 py-0.5 rounded hover:bg-slate-800 transition-colors"
               title="Crew Comments"
             >
               <MessageSquare className="w-3.5 h-3.5" />

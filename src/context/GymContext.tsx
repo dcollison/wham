@@ -52,6 +52,7 @@ interface GymContextType {
   archiveBoulder: (boulderId: string, archive?: boolean) => Promise<void>;
   archiveAreaBoulders: (areaId: string) => Promise<void>;
   addComment: (boulderId: string, content: string) => Promise<void>;
+  deleteComment: (commentId: string) => Promise<void>;
   getBoulderAttempts: (boulderId: string) => Attempt[];
   getBoulderComments: (boulderId: string) => Comment[];
   getUserAttemptOnBoulder: (boulderId: string, userId?: string) => Attempt | undefined;
@@ -244,7 +245,35 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, (payload) => {
             if (payload.eventType === 'INSERT') {
-              setComments(prev => [...prev, payload.new as Comment]);
+              const newComm = payload.new as Comment;
+              setComments(prev => {
+                // Ignore if already present
+                if (prev.some(c => c.id === newComm.id)) return prev;
+
+                const authorProfile = climbers.find(cl => cl.id === newComm.user_id);
+                const commentWithProfile: Comment = {
+                  ...newComm,
+                  profile: authorProfile || newComm.profile
+                };
+
+                // Replace optimistic comment if found
+                const optimisticIdx = prev.findIndex(c =>
+                  c.id.startsWith('comm-') &&
+                  c.boulder_id === newComm.boulder_id &&
+                  c.user_id === newComm.user_id &&
+                  c.content === newComm.content
+                );
+
+                if (optimisticIdx !== -1) {
+                  const updated = [...prev];
+                  updated[optimisticIdx] = commentWithProfile;
+                  return updated;
+                }
+
+                return [...prev, commentWithProfile];
+              });
+            } else if (payload.eventType === 'DELETE') {
+              setComments(prev => prev.filter(c => c.id !== payload.old.id));
             }
           })
           .subscribe();
@@ -267,34 +296,38 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const client = supabase;
     if (!isSupabaseConfigured || !client) return;
 
-    const refreshAttempts = async () => {
+    const refreshData = async () => {
       try {
-        const { data, error } = await client
-          .from('attempts')
-          .select('*, profile:profiles(*)');
+        const [attRes, commRes] = await Promise.all([
+          client.from('attempts').select('*, profile:profiles(*)'),
+          client.from('comments').select('*, profile:profiles(*)')
+        ]);
 
-        if (!error && data && data.length > 0) {
-          setAttempts(data);
+        if (!attRes.error && attRes.data && attRes.data.length > 0) {
+          setAttempts(attRes.data);
+        }
+        if (!commRes.error && commRes.data && commRes.data.length > 0) {
+          setComments(commRes.data);
         }
       } catch (err) {
-        console.warn('Background attempts sync error:', err);
+        console.warn('Background sync error:', err);
       }
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        refreshAttempts();
+        refreshData();
       }
     };
 
-    window.addEventListener('focus', refreshAttempts);
+    window.addEventListener('focus', refreshData);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // Periodic poll every 25 seconds for reliable multi-device syncing
-    const interval = setInterval(refreshAttempts, 25000);
+    const interval = setInterval(refreshData, 25000);
 
     return () => {
-      window.removeEventListener('focus', refreshAttempts);
+      window.removeEventListener('focus', refreshData);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearInterval(interval);
     };
@@ -729,10 +762,32 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           .single();
 
         if (!error && data) {
-          setComments(prev => prev.map(c => c.id === newComment.id ? data : c));
+          setComments(prev => {
+            const hasReal = prev.some(c => c.id === data.id);
+            if (hasReal) {
+              return prev.filter(c => c.id !== newComment.id);
+            }
+            return prev.map(c => c.id === newComment.id ? data : c);
+          });
         }
       } catch (err) {
         console.error('Failed to insert comment in Supabase:', err);
+      }
+    }
+  };
+
+  // Delete Comment
+  const deleteComment = async (commentId: string) => {
+    setComments(prev => prev.filter(c => c.id !== commentId));
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase
+          .from('comments')
+          .delete()
+          .eq('id', commentId);
+      } catch (err) {
+        console.error('Failed to delete comment in Supabase:', err);
       }
     }
   };
@@ -775,6 +830,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         archiveBoulder,
         archiveAreaBoulders,
         addComment,
+        deleteComment,
         getBoulderAttempts,
         getBoulderComments,
         getUserAttemptOnBoulder,

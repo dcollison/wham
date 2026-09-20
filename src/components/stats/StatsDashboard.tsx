@@ -15,6 +15,7 @@ import {
 } from '../../types';
 import { ClimberAvatar } from '../ClimberAvatar';
 import { CompLeaderboard } from '../leaderboard/CompLeaderboard';
+import { useAuth } from '../../context/AuthContext';
 import {
   Zap,
   Check,
@@ -55,22 +56,22 @@ interface StatsDashboardProps {
 
 export { CLIMBER_COLORS, CLIMBER_ACCENT_PALETTE, getClimberColor };
 
-const getAccoladeIcon = (id: string) => {
+const getAccoladeIcon = (id: string, color?: string) => {
   switch (id) {
     case 'apex-crusher':
-      return <Flame className="w-5 h-5 text-amber-400" />;
+      return <Flame className="w-5 h-5" style={color ? { color } : undefined} />;
     case 'flash-artist':
       return <Zap className="w-5 h-5 text-amber-400 fill-amber-400" />;
     case 'project-battler':
-      return <Activity className="w-5 h-5 text-amber-400" />;
+      return <Activity className="w-5 h-5" style={color ? { color } : undefined} />;
     case 'circuit-explorer':
-      return <Layers className="w-5 h-5 text-amber-400" />;
+      return <Layers className="w-5 h-5" style={color ? { color } : undefined} />;
     case 'the-sniper':
-      return <Target className="w-5 h-5 text-amber-400" />;
+      return <Target className="w-5 h-5" style={color ? { color } : undefined} />;
     case 'session-devotee':
-      return <Calendar className="w-5 h-5 text-amber-400" />;
+      return <Calendar className="w-5 h-5" style={color ? { color } : undefined} />;
     default:
-      return <Award className="w-5 h-5 text-amber-400" />;
+      return <Award className="w-5 h-5" style={color ? { color } : undefined} />;
   }
 };
 
@@ -84,11 +85,12 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
   initialTab,
   onSelectBoulder
 }) => {
-  // Navigation tabs inside Stats Dashboard
-  const [activeTab, setActiveTab] = useState<'overview' | 'leaderboard' | 'comparison' | 'timeline' | 'pyramid' | 'circuits'>(
-    initialTab || 'overview'
-  );
+  // Navigation tabs
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'leaderboard' | 'comparison' | 'timeline' | 'pyramid' | 'circuits'
+  >(initialTab || 'overview');
 
+  // Keep activeTab in sync if parent changes initialTab
   useEffect(() => {
     if (initialTab) {
       setActiveTab(initialTab);
@@ -99,8 +101,9 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
   const [selectedGymId, setSelectedGymId] = useState<string>('all');
   const [selectedClimberId, setSelectedClimberId] = useState<string>(currentUserId || climbers[0]?.id || '');
 
-  const activeUser = climbers.find((c) => c.id === currentUserId);
-  const activeColor = activeUser?.accent_color || '#F59E0B';
+  const { currentUser } = useAuth();
+  const activeUser = climbers.find((c) => c.id === currentUserId) || currentUser;
+  const activeColor = currentUser?.accent_color || activeUser?.accent_color || '#3B82F6';
 
   // User preference to show or hide crew accolades
   const [showAccolades, setShowAccolades] = useState<boolean>(() => {
@@ -900,7 +903,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           <select
             value={selectedGymId}
             onChange={(e) => setSelectedGymId(e.target.value)}
-            className="flex-1 sm:flex-none bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 outline-none focus:border-amber-400 font-medium"
+            className="flex-1 sm:flex-none bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 outline-none focus:border-slate-500 font-medium"
           >
             <option value="all">All Gyms (Bond & Hub)</option>
             {gyms.map((g) => (
@@ -973,27 +976,30 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
             )}
           </div>
 
-          {/* Climber Switcher Pill Bar (In 'My Stats' mode) */}
+          {/* Climber Selector Tabs (In 'My Stats' mode) */}
           {viewMode === 'my' && (
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 bg-slate-900/60 p-2.5 rounded-2xl border border-slate-800">
-              <span className="text-xs font-bold text-slate-400 shrink-0 ml-1">Climber:</span>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                {climbers.map((c, idx) => {
-                  const isSelected = (selectedClimberId || currentUserId) === c.id;
-                  const isYou = currentUserId === c.id;
-                  const color = getClimberColor(c, idx);
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+              <span className="text-xs font-semibold text-slate-400 shrink-0">Viewing:</span>
+              <div className="flex items-center gap-1.5">
+                {climbers.map((c) => {
+                  const isSelected = c.id === selectedClimberId;
+                  const isYou = c.id === currentUserId;
+                  const climberColor = c.accent_color || activeColor;
+
                   return (
                     <button
                       key={c.id}
                       type="button"
-                      onClick={() => {
-                        setSelectedClimberId(c.id);
-                      }}
-                      style={isSelected ? { backgroundColor: color.hex, color: '#000000' } : undefined}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all active-press ${
+                      onClick={() => setSelectedClimberId(c.id)}
+                      style={
                         isSelected
-                          ? `${color.bg} text-black shadow-md`
-                          : 'bg-slate-800/80 border border-slate-700/80 text-slate-300 hover:text-white'
+                          ? { borderColor: climberColor, backgroundColor: `${climberColor}15`, color: climberColor }
+                          : undefined
+                      }
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+                        isSelected
+                          ? 'shadow-sm'
+                          : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
                       }`}
                     >
                       <ClimberAvatar profile={c} size="xs" />
@@ -1033,10 +1039,10 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                 {viewMode === 'group' ? 'Crew Top Grade' : 'Hardest Send'}
               </span>
               <div className="flex items-baseline gap-2 mt-2">
-                <span className="font-mono text-3xl font-black text-amber-400">
+                <span className="font-mono text-3xl font-black" style={{ color: activeColor }}>
                   {activeStats.hardestSend || '—'}
                 </span>
-                <Flame className="w-5 h-5 text-amber-500" />
+                <Flame className="w-5 h-5" style={{ color: activeColor }} />
               </div>
               <span className="text-[10px] text-slate-400 mt-1">
                 {viewMode === 'group' ? 'Hardest topped by crew' : 'Top grade topped'}
@@ -1052,11 +1058,11 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                 <span className="font-mono text-3xl font-black text-emerald-400">
                   {activeStats.totalSends}
                 </span>
-                <Check className="w-5 h-5 text-emerald-400 stroke-[3]" />
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
               </div>
               <span className="text-[10px] text-slate-400 mt-1">
                 {viewMode === 'group'
-                  ? `${activeStats.uniqueBouldersTopped} unique climbs topped`
+                  ? `${activeStats.totalSends} combined tops`
                   : `${activeStats.sendRate}% send efficiency`}
               </span>
             </div>
@@ -1080,29 +1086,28 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
             {/* Avg Attempts */}
             <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                {viewMode === 'group' ? 'Crew Avg Tries' : 'Avg Tries / Send'}
+                Avg Tries / Send
               </span>
               <div className="flex items-baseline gap-2 mt-2">
-                <span className="font-mono text-3xl font-black text-blue-400">
+                <span className="font-mono text-3xl font-black text-cyan-400">
                   {activeStats.averageAttemptsOnSend}
                 </span>
-                <Target className="w-5 h-5 text-blue-400" />
+                <Target className="w-5 h-5 text-cyan-400" />
               </div>
               <span className="text-[10px] text-slate-400 mt-1">Attempts per send</span>
             </div>
           </div>
 
-          {/* Gym Completion Progress & Sector Coverage */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Progress Ring Card */}
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col items-center justify-center gap-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                {viewMode === 'group' ? 'Crew Gym Coverage' : 'Active Gym Completion'}
+          {/* Active Gym Coverage & Sector Breakdown */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* Donut Chart: Gym Topped Percentage */}
+            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col items-center justify-between gap-4">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 self-start">
+                {viewMode === 'group' ? 'Crew Gym Coverage' : 'Gym Completion Rate'}
               </span>
 
-              {/* SVG Progress Ring */}
-              <div className="relative w-36 h-36 flex items-center justify-center my-1">
-                <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+              <div className="relative flex items-center justify-center">
+                <svg className="w-36 h-36 -rotate-90 transform" viewBox="0 0 100 100">
                   <circle
                     cx="50"
                     cy="50"
@@ -1116,7 +1121,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                     cy="50"
                     r="40"
                     fill="transparent"
-                    stroke="#F59E0B"
+                    stroke={activeColor}
                     strokeWidth="10"
                     strokeDasharray="251.2"
                     strokeDashoffset={251.2 - (251.2 * completionPct) / 100}
@@ -1145,7 +1150,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
                   {viewMode === 'group' ? 'Crew Area Coverage' : 'Area Completion & Remaining Climbs'}
                 </span>
-                <span className="text-[11px] font-mono text-amber-400">
+                <span className="text-[11px] font-mono" style={{ color: activeColor }}>
                   {viewMode === 'group' ? 'Team Progress' : 'Clockwise Sectors'}
                 </span>
               </div>
@@ -1161,8 +1166,8 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                     </div>
                     <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden flex">
                       <div
-                        className="h-full bg-amber-400 rounded-full transition-all duration-500"
-                        style={{ width: `${item.pct}%` }}
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${item.pct}%`, backgroundColor: activeColor }}
                       />
                     </div>
                   </div>
@@ -1177,7 +1182,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
               <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col gap-4 shadow-sm animate-in fade-in">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Trophy className="w-5 h-5 text-amber-400" />
+                    <Trophy className="w-5 h-5" style={{ color: activeColor }} />
                     <div>
                       <h3 className="text-sm font-bold text-white">Crew Superlatives & Accolades</h3>
                       <p className="text-[11px] text-slate-400">Unique standout achievements across your crew</p>
@@ -1200,9 +1205,12 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                       className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/60 flex flex-col items-center text-center gap-1.5 hover:border-slate-600 transition-colors"
                     >
                       <div className="w-8 h-8 rounded-xl bg-slate-800/80 border border-slate-750 flex items-center justify-center">
-                        {getAccoladeIcon(item.id)}
+                        {getAccoladeIcon(item.id, item.climber.accent_color || activeColor)}
                       </div>
-                      <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">
+                      <span
+                        className="text-[10px] font-bold uppercase tracking-wider"
+                        style={{ color: item.climber.accent_color || activeColor }}
+                      >
                         {item.title}
                       </span>
                       <div className="flex items-center gap-1.5 max-w-full my-0.5">
@@ -1226,9 +1234,9 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                 <button
                   type="button"
                   onClick={() => handleToggleAccolades(true)}
-                  className="text-xs font-semibold text-slate-400 hover:text-amber-400 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-colors shadow-sm"
+                  className="text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-colors shadow-sm"
                 >
-                  <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                  <Trophy className="w-3.5 h-3.5" style={{ color: activeColor }} />
                   <span>Show Crew Accolades</span>
                 </button>
               </div>
@@ -1246,7 +1254,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Crown className="w-5 h-5 text-amber-400" />
+                <Crown className="w-5 h-5" style={{ color: activeColor }} />
                 <h3 className="text-sm font-bold text-white">The Crew Comparison Matrix</h3>
               </div>
               <span className="text-xs text-slate-400 font-mono">
@@ -1313,7 +1321,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                         <td className="py-3 text-center">
                           <span className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
                             item.sendRate >= 70 ? 'bg-emerald-500/20 text-emerald-300' :
-                            item.sendRate >= 50 ? 'bg-amber-500/20 text-amber-300' :
+                            item.sendRate >= 50 ? 'bg-sky-500/20 text-sky-300' :
                             'bg-slate-800 text-slate-400'
                           }`}>
                             {item.sendRate}%
@@ -1339,7 +1347,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col gap-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-amber-400" />
+                <BarChart3 className="w-5 h-5" style={{ color: activeColor }} />
                 <h3 className="text-sm font-bold text-white">Side-by-Side Sends per Grade</h3>
               </div>
 
@@ -1363,7 +1371,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                 return (
                   <div key={g} className="bg-slate-850/40 border border-slate-800/80 rounded-xl p-3 flex flex-col gap-2">
                     <div className="flex items-center justify-between">
-                      <span className="font-mono text-sm font-black text-amber-400">{g}</span>
+                      <span className="font-mono text-sm font-black text-white">{g}</span>
                       <span className="text-[11px] text-slate-400 font-mono">
                         Total {climberStatsList.reduce((sum, c) => sum + (c.perGrade[g]?.sent || 0), 0)} sends
                       </span>
@@ -1376,16 +1384,16 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                         const pct = Math.round((sends / maxSendsThisGrade) * 100);
 
                         return (
-                          <div key={c.profile.id} className="flex flex-col gap-1">
+                          <div key={c.profile.id} className="space-y-1">
                             <div className="flex items-center justify-between text-[11px]">
-                              <span className="text-slate-300 truncate">{c.profile.display_name}</span>
+                              <span className="text-slate-300 font-medium">{c.profile.display_name}</span>
                               <span className="font-mono font-bold text-slate-200">
-                                {sends} <span className="text-slate-500 font-normal">({flashes} flash)</span>
+                                {sends} <span className="text-slate-500 font-normal">({flashes}f)</span>
                               </span>
                             </div>
-                            <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                            <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden flex">
                               <div
-                                className="h-full rounded-full transition-all duration-300"
+                                className="h-full rounded-full transition-all duration-500"
                                 style={{
                                   width: `${pct}%`,
                                   backgroundColor: c.color.hex
@@ -1408,38 +1416,45 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
                   <Swords className="w-5 h-5 text-rose-400" />
-                  <h3 className="text-sm font-bold text-white">1v1 Head-to-Head Showdown</h3>
+                  <h3 className="text-sm font-bold text-white">1-on-1 Head to Head Battle</h3>
                 </div>
-                <span className="text-xs text-slate-400">Pick any two crew members to compare</span>
+                <span className="text-xs text-slate-400 font-mono">Direct Climber Comparison</span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-850/60 p-3 rounded-xl border border-slate-800">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: battleData.climberA.color.hex }} />
-                  <label className="text-xs font-bold text-slate-400 uppercase">Climber 1:</label>
-                  <select
-                    value={battleClimberAId}
-                    onChange={(e) => setBattleClimberAId(e.target.value)}
-                    className="flex-1 bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 outline-none focus:border-amber-400 font-semibold"
-                  >
-                    {climbers.map((c) => (
-                      <option key={c.id} value={c.id}>{c.display_name}</option>
-                    ))}
-                  </select>
+              {/* Climber Selectors */}
+              <div className="flex flex-col gap-3">
+                <div className="text-xs text-slate-400 font-medium">
+                  Select any two climbers to see head-to-head sent counts, shared sends, and problems where one has beta over the other:
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: battleData.climberB.color.hex }} />
-                  <label className="text-xs font-bold text-slate-400 uppercase">Climber 2:</label>
-                  <select
-                    value={battleClimberBId}
-                    onChange={(e) => setBattleClimberBId(e.target.value)}
-                    className="flex-1 bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 outline-none focus:border-amber-400 font-semibold"
-                  >
-                    {climbers.map((c) => (
-                      <option key={c.id} value={c.id}>{c.display_name}</option>
-                    ))}
-                  </select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-850/60 p-3 rounded-xl border border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: battleData.climberA.color.hex }} />
+                    <label className="text-xs font-bold text-slate-400 uppercase">Climber 1:</label>
+                    <select
+                      value={battleClimberAId}
+                      onChange={(e) => setBattleClimberAId(e.target.value)}
+                      className="flex-1 bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 outline-none focus:border-slate-500 font-semibold"
+                    >
+                      {climbers.map((c) => (
+                        <option key={c.id} value={c.id}>{c.display_name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: battleData.climberB.color.hex }} />
+                    <label className="text-xs font-bold text-slate-400 uppercase">Climber 2:</label>
+                    <select
+                      value={battleClimberBId}
+                      onChange={(e) => setBattleClimberBId(e.target.value)}
+                      className="flex-1 bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 outline-none focus:border-slate-500 font-semibold"
+                    >
+                      {climbers.map((c) => (
+                        <option key={c.id} value={c.id}>{c.display_name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -1510,7 +1525,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                   </div>
                   <div className="border-x border-slate-800 px-2">
                     <span className="text-[10px] text-slate-400 block uppercase font-bold">Shared Sends</span>
-                    <strong className="font-mono text-base font-black text-amber-400">
+                    <strong className="font-mono text-base font-black text-white">
                       {battleData.sharedCount}
                     </strong>
                     <span className="text-[9px] text-slate-500 block">climbs both sent</span>
@@ -1548,7 +1563,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                             className="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800/80 text-xs"
                           >
                             <div className="flex items-center gap-2">
-                              <span className="font-mono font-black text-amber-400">{boulder.grade}</span>
+                              <span className="font-mono font-black text-white">{boulder.grade}</span>
                               <span className="text-slate-300 font-medium">{boulder.hold_colour}</span>
                             </div>
                             <span className="text-[10px] text-slate-500 truncate max-w-[120px]">
@@ -1583,7 +1598,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                             className="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800/80 text-xs"
                           >
                             <div className="flex items-center gap-2">
-                              <span className="font-mono font-black text-amber-400">{boulder.grade}</span>
+                              <span className="font-mono font-black text-white">{boulder.grade}</span>
                               <span className="text-slate-300 font-medium">{boulder.hold_colour}</span>
                             </div>
                             <span className="text-[10px] text-slate-500 truncate max-w-[120px]">
@@ -2068,7 +2083,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                           <span className="text-[10px] text-slate-400 uppercase font-bold">
                             {formatShortDate(sess.date).split(' ')[1]}
                           </span>
-                          <span className="text-xs font-black text-amber-400">
+                          <span className="text-xs font-black" style={{ color: activeColor }}>
                             {formatShortDate(sess.date).split(' ')[0]}
                           </span>
                         </div>
@@ -2077,7 +2092,10 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                           <h4 className="text-xs font-bold text-white flex items-center gap-2">
                             <span>{formatFullDate(sess.date)}</span>
                             {sess.hardestSend && (
-                              <span className="text-[10px] font-mono font-black text-amber-400 bg-amber-400/20 px-1.5 py-0.2 rounded">
+                              <span
+                                className="text-[10px] font-mono font-black px-1.5 py-0.5 rounded"
+                                style={{ color: activeColor, backgroundColor: `${activeColor}20` }}
+                              >
                                 Top: {sess.hardestSend}
                               </span>
                             )}
@@ -2122,7 +2140,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                                 className="flex items-center justify-between p-2 rounded-lg bg-slate-850 border border-slate-800 text-xs"
                               >
                                 <div className="flex items-center gap-2">
-                                  <span className="font-mono font-black text-amber-400">
+                                  <span className="font-mono font-black text-white">
                                     {item.boulder?.grade || 'V?'}
                                   </span>
                                   <span className="text-slate-300 font-medium truncate max-w-[90px]">
@@ -2195,7 +2213,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
               })}
             </div>
 
-            <span className="text-xs font-mono font-bold text-amber-400">
+            <span className="text-xs font-mono font-bold" style={{ color: activeColor }}>
               Pyramid Score: {activeStats.pyramidPoints} pts
             </span>
           </div>
@@ -2204,7 +2222,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Layers className="w-5 h-5 text-amber-400" />
+                <Layers className="w-5 h-5" style={{ color: activeColor }} />
                 <h3 className="text-sm font-bold text-white">
                   {viewMode === 'group' ? 'Combined Crew Send Pyramid' : `${climbers.find((c) => c.id === (selectedClimberId || currentUserId))?.display_name}'s Send Pyramid`}
                 </h3>
@@ -2233,7 +2251,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
 
                 return (
                   <div key={g} className="flex items-center gap-3">
-                    <span className="w-10 font-mono text-xs font-black text-amber-400 text-right shrink-0">
+                    <span className="w-10 font-mono text-xs font-black text-white text-right shrink-0">
                       {g}
                     </span>
 
@@ -2279,7 +2297,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
 
             <div className="p-3.5 rounded-xl bg-slate-850 border border-slate-800/80 flex items-center justify-between text-xs text-slate-300">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                <Sparkles className="w-4 h-4 shrink-0" style={{ color: activeColor }} />
                 <span>
                   <strong>Pyramid Base:</strong> {activeStats.perGrade['V0']?.sent + activeStats.perGrade['V1']?.sent + activeStats.perGrade['V2']?.sent + activeStats.perGrade['V3']?.sent || 0} volume climbs (V0–V3)
                 </span>
@@ -2316,13 +2334,13 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
 
                     return (
                       <tr key={g} className="hover:bg-slate-850/50">
-                        <td className="py-2.5 font-bold text-amber-400">{g}</td>
+                        <td className="py-2.5 font-bold text-white font-mono">{g}</td>
                         <td className="py-2.5 text-slate-300">{data.attempted}</td>
                         <td className="py-2.5 text-emerald-400 font-semibold">{data.sent}</td>
                         <td className="py-2.5">
                           <span className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
                             sendPct >= 75 ? 'bg-emerald-500/20 text-emerald-300' :
-                            sendPct >= 50 ? 'bg-amber-500/20 text-amber-300' :
+                            sendPct >= 50 ? 'bg-sky-500/20 text-sky-300' :
                             'bg-slate-800 text-slate-400'
                           }`}>
                             {sendPct}%
@@ -2348,7 +2366,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <CircleDot className="w-5 h-5 text-amber-400" />
+                <CircleDot className="w-5 h-5" style={{ color: activeColor }} />
                 <h3 className="text-sm sm:text-base font-bold text-white">Hold Colour Circuits</h3>
               </div>
               <span className="text-xs text-slate-400 font-mono">Active Climbs & Progress</span>
@@ -2368,7 +2386,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                       />
                       <div>
                         <strong className="text-xs sm:text-sm text-white block font-bold">{circuit.name} Circuit</strong>
-                        <span className="text-xs text-amber-400 font-mono font-bold">{circuit.gradeRange}</span>
+                        <span className="text-xs text-slate-200 font-mono font-bold">{circuit.gradeRange}</span>
                       </div>
                     </div>
 

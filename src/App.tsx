@@ -53,9 +53,12 @@ export function App() {
     archiveBoulder,
     archiveAreaBoulders,
     addComment,
+    deleteComment,
     orderedActiveBouldersInCurrentArea,
     loading
   } = useGym();
+
+  const activeColor = currentUser?.accent_color || '#3B82F6';
 
   // Hash-based routing for 100% static hosting on GitHub Pages
   const [currentTab, setCurrentTab] = useState<'boulders' | 'beta' | 'stats' | 'settings'>('boulders');
@@ -365,7 +368,7 @@ export function App() {
               </div>
             ) : orderedActiveBouldersInCurrentArea.length > 0 ? (
               <div className="flex flex-col items-center justify-center p-8 bg-slate-900/60 border border-slate-800 rounded-2xl text-center gap-3 my-4">
-                <div className="p-3 bg-slate-800 text-amber-400 rounded-2xl">
+                <div className="p-3 bg-slate-800 rounded-2xl" style={{ color: activeColor }}>
                   <Filter className="w-6 h-6" />
                 </div>
                 <div>
@@ -379,7 +382,8 @@ export function App() {
                 <button
                   type="button"
                   onClick={handleResetFilters}
-                  className="mt-2 flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black active-press shadow"
+                  style={{ backgroundColor: activeColor }}
+                  className="mt-2 flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-black active-press shadow"
                 >
                   <RotateCcw className="w-3.5 h-3.5 stroke-[2.5]" />
                   <span>Reset All Filters</span>
@@ -387,7 +391,7 @@ export function App() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center p-8 bg-slate-900/60 border border-slate-800 rounded-2xl text-center gap-3 my-6">
-                <div className="p-3 bg-slate-800 text-amber-400 rounded-2xl">
+                <div className="p-3 bg-slate-800 rounded-2xl" style={{ color: activeColor }}>
                   <Compass className="w-6 h-6" />
                 </div>
                 <div>
@@ -402,7 +406,8 @@ export function App() {
                   <button
                     type="button"
                     onClick={() => setIsAddModalOpen(true)}
-                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black active-press shadow"
+                    style={{ backgroundColor: activeColor }}
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-black active-press shadow"
                   >
                     <Plus className="w-4 h-4 stroke-[3]" />
                     <span>Add Single Climb</span>
@@ -410,7 +415,8 @@ export function App() {
                   <button
                     type="button"
                     onClick={() => setIsBulkAddOpen(true)}
-                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-400/30 active-press shadow"
+                    style={{ color: activeColor, borderColor: `${activeColor}50` }}
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 border active-press shadow"
                   >
                     <Layers className="w-4 h-4" />
                     <span>Bulk Log Wall Set</span>
@@ -434,6 +440,7 @@ export function App() {
             onSelectBoulder={(b) => setDetailBoulder(b)}
             onQuickLog={(b, targetUserId) => handleOpenQuickLog(b, targetUserId)}
             onAddComment={addComment}
+            onDeleteComment={deleteComment}
           />
         )}
 
@@ -503,6 +510,7 @@ export function App() {
         currentUserId={currentUser?.id}
         onQuickLog={(b, targetUserId) => handleOpenQuickLog(b, targetUserId)}
         onAddComment={addComment}
+        onDeleteComment={deleteComment}
         onToggleArchive={archiveBoulder}
       />
 
@@ -596,7 +604,10 @@ export function App() {
       {!hasChosenClimber && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
           <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col items-center gap-5 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-amber-400 text-black flex items-center justify-center font-black shadow-lg shadow-amber-400/20">
+            <div
+              className="w-14 h-14 rounded-2xl text-black flex items-center justify-center font-black shadow-lg"
+              style={{ backgroundColor: activeColor }}
+            >
               <Zap className="w-7 h-7 fill-black text-black stroke-[2.5]" />
             </div>
             <div>
@@ -612,10 +623,10 @@ export function App() {
                     switchClimber(climber.id);
                     setHasChosenClimber(true);
                   }}
-                  className="p-3.5 rounded-2xl bg-slate-800/80 hover:bg-amber-400 hover:text-black border border-slate-700/80 flex flex-col items-center gap-2 transition-all active-press group"
+                  className="p-3.5 rounded-2xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 hover:border-slate-600 flex flex-col items-center gap-2 transition-all active-press group"
                 >
                   <ClimberAvatar profile={climber} size="xl" />
-                  <span className="font-bold text-sm text-slate-200 group-hover:text-black">
+                  <span className="font-bold text-sm text-slate-200 group-hover:text-white">
                     {climber.display_name}
                   </span>
                 </button>
@@ -628,7 +639,7 @@ export function App() {
                 setHasChosenClimber(true);
                 setIsSettingsOpen(true);
               }}
-              className="text-xs text-amber-400 hover:text-amber-300 font-bold hover:underline pt-1"
+              className="text-xs text-slate-400 hover:text-white font-bold hover:underline pt-1 transition-colors"
             >
               + Add a new climber
             </button>

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Boulder, Attempt, Profile, Gym } from '../../types';
 import { CompLeaderboard } from './CompLeaderboard';
 import { X, Trophy, ExternalLink } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 interface CompLeaderboardModalProps {
   isOpen: boolean;
@@ -43,6 +44,10 @@ export const CompLeaderboardModal: React.FC<CompLeaderboardModalProps> = ({
 
   if (!isOpen) return null;
 
+  const { currentUser } = useAuth();
+  const activeUser = climbers.find(c => c.id === currentUserId) || currentUser;
+  const activeColor = currentUser?.accent_color || activeUser?.accent_color || '#3B82F6';
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div
@@ -52,7 +57,7 @@ export const CompLeaderboardModal: React.FC<CompLeaderboardModalProps> = ({
         {/* Modal Header Close Button */}
         <div className="flex items-center justify-between sticky top-0 bg-slate-950/90 backdrop-blur-md pb-2 z-10 border-b border-slate-800/80">
           <div className="flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-amber-400" />
+            <Trophy className="w-5 h-5" style={{ color: activeColor }} />
             <span className="text-sm font-bold text-white font-mono uppercase tracking-wider">
               Gym Comp Standings
             </span>
@@ -66,7 +71,7 @@ export const CompLeaderboardModal: React.FC<CompLeaderboardModalProps> = ({
                   onClose();
                   onNavigateToStats();
                 }}
-                className="text-[11px] font-bold text-slate-400 hover:text-amber-400 px-2 py-1 rounded-lg hover:bg-slate-800 transition-colors hidden sm:flex items-center gap-1"
+                className="text-[11px] font-bold text-slate-400 hover:text-white px-2 py-1 rounded-lg hover:bg-slate-800 transition-colors hidden sm:flex items-center gap-1"
                 title="View in full Analytics tab"
               >
                 <span>Analytics Tab</span>

@@ -42,7 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleShowArchived,
   isDemoMode
 }) => {
-  const activeColor = currentUser?.accent_color || '#F59E0B';
+  const activeColor = currentUser?.accent_color || '#3B82F6';
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState<boolean>(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
 

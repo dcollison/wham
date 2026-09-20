@@ -1,22 +1,3 @@
-- [x] Either make the main accent colour of the app match the user's selected accent colour, or use a neutral unimposing colour as the accent colour, there are too many competing colours at the moment.
-  - Set dynamic CSS variables `--wham-accent` and `--color-accent` to the active climber's accent color (Dale orange, Alex amber, Taiye cyan, Euan purple).
-  - Main app chrome (logo dot, active navigation tab, primary "+ Add Climb" button, active area tabs, submit buttons, filter highlights) now dynamically matches the active climber's accent.
-  - Replaced loud competing amber gradients and borders with calm, sleek, neutral dark slate (`slate-900`/`slate-800`), letting the physical hold colors and climber accents stand out clearly.
-- [x] The filter for status for climber defaulted to Alex even though the active profile is Dale.
-  - Synchronously initialized `currentUser` in `AuthContext` from saved profile in `localStorage` so there is no initial default to Alex.
-  - Synced `boulderFilters.targetClimberId` to track `currentUser.id` so whenever Dale (or any climber) is selected or active, the status filter automatically defaults to them.
-- [x] A user can give props as many times as they want for a given send, it should be limited to one per user.
-  - Replaced numeric counter with a user ID set map in `wham_sends_props` (`attemptId -> userId[]`).
-  - Limits each climber to 1 prop per send.
-  - Clicking the Props button when already propped toggles it off (un-props).
-- [x] There's so much going on with the UI, can it be simplified? fewer things to click, hide the filtering behind a single icon, etc.
-  - Removed 3 stacked rows of filter buttons (grade presets, 4 status buttons, 13 hold color swatches) from the top of the ticklist.
-  - Consolidated into a sleek Filter Bar with search and a single "Filters" button with active badge count.
-  - Tapping "Filters" opens a dedicated Filter & Sort modal sheet with grade range, status, hold colors, climber selector, and sorting.
-  - Streamlined secondary header actions: reduced 4 separate buttons into "+ Add Climb" and an overflow More Actions (`...`) dropdown menu.
-  - Removed redundant banners from crowding the ticklist, giving climbers immediate, uncluttered view of their problems.
-- [x] I logged a flash for Euan on one device and it did not update on another device, I gave it a few minutes.
-  - Root cause: Supabase Row-Level Security (RLS) policies were restricted to `TO authenticated`. Since Wham operates as a zero-auth client-side app connecting via the `anon` key, Supabase blocked attempts from being written and dropped Realtime broadcasts.
-  - Updated `supabase_schema.sql` and `GEMINI.md` to allow public (`anon` & `authenticated`) access on `attempts`, `boulders`, `comments`, `gyms`, `gym_areas`, `profiles`, and storage.
-  - Updated `GymContext.tsx` Realtime listener to match attempts on both `(boulder_id, user_id)` and `id` for both INSERT and UPDATE events, and attach climber profile.
-  - Added visibilitychange and window focus re-fetching plus background periodic polling (every 25 seconds) to ensure multi-device sync remains active even if WebSockets disconnect when phones lock.
+- [x] Adding a beta comment results in the same comment being added twice.
+- [x] When adding a beta comment from the beta spray tab, the new comment does not appear at the top of the list, and the rest of the list seems to temporarily duplicate until you click off and on it again.
+- [x] It should be possible to delete comments

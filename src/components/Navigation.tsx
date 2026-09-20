@@ -22,7 +22,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   unreadCommentsCount = 0
 }) => {
   const { currentUser } = useAuth();
-  const activeColor = currentUser?.accent_color || '#F59E0B';
+  const activeColor = currentUser?.accent_color || '#3B82F6';
 
   const tabs: TabItem[] = [
     { id: 'boulders', label: 'Boulders', icon: Compass, hash: '#/boulders' },

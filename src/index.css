@@ -29,6 +29,11 @@
     user-select: text;
     -webkit-user-select: text;
   }
+
+  ::selection {
+    background-color: var(--wham-accent, #06B6D4);
+    color: #000000;
+  }
 }
 
 /* Custom scrollbars */

@@ -61,7 +61,7 @@ export const BoulderFilters: React.FC<BoulderFiltersProps> = ({
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   const activeClimber = climbers.find((c) => c.id === currentUserId);
-  const activeColor = activeClimber?.accent_color || '#F59E0B';
+  const activeColor = activeClimber?.accent_color || '#3B82F6';
 
   // Check which preset matches current min/max grade
   const activePreset = GRADE_PRESETS.find((p) => {
@@ -170,13 +170,18 @@ export const BoulderFilters: React.FC<BoulderFiltersProps> = ({
           <button
             type="button"
             onClick={() => onUpdateFilters((p) => ({ ...p, statusFilter: 'unsent' }))}
-            className={`flex-1 min-w-[62px] flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold text-center transition-all active-press ${
+            style={filters.statusFilter === 'unsent' ? {
+              backgroundColor: `${activeColor}20`,
+              color: activeColor,
+              borderColor: `${activeColor}50`
+            } : undefined}
+            className={`flex-1 min-w-[62px] flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold text-center transition-all active-press border border-transparent ${
               filters.statusFilter === 'unsent'
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
+                ? 'shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <CircleDashed className="w-3 h-3 text-amber-400 shrink-0" />
+            <CircleDashed className="w-3 h-3 shrink-0" style={filters.statusFilter === 'unsent' ? { color: activeColor } : undefined} />
             <span>To Do</span>
           </button>
 
@@ -395,7 +400,7 @@ export const BoulderFilters: React.FC<BoulderFiltersProps> = ({
                     >
                       <span
                         className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: c.accent_color || '#F59E0B' }}
+                        style={{ backgroundColor: c.accent_color || '#3B82F6' }}
                       />
                       <span>{c.display_name}</span>
                       {isCurrent && <span className="text-[10px] opacity-75 font-mono">(You)</span>}
@@ -426,13 +431,18 @@ export const BoulderFilters: React.FC<BoulderFiltersProps> = ({
                 <button
                   type="button"
                   onClick={() => onUpdateFilters((p) => ({ ...p, statusFilter: 'unsent' }))}
+                  style={filters.statusFilter === 'unsent' ? {
+                    backgroundColor: `${activeColor}20`,
+                    color: activeColor,
+                    borderColor: `${activeColor}50`
+                  } : undefined}
                   className={`py-2 rounded-xl transition-all text-center flex items-center justify-center gap-1 border ${
                     filters.statusFilter === 'unsent'
-                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-sm'
+                      ? 'shadow-sm'
                       : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:text-slate-200'
                   }`}
                 >
-                  <CircleDashed className="w-3 h-3 text-amber-400" />
+                  <CircleDashed className="w-3 h-3" style={filters.statusFilter === 'unsent' ? { color: activeColor } : undefined} />
                   <span>To Do</span>
                 </button>
 

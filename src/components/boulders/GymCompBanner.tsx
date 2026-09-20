@@ -46,14 +46,20 @@ export const GymCompBanner: React.FC<GymCompBannerProps> = ({
   const topThree = standings.slice(0, 3);
   const currentUserStanding = standings.find((s) => s.climber.id === currentUserId);
   const activeUser = climbers.find((c) => c.id === currentUserId);
-  const activeColor = activeUser?.accent_color || '#F59E0B';
+  const activeColor = activeUser?.accent_color || '#3B82F6';
 
   if (activeBouldersCount === 0 || standings.length === 0) {
     return null;
   }
 
   return (
-    <div className="bg-gradient-to-r from-amber-500/15 via-slate-900 to-slate-900 border border-amber-500/30 hover:border-amber-500/50 rounded-2xl overflow-hidden transition-all shadow-md">
+    <div
+      style={{
+        borderColor: `${activeColor}40`,
+        boxShadow: `0 4px 20px -2px ${activeColor}15`
+      }}
+      className="bg-slate-900/90 border rounded-2xl overflow-hidden transition-all"
+    >
       {/* Top Main Bar */}
       <div className="p-3.5 sm:p-4 flex items-center justify-between gap-3">
         {/* Left: Trophy & Gym Title */}
@@ -70,10 +76,17 @@ export const GymCompBanner: React.FC<GymCompBannerProps> = ({
 
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-xs sm:text-sm font-black text-amber-300 tracking-tight flex items-center gap-1 group-hover:text-amber-200 transition-colors font-heading">
+              <span className="text-xs sm:text-sm font-black text-white tracking-tight flex items-center gap-1 font-heading">
                 <span>{gym?.name || 'Gym'} Comp Standings</span>
               </span>
-              <span className="text-[10px] px-2 py-0.5 bg-amber-400/20 text-amber-400 font-mono font-bold rounded-md border border-amber-400/30">
+              <span
+                style={{
+                  backgroundColor: `${activeColor}20`,
+                  color: activeColor,
+                  borderColor: `${activeColor}40`
+                }}
+                className="text-[10px] px-2 py-0.5 font-mono font-bold rounded-md border"
+              >
                 ACTIVE
               </span>
             </div>
@@ -127,7 +140,7 @@ export const GymCompBanner: React.FC<GymCompBannerProps> = ({
 
       {/* Expanded Podium Mini-View */}
       {isExpanded && (
-        <div className="p-3.5 sm:p-4 pt-0 border-t border-amber-500/20 mt-1 bg-slate-950/50 flex flex-col gap-3 animate-in slide-in-from-top-1 duration-150">
+        <div className="p-3.5 sm:p-4 pt-0 border-t border-slate-800/80 mt-1 bg-slate-950/50 flex flex-col gap-3 animate-in slide-in-from-top-1 duration-150">
           <div className="grid grid-cols-3 gap-2.5 text-center pt-2">
             {topThree.map((standing, index) => {
               const isGold = index === 0;
@@ -188,7 +201,8 @@ export const GymCompBanner: React.FC<GymCompBannerProps> = ({
             <button
               type="button"
               onClick={onOpenFullLeaderboard}
-              className="text-amber-400 hover:underline font-bold flex items-center gap-1"
+              style={{ color: activeColor }}
+              className="hover:underline font-bold flex items-center gap-1"
             >
               <span>Full Scorecards</span>
               <ChevronRight className="w-3.5 h-3.5" />

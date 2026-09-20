@@ -86,7 +86,7 @@ export const ClimberAvatar: React.FC<ClimberAvatarProps> = ({
   showBorderRing = false
 }) => {
   const effectiveName = name || profile?.display_name || 'Climber';
-  const effectiveColor = accentColor || profile?.accent_color || '#F59E0B';
+  const effectiveColor = accentColor || profile?.accent_color || '#3B82F6';
 
   // Check icon from profile.avatar_icon or avatar_url (e.g. "icon:zap")
   const rawUrl = avatarUrl !== undefined ? avatarUrl : profile?.avatar_url;

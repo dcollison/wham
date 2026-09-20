@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { Boulder, Grade, GRADES, HOLD_COLORS, GymArea, getHoldSwatchStyle } from '../../types';
 import { compressImage, CompressionResult } from '../../lib/imageCompressor';
 import { X, Camera, Upload, Plus, AlertCircle, ArrowDown, Layers } from 'lucide-react';
@@ -37,6 +38,9 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
   onSwitchToBulk,
   onAdd
 }) => {
+  const { currentUser } = useAuth();
+  const activeColor = currentUser?.accent_color || '#3B82F6';
+
   const gymAreas = useMemo(() => {
     return areas.filter(a => a.gym_id === gymId).sort((a, b) => a.sort_order - b.sort_order);
   }, [areas, gymId]);
@@ -137,7 +141,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div>
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <Plus className="w-5 h-5 text-amber-400" />
+              <Plus className="w-5 h-5" style={{ color: activeColor }} />
               Add Boulder to {displayAreaName}
             </h2>
             <p className="text-xs text-slate-400">Positioned sequentially in clockwise order</p>
@@ -150,9 +154,10 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
                   onClose();
                   onSwitchToBulk();
                 }}
-                className="flex items-center gap-1.5 text-xs font-bold text-amber-300 hover:text-amber-200 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/20 px-2.5 py-1.5 rounded-xl transition-all active-press"
+                className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-xl transition-all active-press border"
+                style={{ color: activeColor, backgroundColor: `${activeColor}15`, borderColor: `${activeColor}30` }}
               >
-                <Layers className="w-3.5 h-3.5 text-amber-400" />
+                <Layers className="w-3.5 h-3.5" style={{ color: activeColor }} />
                 <span>Bulk Mode</span>
               </button>
             )}
@@ -179,7 +184,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
                   setSelectedAreaId(e.target.value);
                   setInsertAfterId('');
                 }}
-                className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl p-2.5 outline-none focus:border-amber-400"
+                className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl p-2.5 outline-none focus:border-slate-500"
               >
                 {gymAreas.map((a) => (
                   <option key={a.id} value={a.id}>
@@ -202,9 +207,10 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
                     key={colorName}
                     type="button"
                     onClick={() => setHoldColour(colorName)}
+                    style={isSelected ? { borderColor: activeColor, boxShadow: `0 0 0 1px ${activeColor}80` } : undefined}
                     className={`flex items-center gap-1.5 px-2.5 py-2 rounded-xl border text-xs font-semibold transition-all active-press ${
                       isSelected
-                        ? 'border-amber-400 bg-slate-800 text-white shadow-md shadow-amber-500/10 ring-1 ring-amber-400'
+                        ? 'bg-slate-800 text-white shadow-md'
                         : 'border-slate-800 bg-slate-950 text-slate-300 hover:border-slate-700'
                     }`}
                   >
@@ -230,7 +236,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
           {/* Grade Picker */}
           <div className="flex flex-col gap-2">
             <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-              Grade: <span className="font-mono text-amber-400 text-sm font-black">{grade}</span>
+              Grade: <span className="font-mono text-sm font-black" style={{ color: activeColor }}>{grade}</span>
             </label>
             <div className="flex gap-1.5 overflow-x-auto pb-1.5 scrollbar-thin">
               {GRADES.map((g) => {
@@ -240,9 +246,10 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
                     key={g}
                     type="button"
                     onClick={() => setGrade(g)}
+                    style={isSelected ? { backgroundColor: activeColor, color: '#000000' } : undefined}
                     className={`px-3 py-2 rounded-xl font-mono text-xs font-bold shrink-0 transition-all active-press ${
                       isSelected
-                        ? 'bg-amber-400 text-black shadow-md shadow-amber-500/20 font-black scale-105'
+                        ? 'shadow-md font-black scale-105'
                         : 'bg-slate-800 border border-slate-700/60 text-slate-300 hover:bg-slate-750'
                     }`}
                   >
@@ -257,12 +264,12 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
           <div className="flex flex-col gap-1.5 bg-slate-800/40 p-3.5 rounded-xl border border-slate-700/60">
             <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
               <span>Insert Sequential Order</span>
-              <span className="text-[10px] text-amber-400/90 font-mono">Clockwise Positioning</span>
+              <span className="text-[10px] font-mono" style={{ color: activeColor }}>Clockwise Positioning</span>
             </label>
             <select
               value={effectiveInsertAfterId}
               onChange={(e) => setInsertAfterId(e.target.value)}
-              className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg p-2.5 outline-none focus:border-amber-400"
+              className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg p-2.5 outline-none focus:border-slate-500"
             >
               <option value="">
                 {areaBoulders.length === 0
@@ -308,7 +315,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
                   <span>Compressing image on device...</span>
                 ) : (
                   <>
-                    <Camera className="w-4 h-4 text-amber-400" />
+                    <Camera className="w-4 h-4" style={{ color: activeColor }} />
                     <span>Snap Photo or Upload Image</span>
                   </>
                 )}
@@ -352,7 +359,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. Low crimp start, high left heel, reachy top move..."
-              className="bg-slate-900 border border-slate-700 text-slate-100 placeholder:text-slate-500 text-xs rounded-xl p-3 outline-none focus:border-amber-400 resize-none"
+              className="bg-slate-900 border border-slate-700 text-slate-100 placeholder:text-slate-500 text-xs rounded-xl p-3 outline-none focus:border-slate-500 resize-none"
             />
           </div>
 
@@ -360,7 +367,8 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
           <button
             type="submit"
             disabled={submitting || compressing}
-            className="w-full mt-2 py-3.5 px-4 rounded-xl font-bold text-sm bg-amber-500 hover:bg-amber-400 text-black flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 active-press disabled:opacity-50"
+            style={{ backgroundColor: activeColor, color: '#000000' }}
+            className="w-full mt-2 py-3.5 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg active-press disabled:opacity-50"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
             <span>{submitting ? 'Adding Boulder...' : 'Add Boulder'}</span>

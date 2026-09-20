@@ -66,7 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Dynamically update CSS custom properties for app accent colour to match active user
   useEffect(() => {
-    const accent = currentUser?.accent_color || '#F59E0B';
+    const accent = currentUser?.accent_color || '#3B82F6';
     document.documentElement.style.setProperty('--color-accent', accent);
     document.documentElement.style.setProperty('--wham-accent', accent);
   }, [currentUser?.accent_color]);

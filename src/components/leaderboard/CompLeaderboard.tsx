@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Boulder, Attempt, Profile, Gym, HOLD_COLORS } from '../../types';
 import { ClimberAvatar } from '../ClimberAvatar';
+import { useAuth } from '../../context/AuthContext';
 import {
   computeGymCompLeaderboard,
   GRADE_BASE_POINTS,
@@ -46,8 +47,9 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
   const [expandedClimberId, setExpandedClimberId] = useState<string | null>(null);
   const [showRules, setShowRules] = useState<boolean>(false);
 
-  const activeUser = climbers.find((c) => c.id === currentUserId);
-  const activeColor = activeUser?.accent_color || '#F59E0B';
+  const { currentUser } = useAuth();
+  const activeUser = climbers.find((c) => c.id === currentUserId) || currentUser;
+  const activeColor = currentUser?.accent_color || activeUser?.accent_color || '#3B82F6';
 
   // Compute leaderboard data for the selected gym
   const leaderboardData = useMemo(() => {
@@ -138,10 +140,10 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
 
       {/* Collapsible Scoring Rules Card */}
       {showRules && (
-        <div className="bg-slate-900/90 border border-amber-500/30 rounded-2xl p-4 sm:p-5 flex flex-col gap-3 shadow-lg animate-in slide-in-from-top-2 duration-200">
+        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col gap-3 shadow-lg animate-in slide-in-from-top-2 duration-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-400" />
+              <Sparkles className="w-4 h-4" style={{ color: activeColor }} />
               <h3 className="text-sm font-bold text-white">How Gym Comp Scoring Works</h3>
             </div>
             <button
@@ -155,7 +157,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-slate-300">
             <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-700/60 flex flex-col gap-1">
-              <span className="font-bold text-amber-400 flex items-center gap-1">
+              <span className="font-bold flex items-center gap-1" style={{ color: activeColor }}>
                 <CheckCircle2 className="w-3.5 h-3.5" /> Base Points by Grade
               </span>
               <p className="text-[11px] text-slate-400 leading-relaxed">
@@ -357,7 +359,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
       <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col gap-3 shadow-sm">
         <div className="flex items-center justify-between pb-2 border-b border-slate-800">
           <div className="flex items-center gap-2">
-            <Medal className="w-4 h-4 text-amber-400" />
+            <Medal className="w-4 h-4" style={{ color: activeColor }} />
             <h3 className="text-sm font-bold text-white">Full Leaderboard Standings</h3>
           </div>
           <span className="text-xs text-slate-400 font-mono">
@@ -374,9 +376,13 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
             return (
               <div
                 key={standing.climber.id}
+                style={isMe ? {
+                  borderColor: `${activeColor}80`,
+                  boxShadow: `0 0 0 1px ${activeColor}40`
+                } : undefined}
                 className={`border rounded-xl transition-all overflow-hidden ${
                   isMe
-                    ? 'border-amber-400/50 bg-slate-850/90 shadow-sm'
+                    ? 'bg-slate-850/90 shadow-sm'
                     : 'border-slate-800 bg-slate-900/50 hover:border-slate-700'
                 }`}
               >
@@ -427,7 +433,10 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                   {/* Right: Total Points & Expand Toggle */}
                   <div className="flex items-center gap-3 shrink-0">
                     <div className="text-right">
-                      <div className="text-base sm:text-lg font-black font-mono text-amber-400 leading-none">
+                      <div
+                        className="text-base sm:text-lg font-black font-mono leading-none"
+                        style={isMe ? { color: activeColor } : { color: '#ffffff' }}
+                      >
                         {standing.totalPoints.toLocaleString()}
                       </div>
                       <div className="text-xs font-mono text-slate-400 mt-0.5">
@@ -461,7 +470,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                       </span>
 
                       <span className="text-xs font-mono text-slate-400">
-                        Gym Completion: <strong className="text-amber-400 font-bold">{standing.completionPercentage}%</strong>
+                        Gym Completion: <strong className="font-bold text-white">{standing.completionPercentage}%</strong>
                       </span>
                     </div>
 
@@ -520,7 +529,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                                     {item.attemptsCount} {item.attemptsCount === 1 ? 'try' : 'tries'}
                                   </span>
                                 )}
-                                <span className="font-bold text-amber-400 text-xs">
+                                <span className="font-bold text-slate-200 text-xs">
                                   +{item.totalPoints} pts
                                 </span>
                               </div>
