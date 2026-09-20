@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Boulder, Attempt, Comment, Profile } from '../../types';
 import { HoldBadge } from './HoldBadge';
 import { ClimberStatusPills } from './ClimberStatusPills';
+import { ClimberAvatar } from '../ClimberAvatar';
 import { X, Send, Calendar, Archive, MessageSquare, Zap, Check, Clock, ZoomIn } from 'lucide-react';
 
 interface BoulderDetailModalProps {
@@ -201,21 +202,24 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                   return (
                     <div
                       key={comment.id}
-                      className={`p-3 rounded-xl border text-xs flex flex-col gap-1 ${
+                      className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 ${
                         isCurrent
                           ? 'bg-amber-500/5 border-amber-500/20'
                           : 'bg-slate-800/50 border-slate-800'
                       }`}
                     >
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="font-bold text-amber-400">
-                          {author?.display_name || comment.profile?.display_name || 'Climber'}
-                        </span>
-                        <span className="text-slate-400">
-                          {new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
+                      <ClimberAvatar profile={author || comment.profile} size="xs" />
+                      <div className="flex-1 min-w-0 flex flex-col gap-1">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="font-bold text-amber-400">
+                            {author?.display_name || comment.profile?.display_name || 'Climber'}
+                          </span>
+                          <span className="text-slate-400">
+                            {new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <p className="text-slate-200 leading-relaxed">{comment.content}</p>
                       </div>
-                      <p className="text-slate-200 leading-relaxed">{comment.content}</p>
                     </div>
                   );
                 })

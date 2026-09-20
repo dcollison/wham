@@ -13,6 +13,7 @@ import { StatsDashboard } from './components/stats/StatsDashboard';
 import { BetaDiscussionView } from './components/beta/BetaDiscussionView';
 import { SettingsModal } from './components/settings/SettingsModal';
 import { BoulderFilters, BoulderFiltersState } from './components/boulders/BoulderFilters';
+import { ClimberAvatar } from './components/ClimberAvatar';
 import { Boulder, GRADES } from './types';
 import { Plus, Compass, Sparkles, Filter, RotateCcw, Layers } from 'lucide-react';
 
@@ -24,6 +25,7 @@ export function App() {
     switchClimber,
     updateDisplayName,
     updateAccentColor,
+    updateAvatarIcon,
     addClimber,
     removeClimber
   } = useAuth();
@@ -431,6 +433,7 @@ export function App() {
               onSwitchClimber={switchClimber}
               onUpdateDisplayName={updateDisplayName}
               onUpdateAccentColor={updateAccentColor}
+              onUpdateAvatarIcon={updateAvatarIcon}
               onAddClimber={addClimber}
               onRemoveClimber={removeClimber}
             />
@@ -528,6 +531,7 @@ export function App() {
         onSwitchClimber={switchClimber}
         onUpdateDisplayName={updateDisplayName}
         onUpdateAccentColor={updateAccentColor}
+        onUpdateAvatarIcon={updateAvatarIcon}
         onAddClimber={addClimber}
         onRemoveClimber={removeClimber}
       />
@@ -554,17 +558,7 @@ export function App() {
                   }}
                   className="p-3.5 rounded-2xl bg-slate-800/80 hover:bg-amber-400 hover:text-black border border-slate-700/80 flex flex-col items-center gap-2 transition-all active-press group"
                 >
-                  {climber.avatar_url ? (
-                    <img
-                      src={climber.avatar_url}
-                      alt={climber.display_name}
-                      className="w-10 h-10 rounded-full border border-slate-600 group-hover:border-black"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-amber-400 text-black font-black flex items-center justify-center text-sm">
-                      {climber.display_name.charAt(0)}
-                    </div>
-                  )}
+                  <ClimberAvatar profile={climber} size="xl" />
                   <span className="font-bold text-sm text-slate-200 group-hover:text-black">
                     {climber.display_name}
                   </span>

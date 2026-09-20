@@ -1,5 +1,6 @@
 import React from 'react';
 import { Gym, GymArea, Profile } from '../types';
+import { ClimberAvatar } from './ClimberAvatar';
 import { Zap, ChevronDown, Filter, Plus, Archive, Settings, RefreshCw, Layers } from 'lucide-react';
 
 interface HeaderProps {
@@ -95,23 +96,8 @@ export const Header: React.FC<HeaderProps> = ({
             className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 border border-slate-700/80 rounded-xl py-1.5 px-2.5 transition-colors active-press"
             title="Switch Climber / Account"
           >
-            {currentUser?.avatar_url ? (
-              <img
-                src={currentUser.avatar_url}
-                alt={currentUser.display_name}
-                className="w-5 h-5 rounded-full border shrink-0"
-                style={{ borderColor: currentUser?.accent_color || '#F59E0B' }}
-              />
-            ) : (
-              <div
-                className="w-5 h-5 rounded-full text-black text-[11px] font-black flex items-center justify-center shrink-0"
-                style={{ backgroundColor: currentUser?.accent_color || '#F59E0B' }}
-              >
-                {currentUser?.display_name?.charAt(0) || 'C'}
-              </div>
-            )}
+            <ClimberAvatar profile={currentUser} size="sm" showBorderRing />
             <span className="text-xs font-bold text-slate-200 whitespace-nowrap flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: currentUser?.accent_color || '#F59E0B' }} />
               <span>{currentUser?.display_name || 'Climber'}</span>
               <ChevronDown className="w-3 h-3 text-slate-400" />
             </span>

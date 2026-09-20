@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Profile, CLIMBER_ACCENT_PALETTE, getClimberColor } from '../../types';
-import { Users, UserPlus, X, Check, Trash2, Palette } from 'lucide-react';
+import { Profile, CLIMBER_ACCENT_PALETTE, CLIMBER_ICONS, getClimberColor } from '../../types';
+import { ClimberAvatar, CLIMBER_ICON_COMPONENTS } from '../ClimberAvatar';
+import { Users, UserPlus, X, Check, Trash2, Palette, Sparkles, Smile } from 'lucide-react';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -10,7 +11,8 @@ interface SettingsModalProps {
   onSwitchClimber: (profileId: string) => void;
   onUpdateDisplayName: (name: string) => Promise<void>;
   onUpdateAccentColor: (accentColor: string) => Promise<void>;
-  onAddClimber: (name: string, avatarUrl?: string, accentColor?: string) => Promise<Profile>;
+  onUpdateAvatarIcon: (avatarIcon: string) => Promise<void>;
+  onAddClimber: (name: string, avatarUrl?: string, accentColor?: string, avatarIcon?: string) => Promise<Profile>;
   onRemoveClimber?: (profileId: string) => Promise<void>;
 }
 
@@ -22,14 +24,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onSwitchClimber,
   onUpdateDisplayName,
   onUpdateAccentColor,
+  onUpdateAvatarIcon,
   onAddClimber,
   onRemoveClimber
 }) => {
   const activeColor = currentUser?.accent_color || '#F59E0B';
+  const activeIcon =
+    currentUser?.avatar_icon ||
+    (currentUser?.avatar_url?.startsWith('icon:')
+      ? currentUser.avatar_url.replace('icon:', '')
+      : 'zap');
+
   const [displayName, setDisplayName] = useState<string>(currentUser?.display_name || '');
   const [isAddingClimber, setIsAddingClimber] = useState<boolean>(false);
   const [newClimberName, setNewClimberName] = useState<string>('');
   const [newClimberColor, setNewClimberColor] = useState<string>('#10B981');
+  const [newClimberIcon, setNewClimberIcon] = useState<string>('zap');
   const [savedStatus, setSavedStatus] = useState<string | null>(null);
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
 
@@ -81,6 +91,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
+  const handleSelectIcon = async (iconId: string) => {
+    try {
+      await onUpdateAvatarIcon(iconId);
+      const matched = CLIMBER_ICONS.find((i) => i.id === iconId);
+      setSavedStatus(`Icon updated${matched ? ` to ${matched.name}` : ''}!`);
+      setTimeout(() => setSavedStatus(null), 2000);
+    } catch (err: any) {
+      setErrorStatus(err?.message || 'Failed to update icon');
+      setTimeout(() => setErrorStatus(null), 2500);
+    }
+  };
+
   const handleCreateClimber = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = newClimberName.trim();
@@ -98,7 +120,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
 
     try {
-      await onAddClimber(trimmed, undefined, newClimberColor);
+      await onAddClimber(trimmed, undefined, newClimberColor, newClimberIcon);
       setNewClimberName('');
       setIsAddingClimber(false);
       setSavedStatus(`Added ${trimmed} to the crew!`);
@@ -190,28 +212,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         : 'bg-slate-800/60 border-slate-700 text-slate-300 hover:border-slate-600'
                     }`}
                   >
-                    <div className="relative">
-                      {climber.avatar_url ? (
-                        <img
-                          src={climber.avatar_url}
-                          alt={climber.display_name}
-                          className="w-9 h-9 rounded-full border-2"
-                          style={{ borderColor: climberColor.hex }}
-                        />
-                      ) : (
-                        <div
-                          className="w-9 h-9 rounded-full text-black font-black flex items-center justify-center text-sm"
-                          style={{ backgroundColor: climberColor.hex }}
-                        >
-                          {climber.display_name.charAt(0)}
-                        </div>
-                      )}
-                      {/* Accent color dot badge */}
-                      <span
-                        className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border border-slate-900 shadow"
-                        style={{ backgroundColor: climberColor.hex }}
-                      />
-                    </div>
+                    <ClimberAvatar
+                      profile={climber}
+                      size="lg"
+                      showBorderRing={isSelected}
+                    />
 
                     <span className="font-bold text-xs truncate max-w-full text-slate-100">
                       {climber.display_name}
@@ -334,6 +339,36 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 ))}
               </div>
             </div>
+
+            {/* Climber Icon picker for new climber */}
+            <div className="flex flex-col gap-1.5 pt-1">
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                Select Climber Icon:
+              </label>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {CLIMBER_ICONS.map((iconOpt) => {
+                  const IconComp = CLIMBER_ICON_COMPONENTS[iconOpt.id];
+                  if (!IconComp) return null;
+                  const isSelected = newClimberIcon === iconOpt.id;
+                  return (
+                    <button
+                      key={iconOpt.id}
+                      type="button"
+                      onClick={() => setNewClimberIcon(iconOpt.id)}
+                      className={`w-7 h-7 rounded-xl transition-all active:scale-95 flex items-center justify-center ${
+                        isSelected
+                          ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900 scale-105 text-black'
+                          : 'bg-slate-850 border border-slate-700 text-slate-300 hover:text-white'
+                      }`}
+                      style={isSelected ? { backgroundColor: newClimberColor } : undefined}
+                      title={iconOpt.name}
+                    >
+                      <IconComp className="w-3.5 h-3.5 stroke-[2.5]" />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </form>
         )}
 
@@ -355,21 +390,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <div className="relative shrink-0">
-                {currentUser?.avatar_url ? (
-                  <img
-                    src={currentUser.avatar_url}
-                    alt={currentUser.display_name}
-                    className="w-10 h-10 rounded-full border-2"
-                    style={{ borderColor: activeColor }}
-                  />
-                ) : (
-                  <div
-                    className="w-10 h-10 rounded-full text-black font-black flex items-center justify-center text-sm"
-                    style={{ backgroundColor: activeColor }}
-                  >
-                    {currentUser?.display_name.charAt(0)}
-                  </div>
-                )}
+                <ClimberAvatar
+                  profile={currentUser}
+                  accentColor={activeColor}
+                  avatarIcon={activeIcon}
+                  size="lg"
+                  showBorderRing
+                />
                 <span
                   className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-slate-900 shadow-sm"
                   style={{ backgroundColor: activeColor }}
@@ -383,11 +410,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded"
                     style={{ backgroundColor: `${activeColor}25`, color: activeColor }}
                   >
-                    Active Colour
+                    Active Profile
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                  {selectedPreset ? selectedPreset.name : 'Curated Colour'}
+                  {selectedPreset ? selectedPreset.name : 'Curated Colour'} • {CLIMBER_ICONS.find((i) => i.id === activeIcon)?.name || 'Icon'}
                 </p>
               </div>
             </div>
@@ -430,6 +457,50 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     {isSelected && <Check className="w-2.5 h-2.5 text-black stroke-[3]" />}
                   </span>
                   <span className="truncate text-[11px]">{palette.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Climber Icon Customization */}
+        <div className="flex flex-col gap-3 pt-3 border-t border-slate-800/80">
+          <div>
+            <div className="flex items-center gap-2">
+              <Smile className="w-4 h-4" style={{ color: activeColor }} />
+              <label className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+                Climber Icon (Avatar Badge)
+              </label>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Choose your personal badge icon displayed on your avatar and team leaderboards.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+            {CLIMBER_ICONS.map((iconOpt) => {
+              const IconComp = CLIMBER_ICON_COMPONENTS[iconOpt.id];
+              const isSelected = activeIcon === iconOpt.id;
+              if (!IconComp) return null;
+              return (
+                <button
+                  key={iconOpt.id}
+                  type="button"
+                  onClick={() => handleSelectIcon(iconOpt.id)}
+                  className={`flex items-center gap-2 p-2 rounded-xl border text-xs font-semibold transition-all active-press ${
+                    isSelected
+                      ? 'bg-slate-800 text-white shadow-md ring-2 ring-white/60'
+                      : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:border-slate-700'
+                  }`}
+                  style={isSelected ? { borderColor: activeColor } : undefined}
+                >
+                  <span
+                    className="w-5 h-5 rounded-lg shrink-0 flex items-center justify-center text-black"
+                    style={{ backgroundColor: activeColor }}
+                  >
+                    <IconComp className="w-3 h-3 stroke-[2.5]" />
+                  </span>
+                  <span className="truncate text-[11px]">{iconOpt.name}</span>
                 </button>
               );
             })}

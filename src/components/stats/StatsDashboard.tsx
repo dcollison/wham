@@ -12,6 +12,7 @@ import {
   CLIMBER_ACCENT_PALETTE,
   getClimberColor
 } from '../../types';
+import { ClimberAvatar } from '../ClimberAvatar';
 import {
   Zap,
   Check,
@@ -779,13 +780,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                           : 'bg-slate-800/80 border border-slate-700/80 text-slate-300 hover:text-white'
                       }`}
                     >
-                      {c.avatar_url ? (
-                        <img src={c.avatar_url} alt={c.display_name} className="w-4 h-4 rounded-full" />
-                      ) : (
-                        <div className="w-4 h-4 rounded-full bg-slate-700 text-white text-[9px] flex items-center justify-center">
-                          {c.display_name.charAt(0)}
-                        </div>
-                      )}
+                      <ClimberAvatar profile={c} size="xs" />
                       <span>{c.display_name}</span>
                       {isYou && <span className="text-[10px] opacity-75 font-normal">(You)</span>}
                     </button>
@@ -1078,22 +1073,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                             <span className="w-5 h-5 rounded-full flex items-center justify-center font-mono text-[10px] font-black bg-slate-800 text-slate-300">
                               {idx + 1}
                             </span>
-                            {item.profile.avatar_url ? (
-                              <img
-                                src={item.profile.avatar_url}
-                                alt=""
-                                className="w-6 h-6 rounded-full border-2"
-                                style={{ borderColor: item.color.hex }}
-                              />
-                            ) : (
-                              <div
-                                className="w-6 h-6 rounded-full text-black font-black text-[10px] flex items-center justify-center"
-                                style={{ backgroundColor: item.color.hex }}
-                              >
-                                {item.profile.display_name.charAt(0)}
-                              </div>
-                            )}
-                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color.hex }} />
+                            <ClimberAvatar profile={item.profile} size="md" />
                             <span className="truncate max-w-[120px]">{item.profile.display_name}</span>
                           </div>
                         </td>
@@ -1825,9 +1805,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                                 </div>
 
                                 <div className="flex items-center gap-1.5 font-semibold text-[11px] text-slate-300">
-                                  {item.climber?.avatar_url && (
-                                    <img src={item.climber.avatar_url} alt="" className="w-3.5 h-3.5 rounded-full" />
-                                  )}
+                                  <ClimberAvatar profile={item.climber} size="xs" />
                                   <span>{item.climber?.display_name}</span>
                                 </div>
                               </div>

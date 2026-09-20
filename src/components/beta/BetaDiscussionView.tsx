@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Comment, Boulder, Profile, Gym, GymArea } from '../../types';
 import { HoldBadge } from '../boulders/HoldBadge';
+import { ClimberAvatar } from '../ClimberAvatar';
 import { MessageSquare, Send, Calendar, MapPin } from 'lucide-react';
 
 interface BetaDiscussionViewProps {
@@ -135,13 +136,16 @@ export const BetaDiscussionView: React.FC<BetaDiscussionViewProps> = ({
               </div>
 
               {/* Author & Content */}
-              <div>
-                <span className={`text-xs font-bold ${isCurrentUser ? 'text-amber-400' : 'text-slate-200'}`}>
-                  {author?.display_name || comment.profile?.display_name || 'Climber'}
-                </span>
-                <p className="text-xs text-slate-300 leading-relaxed mt-1">
-                  {comment.content}
-                </p>
+              <div className="flex items-start gap-2.5">
+                <ClimberAvatar profile={author || comment.profile} size="sm" />
+                <div className="flex-1 min-w-0">
+                  <span className={`text-xs font-bold ${isCurrentUser ? 'text-amber-400' : 'text-slate-200'}`}>
+                    {author?.display_name || comment.profile?.display_name || 'Climber'}
+                  </span>
+                  <p className="text-xs text-slate-300 leading-relaxed mt-1">
+                    {comment.content}
+                  </p>
+                </div>
               </div>
             </div>
           );

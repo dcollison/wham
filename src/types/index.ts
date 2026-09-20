@@ -46,6 +46,7 @@ export interface Profile {
   id: string;
   display_name: string;
   avatar_url?: string | null;
+  avatar_icon?: string | null;
   accent_color?: string | null;
   created_at?: string;
 }
@@ -207,3 +208,31 @@ export const getClimberColor = (
   const idx = typeof climberOrIndex === 'number' ? climberOrIndex : indexFallback;
   return CLIMBER_ACCENT_PALETTE[idx % CLIMBER_ACCENT_PALETTE.length];
 };
+
+export interface ClimberIconOption {
+  id: string;
+  name: string;
+}
+
+export const CLIMBER_ICONS: ClimberIconOption[] = [
+  { id: 'zap', name: 'Flash' },
+  { id: 'flame', name: 'Fire' },
+  { id: 'mountain', name: 'Peak' },
+  { id: 'crown', name: 'Crown' },
+  { id: 'target', name: 'Target' },
+  { id: 'rocket', name: 'Dyno' },
+  { id: 'trophy', name: 'Trophy' },
+  { id: 'skull', name: 'Crusher' },
+  { id: 'compass', name: 'Beta' },
+  { id: 'sparkles', name: 'Flow' },
+  { id: 'heart', name: 'Heart' },
+  { id: 'shield', name: 'Solid' },
+  { id: 'star', name: 'Star' },
+  { id: 'award', name: 'Award' },
+  { id: 'coffee', name: 'Fuel' },
+  { id: 'footprints', name: 'Footwork' },
+  { id: 'smile', name: 'Vibes' },
+  { id: 'activity', name: 'Pulse' },
+  { id: 'anchor', name: 'Core' },
+  { id: 'eye', name: 'Reader' }
+];

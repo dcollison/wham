@@ -15,7 +15,8 @@ interface AuthContextType {
   switchClimber: (profileId: string) => void;
   updateDisplayName: (displayName: string) => Promise<void>;
   updateAccentColor: (accentColor: string) => Promise<void>;
-  addClimber: (displayName: string, avatarUrl?: string, accentColor?: string) => Promise<Profile>;
+  updateAvatarIcon: (avatarIcon: string) => Promise<void>;
+  addClimber: (displayName: string, avatarUrl?: string, accentColor?: string, avatarIcon?: string) => Promise<Profile>;
   removeClimber: (profileId: string) => Promise<void>;
 }
 
@@ -49,6 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (!profileErr && remoteProfiles && remoteProfiles.length > 0) {
             const mappedProfiles: Profile[] = remoteProfiles.map((p, idx) => ({
               ...p,
+              avatar_icon: p.avatar_icon || (p.avatar_url?.startsWith('icon:') ? p.avatar_url.replace('icon:', '') : null),
               accent_color: p.accent_color || CLIMBER_ACCENT_PALETTE[idx % CLIMBER_ACCENT_PALETTE.length].hex
             }));
             setClimbers(mappedProfiles);
@@ -199,7 +201,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const addClimber = async (displayName: string, avatarUrl?: string, accentColor?: string): Promise<Profile> => {
+  const updateAvatarIcon = async (avatarIcon: string) => {
+    if (!currentUser) return;
+    const trimmed = avatarIcon.trim().toLowerCase();
+    if (!trimmed) return;
+
+    const updatedUser: Profile = {
+      ...currentUser,
+      avatar_icon: trimmed,
+      avatar_url: `icon:${trimmed}`
+    };
+    setCurrentUser(updatedUser);
+
+    const updatedClimbers = climbers.map((c) => (c.id === currentUser.id ? updatedUser : c));
+    setClimbers(updatedClimbers);
+    localStorage.setItem('wham_profiles', JSON.stringify(updatedClimbers));
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({
+            avatar_url: `icon:${trimmed}`,
+            avatar_icon: trimmed
+          })
+          .eq('id', currentUser.id);
+      } catch (err) {
+        try {
+          await supabase
+            .from('profiles')
+            .update({ avatar_url: `icon:${trimmed}` })
+            .eq('id', currentUser.id);
+        } catch (innerErr) {
+          console.warn('Failed to update avatar icon on Supabase:', innerErr);
+        }
+      }
+    }
+  };
+
+  const addClimber = async (
+    displayName: string,
+    avatarUrl?: string,
+    accentColor?: string,
+    avatarIcon?: string
+  ): Promise<Profile> => {
     const trimmed = displayName.trim();
     if (!trimmed) {
       throw new Error('Name cannot be empty');
@@ -213,19 +258,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return v.toString(16);
         });
 
-    const colors = ['ffb703', 'fb8500', '219ebc', '023047', '8338ec', '3a86ff', 'ff006e', '06d6a0'];
-    const randomColor = colors[Math.floor(Math.random() * colors.length)];
-    const generatedAvatar = avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(trimmed)}&backgroundColor=${randomColor}`;
-
     const existingColors = new Set(climbers.map(c => c.accent_color?.toLowerCase()).filter(Boolean));
     const defaultColor = CLIMBER_ACCENT_PALETTE.find(c => !existingColors.has(c.hex.toLowerCase()))?.hex ||
       CLIMBER_ACCENT_PALETTE[climbers.length % CLIMBER_ACCENT_PALETTE.length].hex;
     const finalAccentColor = accentColor || defaultColor;
+    const finalIcon = avatarIcon || 'zap';
+    const finalAvatarUrl = avatarUrl || `icon:${finalIcon}`;
 
     const newProfile: Profile = {
       id: newId,
       display_name: trimmed,
-      avatar_url: generatedAvatar,
+      avatar_url: finalAvatarUrl,
+      avatar_icon: finalIcon,
       accent_color: finalAccentColor,
       created_at: new Date().toISOString()
     };
@@ -242,10 +286,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: newProfile.id,
           display_name: newProfile.display_name,
           avatar_url: newProfile.avatar_url,
+          avatar_icon: newProfile.avatar_icon,
           accent_color: newProfile.accent_color
         }]);
       } catch (err) {
-        console.warn('Failed to insert new profile to Supabase:', err);
+        try {
+          await supabase.from('profiles').insert([{
+            id: newProfile.id,
+            display_name: newProfile.display_name,
+            avatar_url: newProfile.avatar_url,
+            accent_color: newProfile.accent_color
+          }]);
+        } catch (innerErr) {
+          console.warn('Failed to insert new profile to Supabase:', innerErr);
+        }
       }
     }
 
@@ -340,6 +394,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         switchClimber,
         updateDisplayName,
         updateAccentColor,
+        updateAvatarIcon,
         addClimber,
         removeClimber
       }}
