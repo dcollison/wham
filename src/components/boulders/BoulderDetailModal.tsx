@@ -17,6 +17,7 @@ import {
   Compass,
   CornerDownRight,
   ExternalLink,
+  ChevronLeft,
   ChevronRight,
   Trash2
 } from 'lucide-react';
@@ -33,6 +34,8 @@ interface BoulderDetailModalProps {
   onAddComment: (boulderId: string, content: string) => Promise<void>;
   onDeleteComment?: (commentId: string) => Promise<void>;
   onToggleArchive: (boulderId: string, archive: boolean) => Promise<void>;
+  filteredBoulders?: Boulder[];
+  onNavigateBoulder?: (boulder: Boulder) => void;
 }
 
 export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
@@ -46,7 +49,9 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
   onQuickLog,
   onAddComment,
   onDeleteComment,
-  onToggleArchive
+  onToggleArchive,
+  filteredBoulders,
+  onNavigateBoulder
 }) => {
   const [newComment, setNewComment] = useState<string>('');
   const [submittingComment, setSubmittingComment] = useState<boolean>(false);
@@ -75,6 +80,15 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
     }
   };
 
+  if (!isOpen || !boulder) return null;
+
+  // Filter-aware navigation calculations
+  const currentIndex = boulder && filteredBoulders ? filteredBoulders.findIndex(b => b.id === boulder.id) : -1;
+  const totalFiltered = filteredBoulders ? filteredBoulders.length : 0;
+  const hasFilter = currentIndex !== -1 && totalFiltered > 0;
+  const prevBoulder = hasFilter && currentIndex > 0 ? filteredBoulders![currentIndex - 1] : null;
+  const nextBoulder = hasFilter && currentIndex < totalFiltered - 1 ? filteredBoulders![currentIndex + 1] : null;
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div
@@ -82,15 +96,42 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Sticky Header */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-900/95 sticky top-0 z-10">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-900/95 sticky top-0 z-10 gap-2">
+          <div className="flex items-center gap-2.5 min-w-0">
             <HoldBadge color={boulder.hold_colour} grade={boulder.grade} size="md" />
-            <span className="font-mono text-xs text-slate-400 bg-slate-800 px-2 py-0.5 rounded">
-              Position #{Math.round(boulder.position_order)}
+            <span className="font-mono text-xs text-slate-400 bg-slate-800 px-2 py-0.5 rounded shrink-0">
+              #{Math.round(boulder.position_order)}
             </span>
           </div>
 
-          <div className="flex items-center gap-1">
+          {/* Filter navigation strip */}
+          {hasFilter && (
+            <div className="flex items-center gap-1 bg-slate-800/90 px-2 py-1 rounded-xl border border-slate-700/80 text-xs shrink-0">
+              <button
+                type="button"
+                onClick={() => prevBoulder && onNavigateBoulder?.(prevBoulder)}
+                disabled={!prevBoulder}
+                className="p-1 rounded-lg hover:bg-slate-700 text-slate-300 disabled:opacity-25 disabled:pointer-events-none transition-colors"
+                title={prevBoulder ? `Previous Boulder: #${Math.round(prevBoulder.position_order)} ${prevBoulder.hold_colour} ${prevBoulder.grade}` : 'First boulder in filter'}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="font-mono text-[11px] text-slate-300 font-bold px-1 select-none">
+                {currentIndex + 1} of {totalFiltered}
+              </span>
+              <button
+                type="button"
+                onClick={() => nextBoulder && onNavigateBoulder?.(nextBoulder)}
+                disabled={!nextBoulder}
+                className="p-1 rounded-lg hover:bg-slate-700 text-slate-300 disabled:opacity-25 disabled:pointer-events-none transition-colors"
+                title={nextBoulder ? `Next Boulder: #${Math.round(nextBoulder.position_order)} ${nextBoulder.hold_colour} ${nextBoulder.grade}` : 'Last boulder in filter'}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          <div className="flex items-center gap-1 shrink-0">
             <button
               type="button"
               onClick={() => onToggleArchive(boulder.id, !boulder.is_archived)}

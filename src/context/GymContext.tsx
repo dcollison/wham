@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useMemo, useRef } from 'react';
-import { supabase, isSupabaseConfigured, uploadBoulderPhoto } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, uploadBoulderPhoto, uploadAreaPhoto, deleteStoragePhotos } from '../lib/supabase';
 import { Boulder, Attempt, Comment, Gym, GymArea, Grade, AttemptStatus, BulkAddBoulderItem, BulkAddBouldersParams } from '../types';
 import {
   INITIAL_GYMS,
@@ -10,6 +10,14 @@ import {
 } from '../lib/mockData';
 import { useAuth } from './AuthContext';
 import confetti from 'canvas-confetti';
+import {
+  WhamBackupData,
+  LocalSnapshotMeta,
+  createBackupPayload,
+  saveLocalSnapshot,
+  getLocalSnapshotsMeta,
+  getLocalSnapshotData
+} from '../lib/backup';
 
 interface LogAttemptParams {
   boulderId: string;
@@ -54,18 +62,25 @@ interface GymContextType {
   bulkAddBoulders: (params: BulkAddBouldersParams) => Promise<Boulder[]>;
   archiveBoulder: (boulderId: string, archive?: boolean) => Promise<void>;
   archiveAreaBoulders: (areaId: string) => Promise<void>;
+  updateAreaPhoto: (areaId: string, imageFile?: File | null, imageDataUrl?: string | null) => Promise<string | null>;
+  removeAreaPhoto: (areaId: string) => Promise<void>;
+  pruneArchivedClimbPhotos: (olderThanDays?: number) => Promise<{ removedCount: number; freedBytesEstimate: number }>;
   addComment: (boulderId: string, content: string) => Promise<void>;
   deleteComment: (commentId: string) => Promise<void>;
   getBoulderAttempts: (boulderId: string) => Attempt[];
   getBoulderComments: (boulderId: string) => Comment[];
   getUserAttemptOnBoulder: (boulderId: string, userId?: string) => Attempt | undefined;
   orderedActiveBouldersInCurrentArea: Boulder[];
+  restoreBackupData: (backup: WhamBackupData) => Promise<{ success: boolean; message: string; counts: any }>;
+  createManualSnapshot: (reason?: string) => void;
+  restoreSnapshotById: (snapshotId: string) => Promise<boolean>;
+  getSnapshotsList: () => LocalSnapshotMeta[];
 }
 
 const GymContext = createContext<GymContextType | undefined>(undefined);
 
 export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, climbers, isDemoMode } = useAuth();
+  const { currentUser, climbers, isDemoMode, restoreProfilesFromBackup } = useAuth();
 
   const [gyms, setGyms] = useState<Gym[]>(() => {
     const cached = localStorage.getItem('wham_gyms');
@@ -826,7 +841,18 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Bulk Reset: Archive Entire Area
   const archiveAreaBoulders = async (areaId: string) => {
-    setBoulders(prev => prev.map(b => b.area_id === areaId ? { ...b, is_archived: true } : b));
+    const targetArea = areas.find(a => a.id === areaId);
+    createManualSnapshot(`Auto: Before resetting ${targetArea?.name || 'area'}`);
+
+    setBoulders(prev => {
+      const updated = prev.map(b => b.area_id === areaId ? { ...b, is_archived: true } : b);
+      try {
+        localStorage.setItem('wham_boulders', JSON.stringify(updated));
+      } catch (e) {
+        // Ignore
+      }
+      return updated;
+    });
 
     if (isSupabaseConfigured && supabase) {
       try {
@@ -838,6 +864,142 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.error('Failed to archive area boulders in Supabase:', err);
       }
     }
+  };
+
+  // Upload or update whole area / sector photo
+  const updateAreaPhoto = async (
+    areaId: string,
+    imageFile?: File | null,
+    imageDataUrl?: string | null
+  ): Promise<string | null> => {
+    let finalUrl: string | null = null;
+    if (imageFile && imageDataUrl) {
+      finalUrl = await uploadAreaPhoto(imageFile, imageDataUrl, areaId);
+    } else if (imageDataUrl) {
+      finalUrl = imageDataUrl;
+    }
+
+    setAreas((prev) => {
+      const updated = prev.map((a) => (a.id === areaId ? { ...a, image_url: finalUrl } : a));
+      try {
+        localStorage.setItem('wham_areas', JSON.stringify(updated));
+      } catch (e) {
+        console.warn('Failed to persist areas to localStorage:', e);
+      }
+      return updated;
+    });
+
+    if (currentArea?.id === areaId) {
+      setCurrentAreaState((prev) => (prev ? { ...prev, image_url: finalUrl } : null));
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase
+          .from('gym_areas')
+          .update({ image_url: finalUrl })
+          .eq('id', areaId);
+      } catch (err) {
+        console.warn('Supabase update area photo notice:', err);
+      }
+    }
+
+    return finalUrl;
+  };
+
+  // Remove area wall photo
+  const removeAreaPhoto = async (areaId: string): Promise<void> => {
+    const area = areas.find((a) => a.id === areaId);
+    const existingUrl = area?.image_url;
+
+    setAreas((prev) => {
+      const updated = prev.map((a) => (a.id === areaId ? { ...a, image_url: null } : a));
+      try {
+        localStorage.setItem('wham_areas', JSON.stringify(updated));
+      } catch (e) {
+        console.warn('Failed to persist areas to localStorage:', e);
+      }
+      return updated;
+    });
+
+    if (currentArea?.id === areaId) {
+      setCurrentAreaState((prev) => (prev ? { ...prev, image_url: null } : null));
+    }
+
+    if (existingUrl) {
+      await deleteStoragePhotos([existingUrl]);
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase
+          .from('gym_areas')
+          .update({ image_url: null })
+          .eq('id', areaId);
+      } catch (err) {
+        console.warn('Failed to remove area photo in Supabase:', err);
+      }
+    }
+  };
+
+  // Photo Quota & Storage Management: Prune photos from oldest archived climbs
+  const pruneArchivedClimbPhotos = async (
+    olderThanDays = 0
+  ): Promise<{ removedCount: number; freedBytesEstimate: number }> => {
+    const now = Date.now();
+    const cutoffMs = olderThanDays > 0 ? now - olderThanDays * 24 * 60 * 60 * 1000 : now;
+
+    const targetedBoulders = boulders.filter((b) => {
+      if (!b.is_archived || !b.image_url) return false;
+      if (olderThanDays > 0) {
+        const addedMs = new Date(b.date_added).getTime();
+        return !isNaN(addedMs) && addedMs < cutoffMs;
+      }
+      return true;
+    });
+
+    if (targetedBoulders.length === 0) {
+      return { removedCount: 0, freedBytesEstimate: 0 };
+    }
+
+    // Auto snapshot before pruning photos to protect ticklists and metadata
+    createManualSnapshot(`Auto-save: Before pruning ${targetedBoulders.length} archived photos`);
+
+    const urlsToDelete = targetedBoulders.map((b) => b.image_url!).filter(Boolean);
+    const targetIds = new Set(targetedBoulders.map((b) => b.id));
+
+    // Delete files from Supabase Storage
+    await deleteStoragePhotos(urlsToDelete);
+
+    // Update local state and keep climb metadata (grade, notes, attempts) intact
+    setBoulders((prev) => {
+      const updated = prev.map((b) => (targetIds.has(b.id) ? { ...b, image_url: null } : b));
+      try {
+        localStorage.setItem('wham_boulders', JSON.stringify(updated));
+      } catch (e) {
+        console.warn('Failed to save boulders after photo prune:', e);
+      }
+      return updated;
+    });
+
+    // Update Supabase database
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const idList = Array.from(targetIds);
+        await supabase
+          .from('boulders')
+          .update({ image_url: null })
+          .in('id', idList);
+      } catch (err) {
+        console.error('Failed to clear image_url in Supabase for pruned climbs:', err);
+      }
+    }
+
+    const estimatePerPhotoBytes = 110 * 1024; // ~110 KB average compressed JPEG
+    return {
+      removedCount: targetedBoulders.length,
+      freedBytesEstimate: targetedBoulders.length * estimatePerPhotoBytes
+    };
   };
 
   // Add Comment (Threaded beta discussion)
@@ -976,6 +1138,145 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  // Baseline automatic snapshot on session startup
+  useEffect(() => {
+    if (!loading && boulders.length > 0) {
+      const existingSnaps = getLocalSnapshotsMeta();
+      if (existingSnaps.length === 0) {
+        const payload = createBackupPayload({
+          gyms,
+          areas,
+          boulders,
+          attempts,
+          comments,
+          profiles: climbers,
+          propsMap
+        });
+        saveLocalSnapshot(payload, 'Session baseline snapshot');
+      }
+    }
+  }, [loading, boulders.length]);
+
+  const restoreBackupData = async (
+    backup: WhamBackupData
+  ): Promise<{ success: boolean; message: string; counts: any }> => {
+    try {
+      // 1. Take a safety snapshot of current state BEFORE applying restore
+      const currentPayload = createBackupPayload({
+        gyms,
+        areas,
+        boulders,
+        attempts,
+        comments,
+        profiles: climbers,
+        propsMap
+      });
+      saveLocalSnapshot(currentPayload, 'Pre-restore automatic safety snapshot');
+
+      // 2. Restore state locally
+      if (backup.gyms && backup.gyms.length > 0) {
+        setGyms(backup.gyms);
+        localStorage.setItem('wham_gyms', JSON.stringify(backup.gyms));
+      }
+      if (backup.areas && backup.areas.length > 0) {
+        setAreas(backup.areas);
+        localStorage.setItem('wham_areas', JSON.stringify(backup.areas));
+      }
+      if (backup.boulders && backup.boulders.length > 0) {
+        setBoulders(backup.boulders);
+        localStorage.setItem('wham_boulders', JSON.stringify(backup.boulders));
+      }
+      if (backup.attempts && backup.attempts.length > 0) {
+        setAttempts(backup.attempts);
+        localStorage.setItem('wham_attempts', JSON.stringify(backup.attempts));
+      }
+      if (backup.comments && backup.comments.length > 0) {
+        setComments(backup.comments);
+        localStorage.setItem('wham_comments', JSON.stringify(backup.comments));
+      }
+      if (backup.sendsProps && typeof backup.sendsProps === 'object') {
+        setPropsMap(backup.sendsProps);
+        localStorage.setItem('wham_sends_props', JSON.stringify(backup.sendsProps));
+      }
+      if (backup.profiles && backup.profiles.length > 0 && restoreProfilesFromBackup) {
+        restoreProfilesFromBackup(backup.profiles, backup.climberCustomizations);
+      }
+
+      // 3. If Supabase is configured, sync restored data to remote
+      if (isSupabaseConfigured && supabase) {
+        try {
+          if (backup.boulders && backup.boulders.length > 0) {
+            const cleanBoulders = backup.boulders.map((b) => {
+              const { adjacent_prev, adjacent_next, ...rest } = b;
+              return rest;
+            });
+            await supabase.from('boulders').upsert(cleanBoulders, { onConflict: 'id' });
+          }
+          if (backup.attempts && backup.attempts.length > 0) {
+            const cleanAttempts = backup.attempts.map((a) => {
+              const { profile, ...rest } = a;
+              return rest;
+            });
+            await supabase.from('attempts').upsert(cleanAttempts, { onConflict: 'boulder_id,user_id' });
+          }
+          if (backup.comments && backup.comments.length > 0) {
+            const cleanComments = backup.comments.map((c) => {
+              const { profile, ...rest } = c;
+              return rest;
+            });
+            await supabase.from('comments').upsert(cleanComments, { onConflict: 'id' });
+          }
+        } catch (supabaseErr) {
+          console.warn('Supabase restore sync note:', supabaseErr);
+        }
+      }
+
+      const counts = {
+        boulders: backup.boulders?.length ?? 0,
+        attempts: backup.attempts?.length ?? 0,
+        comments: backup.comments?.length ?? 0,
+        profiles: backup.profiles?.length ?? 0
+      };
+
+      return {
+        success: true,
+        message: `Successfully restored ${counts.boulders} climbs, ${counts.attempts} logs, and ${counts.profiles} crew profiles.`,
+        counts
+      };
+    } catch (err: any) {
+      console.error('Failed to restore backup data:', err);
+      return {
+        success: false,
+        message: err?.message || 'Failed to restore backup data.',
+        counts: {}
+      };
+    }
+  };
+
+  const createManualSnapshot = (reason = 'Manual snapshot') => {
+    const payload = createBackupPayload({
+      gyms,
+      areas,
+      boulders,
+      attempts,
+      comments,
+      profiles: climbers,
+      propsMap
+    });
+    saveLocalSnapshot(payload, reason);
+  };
+
+  const restoreSnapshotById = async (snapshotId: string): Promise<boolean> => {
+    const snapshotData = getLocalSnapshotData(snapshotId);
+    if (!snapshotData) return false;
+    const res = await restoreBackupData(snapshotData);
+    return res.success;
+  };
+
+  const getSnapshotsList = (): LocalSnapshotMeta[] => {
+    return getLocalSnapshotsMeta();
+  };
+
   return (
     <GymContext.Provider
       value={{
@@ -1001,12 +1302,19 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         bulkAddBoulders,
         archiveBoulder,
         archiveAreaBoulders,
+        updateAreaPhoto,
+        removeAreaPhoto,
+        pruneArchivedClimbPhotos,
         addComment,
         deleteComment,
         getBoulderAttempts,
         getBoulderComments,
         getUserAttemptOnBoulder,
-        orderedActiveBouldersInCurrentArea
+        orderedActiveBouldersInCurrentArea,
+        restoreBackupData,
+        createManualSnapshot,
+        restoreSnapshotById,
+        getSnapshotsList
       }}
     >
       {children}

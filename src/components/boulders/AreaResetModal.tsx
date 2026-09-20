@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { X, AlertTriangle, Archive, Layers } from 'lucide-react';
+import { X, AlertTriangle, Archive, Layers, ShieldCheck } from 'lucide-react';
 
 interface AreaResetModalProps {
   isOpen: boolean;
@@ -68,6 +68,11 @@ export const AreaResetModal: React.FC<AreaResetModalProps> = ({
           <p className="text-slate-400">
             This represents a complete wall reset. Historical attempts and beta comments will be saved for statistics and can still be reviewed by enabling "Show Archived".
           </p>
+        </div>
+
+        <div className="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs">
+          <ShieldCheck className="w-4 h-4 shrink-0" />
+          <span>An automatic safety snapshot is saved before resetting. You can roll back anytime from Settings &rarr; Backups.</span>
         </div>
 
         <div className="flex flex-col gap-2 pt-2">

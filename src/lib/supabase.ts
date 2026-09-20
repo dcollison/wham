@@ -89,3 +89,78 @@ export async function uploadBoulderPhoto(
     return dataUrlFallback;
   }
 }
+
+/**
+ * Upload a compressed photo of an entire gym area / wall sector
+ */
+export async function uploadAreaPhoto(
+  file: File,
+  dataUrlFallback: string,
+  areaId: string
+): Promise<string> {
+  if (!supabase || !isSupabaseConfigured) {
+    return dataUrlFallback;
+  }
+
+  try {
+    const fileExt = file.name.split('.').pop() || 'jpg';
+    const fileName = `area-${areaId}-${Date.now()}.${fileExt}`;
+    const filePath = `areas/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('boulder-photos')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: true,
+        contentType: file.type || 'image/jpeg'
+      });
+
+    if (uploadError) {
+      console.warn('Supabase storage upload error for area photo, falling back to data URL:', uploadError.message);
+      return dataUrlFallback;
+    }
+
+    const { data } = supabase.storage
+      .from('boulder-photos')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  } catch (err) {
+    console.error('Area photo upload exception:', err);
+    return dataUrlFallback;
+  }
+}
+
+/**
+ * Remove photos from Supabase Storage by public URLs or file paths
+ */
+export async function deleteStoragePhotos(urlsOrPaths: string[]): Promise<number> {
+  if (!supabase || !isSupabaseConfigured || urlsOrPaths.length === 0) return 0;
+  try {
+    const pathsToDelete: string[] = urlsOrPaths
+      .map((item) => {
+        if (!item) return '';
+        if (item.includes('/boulder-photos/')) {
+          return item.split('/boulder-photos/')[1];
+        }
+        return item;
+      })
+      .filter((p) => Boolean(p) && !p.startsWith('data:'));
+
+    if (pathsToDelete.length === 0) return 0;
+
+    const { error } = await supabase.storage
+      .from('boulder-photos')
+      .remove(pathsToDelete);
+
+    if (error) {
+      console.warn('Failed to delete storage photos:', error.message);
+      return 0;
+    }
+    return pathsToDelete.length;
+  } catch (e) {
+    console.error('Exception deleting storage photos:', e);
+    return 0;
+  }
+}
+

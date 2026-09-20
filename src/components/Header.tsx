@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Gym, GymArea, Profile } from '../types';
 import { ClimberAvatar } from './ClimberAvatar';
-import { Zap, ChevronDown, Plus, Archive, Layers, Trophy, MoreHorizontal, Check, Eye } from 'lucide-react';
+import { Zap, ChevronDown, Plus, Archive, Layers, Trophy, MoreHorizontal, Check, Eye, ShieldCheck } from 'lucide-react';
 import { WhamLogo, WhamBadge } from './WhamLogo';
 
 interface HeaderProps {
@@ -19,6 +19,7 @@ interface HeaderProps {
   onOpenAddBoulder: () => void;
   onOpenBulkAdd?: () => void;
   onOpenAreaReset: () => void;
+  onOpenBackups?: () => void;
   showArchived: boolean;
   onToggleShowArchived: () => void;
   isDemoMode: boolean;
@@ -39,6 +40,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAddBoulder,
   onOpenBulkAdd,
   onOpenAreaReset,
+  onOpenBackups,
   showArchived,
   onToggleShowArchived,
   isDemoMode
@@ -230,6 +232,20 @@ export const Header: React.FC<HeaderProps> = ({
                     </span>
                     {showArchived && <Check className="w-3.5 h-3.5 text-purple-400" />}
                   </button>
+
+                  {onOpenBackups && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMoreMenuOpen(false);
+                        onOpenBackups();
+                      }}
+                      className="flex items-center gap-2.5 w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:bg-slate-800 transition-colors"
+                    >
+                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                      <span>Backups & Safety</span>
+                    </button>
+                  )}
 
                   <div className="h-px bg-slate-800 my-0.5" />
 

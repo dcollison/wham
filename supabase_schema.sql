@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS public.gym_areas (
     gym_id UUID NOT NULL REFERENCES public.gyms(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     sort_order INT NOT NULL DEFAULT 0,
+    image_url TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
@@ -276,6 +277,9 @@ CREATE POLICY "Public can delete props"
     ON public.send_props FOR DELETE
     TO public
     USING (true);
+
+-- Ensure gym_areas image_url column exists for wall panorama photos
+ALTER TABLE public.gym_areas ADD COLUMN IF NOT EXISTS image_url TEXT;
 
 -- =========================================================
 -- 5. STORAGE BUCKET CONFIGURATION

@@ -14,6 +14,7 @@ import { CompLeaderboardModal } from './components/leaderboard/CompLeaderboardMo
 import { GymCompBanner } from './components/boulders/GymCompBanner';
 import { CrewFeedView } from './components/feed/CrewFeedView';
 import { SettingsModal } from './components/settings/SettingsModal';
+import { AreaPhotoBanner } from './components/boulders/AreaPhotoBanner';
 import { BoulderFilters, BoulderFiltersState } from './components/boulders/BoulderFilters';
 import { ClimberAvatar } from './components/ClimberAvatar';
 import { Boulder, GRADES } from './types';
@@ -39,6 +40,7 @@ export function App() {
     updateDisplayName,
     updateAccentColor,
     updateAvatarIcon,
+    updateClimber,
     addClimber,
     removeClimber
   } = useAuth();
@@ -63,6 +65,8 @@ export function App() {
     bulkAddBoulders,
     archiveBoulder,
     archiveAreaBoulders,
+    updateAreaPhoto,
+    removeAreaPhoto,
     addComment,
     deleteComment,
     orderedActiveBouldersInCurrentArea,
@@ -76,6 +80,7 @@ export function App() {
   const [statsInitialTab, setStatsInitialTab] = useState<
     'overview' | 'leaderboard' | 'comparison' | 'timeline' | 'pyramid' | 'circuits'
   >('overview');
+  const [settingsInitialTab, setSettingsInitialTab] = useState<'crew' | 'backups' | 'storage'>('crew');
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -87,7 +92,14 @@ export function App() {
         setCurrentTab('stats');
       } else if (hash.includes('beta') || hash.includes('feed') || hash.includes('sends') || hash.includes('activity')) {
         setCurrentTab('beta');
+      } else if (hash.includes('backup') || hash.includes('restore')) {
+        setSettingsInitialTab('backups');
+        setCurrentTab('settings');
+      } else if (hash.includes('storage') || hash.includes('photos')) {
+        setSettingsInitialTab('storage');
+        setCurrentTab('settings');
       } else if (hash.includes('settings')) {
+        setSettingsInitialTab('crew');
         setCurrentTab('settings');
       } else {
         setCurrentTab('boulders');
@@ -311,7 +323,10 @@ export function App() {
         onSelectArea={setCurrentArea}
         currentUser={currentUser}
         climbers={climbers}
-        onOpenProfileSwitcher={() => setIsSettingsOpen(true)}
+        onOpenProfileSwitcher={() => {
+          setSettingsInitialTab('crew');
+          setIsSettingsOpen(true);
+        }}
         onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
         onOpenAddBoulder={() => setIsAddModalOpen(true)}
         onOpenBulkAdd={() => setIsBulkAddOpen(true)}
@@ -321,6 +336,10 @@ export function App() {
             return;
           }
           setIsAreaResetOpen(true);
+        }}
+        onOpenBackups={() => {
+          setSettingsInitialTab('backups');
+          setIsSettingsOpen(true);
         }}
         showArchived={showArchived}
         onToggleShowArchived={() => setShowArchived((prev) => !prev)}
@@ -345,6 +364,21 @@ export function App() {
                 </p>
               </div>
             </div>
+
+            {/* Area Wall Overview Photo */}
+            {currentArea && (
+              <AreaPhotoBanner
+                currentArea={currentArea}
+                activeBouldersCount={orderedActiveBouldersInCurrentArea.length}
+                activeColor={activeColor}
+                onUploadPhoto={async (file, dataUrl) => {
+                  if (currentArea) await updateAreaPhoto(currentArea.id, file, dataUrl);
+                }}
+                onRemovePhoto={async () => {
+                  if (currentArea) await removeAreaPhoto(currentArea.id);
+                }}
+              />
+            )}
 
             {/* Compact Boulder Filters: Search Bar & Single Filters Icon */}
             <BoulderFilters
@@ -490,9 +524,11 @@ export function App() {
               onUpdateDisplayName={updateDisplayName}
               onUpdateAccentColor={updateAccentColor}
               onUpdateAvatarIcon={updateAvatarIcon}
+              onUpdateClimber={updateClimber}
               onAddClimber={addClimber}
               onRemoveClimber={removeClimber}
               onLockApp={handleLockApp}
+              initialTab={settingsInitialTab}
             />
           </div>
         )}
@@ -514,6 +550,8 @@ export function App() {
         currentUserId={currentUser?.id}
         initialTargetUserId={quickLogTargetUserId}
         attempts={attempts}
+        filteredBoulders={visibleBoulders}
+        onNavigateBoulder={(next) => setQuickLogBoulder(next)}
       />
 
       {/* Boulder Detail & Beta Modal */}
@@ -529,6 +567,8 @@ export function App() {
         onAddComment={addComment}
         onDeleteComment={deleteComment}
         onToggleArchive={archiveBoulder}
+        filteredBoulders={visibleBoulders}
+        onNavigateBoulder={(next) => setDetailBoulder(next)}
       />
 
       {/* Add Boulder Modal (with Adjacent Placement) */}
@@ -595,9 +635,11 @@ export function App() {
         onUpdateDisplayName={updateDisplayName}
         onUpdateAccentColor={updateAccentColor}
         onUpdateAvatarIcon={updateAvatarIcon}
+        onUpdateClimber={updateClimber}
         onAddClimber={addClimber}
         onRemoveClimber={removeClimber}
         onLockApp={handleLockApp}
+        initialTab={settingsInitialTab}
       />
 
       {/* Gym Comp Leaderboard Modal */}

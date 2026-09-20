@@ -250,6 +250,29 @@ CREATE POLICY "Public can update attempts"
 
 CREATE POLICY "Public can delete attempts"
     ON public.attempts FOR DELETE TO public USING (true);
+
+-- Ensure public profile updates work seamlessly without individual auth
+DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Public can update profiles" ON public.profiles;
+CREATE POLICY "Public can update profiles" ON public.profiles FOR UPDATE TO public USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Users can insert their own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Public can insert profiles" ON public.profiles;
+CREATE POLICY "Public can insert profiles" ON public.profiles FOR INSERT TO public WITH CHECK (true);
+
+-- Ensure boulders updates and archives work from shared devices
+DROP POLICY IF EXISTS "Authenticated users can update boulders" ON public.boulders;
+DROP POLICY IF EXISTS "Public can update boulders" ON public.boulders;
+CREATE POLICY "Public can update boulders" ON public.boulders FOR UPDATE TO public USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Authenticated users can insert boulders" ON public.boulders;
+DROP POLICY IF EXISTS "Public can insert boulders" ON public.boulders;
+CREATE POLICY "Public can insert boulders" ON public.boulders FOR INSERT TO public WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Authenticated users can delete boulders" ON public.boulders;
+DROP POLICY IF EXISTS "Public can delete boulders" ON public.boulders;
+CREATE POLICY "Public can delete boulders" ON public.boulders FOR DELETE TO public USING (true);
 ```
 
 ---
