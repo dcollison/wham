@@ -1,5 +1,5 @@
 import React from 'react';
-import { Compass, MessageSquare, BarChart2, Users } from 'lucide-react';
+import { Compass, Zap, BarChart2, Users } from 'lucide-react';
 
 interface NavigationProps {
   currentTab: 'boulders' | 'beta' | 'stats' | 'settings';
@@ -22,7 +22,7 @@ export const Navigation: React.FC<NavigationProps> = ({
 }) => {
   const tabs: TabItem[] = [
     { id: 'boulders', label: 'Boulders', icon: Compass, hash: '#/boulders' },
-    { id: 'beta', label: 'Beta Feed', icon: MessageSquare, hash: '#/beta', badge: unreadCommentsCount },
+    { id: 'beta', label: 'Crew Feed', icon: Zap, hash: '#/feed', badge: unreadCommentsCount },
     { id: 'stats', label: 'Analytics', icon: BarChart2, hash: '#/stats' },
     { id: 'settings', label: 'The Circle', icon: Users, hash: '#/settings' },
   ];

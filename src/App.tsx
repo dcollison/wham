@@ -10,12 +10,12 @@ import { BulkAddBouldersModal } from './components/boulders/BulkAddBouldersModal
 import { BoulderDetailModal } from './components/boulders/BoulderDetailModal';
 import { AreaResetModal } from './components/boulders/AreaResetModal';
 import { StatsDashboard } from './components/stats/StatsDashboard';
-import { BetaDiscussionView } from './components/beta/BetaDiscussionView';
+import { CrewFeedView } from './components/feed/CrewFeedView';
 import { SettingsModal } from './components/settings/SettingsModal';
 import { BoulderFilters, BoulderFiltersState } from './components/boulders/BoulderFilters';
 import { ClimberAvatar } from './components/ClimberAvatar';
 import { Boulder, GRADES } from './types';
-import { Plus, Compass, Sparkles, Filter, RotateCcw, Layers } from 'lucide-react';
+import { Plus, Compass, Sparkles, Filter, RotateCcw, Layers, Zap, ChevronRight } from 'lucide-react';
 
 export function App() {
   const {
@@ -63,7 +63,7 @@ export function App() {
       const hash = window.location.hash.toLowerCase();
       if (hash.includes('stats')) {
         setCurrentTab('stats');
-      } else if (hash.includes('beta')) {
+      } else if (hash.includes('beta') || hash.includes('feed') || hash.includes('sends') || hash.includes('activity')) {
         setCurrentTab('beta');
       } else if (hash.includes('settings')) {
         setCurrentTab('settings');
@@ -246,6 +246,22 @@ export function App() {
     });
   }, [orderedActiveBouldersInCurrentArea, boulderFilters, currentUser, attempts]);
 
+  // Latest crew send ticker for quick notification banner
+  const latestSendInfo = useMemo(() => {
+    const sends = attempts.filter((a) => a.status === 'sent' || a.status === 'flashed');
+    if (sends.length === 0) return null;
+    const sorted = [...sends].sort((a, b) => new Date(b.logged_at).getTime() - new Date(a.logged_at).getTime());
+    const latest = sorted[0];
+    const boulder = boulders.find((b) => b.id === latest.boulder_id);
+    const climber = climbers.find((c) => c.id === latest.user_id) || latest.profile;
+    if (!boulder || !climber) return null;
+    return {
+      attempt: latest,
+      boulder,
+      climber
+    };
+  }, [attempts, boulders, climbers]);
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       {/* Persistent Header */}
@@ -294,6 +310,34 @@ export function App() {
                 </p>
               </div>
             </div>
+
+            {/* Quick Live Send Ticker Banner */}
+            {latestSendInfo && (
+              <div
+                onClick={() => {
+                  window.location.hash = '#/feed';
+                  setCurrentTab('beta');
+                }}
+                className="flex items-center justify-between p-2.5 px-3 rounded-2xl bg-gradient-to-r from-amber-500/10 via-slate-900 to-slate-900 border border-amber-500/25 hover:border-amber-500/50 cursor-pointer active-press transition-all shadow-sm group"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="p-1 rounded-lg bg-amber-400/20 text-amber-400 shrink-0">
+                    <Zap className="w-3.5 h-3.5 fill-amber-400" />
+                  </div>
+                  <div className="text-xs truncate">
+                    <span className="font-semibold text-slate-400">Latest Crew Send: </span>
+                    <strong className="text-amber-400 font-bold">{latestSendInfo.climber.display_name}</strong>
+                    <span className="text-slate-300"> {latestSendInfo.attempt.status === 'flashed' ? 'flashed' : 'topped'} </span>
+                    <span className="text-white font-bold">{latestSendInfo.boulder.hold_colour} {latestSendInfo.boulder.grade}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1 text-[11px] font-bold text-amber-400 shrink-0 group-hover:translate-x-0.5 transition-transform pl-2">
+                  <span>Feed</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </div>
+              </div>
+            )}
 
             {/* Boulder Filters: Grade Range, Status, Hold Colour, Search */}
             <BoulderFilters
@@ -389,16 +433,18 @@ export function App() {
           </div>
         )}
 
-        {/* TAB 2: Beta Discussion Feed */}
+        {/* TAB 2: Crew Feed (Recent Sends & Beta Spray) */}
         {currentTab === 'beta' && (
-          <BetaDiscussionView
+          <CrewFeedView
             comments={comments}
+            attempts={attempts}
             boulders={boulders}
             climbers={climbers}
             gyms={gyms}
             areas={areas}
             currentUserId={currentUser?.id}
             onSelectBoulder={(b) => setDetailBoulder(b)}
+            onQuickLog={(b, targetUserId) => handleOpenQuickLog(b, targetUserId)}
             onAddComment={addComment}
           />
         )}
