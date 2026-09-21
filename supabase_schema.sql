@@ -330,6 +330,7 @@ CREATE POLICY "Public can delete boulder-photos"
 -- 6. REALTIME REPLICATION ENABLEMENT
 -- =========================================================
 ALTER TABLE public.profiles REPLICA IDENTITY FULL;
+ALTER TABLE public.gym_areas REPLICA IDENTITY FULL;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.boulders;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.attempts;

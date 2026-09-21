@@ -103,8 +103,9 @@ export async function uploadAreaPhoto(
   }
 
   try {
-    const fileExt = file.name.split('.').pop() || 'jpg';
-    const fileName = `area-${areaId}-${Date.now()}.${fileExt}`;
+    const rawExt = file.name.split('.').pop() || 'jpg';
+    const cleanExt = rawExt.toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+    const fileName = `area-${areaId}-${Date.now()}.${cleanExt}`;
     const filePath = `areas/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
@@ -116,7 +117,7 @@ export async function uploadAreaPhoto(
       });
 
     if (uploadError) {
-      console.warn('Supabase storage upload error for area photo, falling back to data URL:', uploadError.message);
+      console.error('Supabase storage upload error for area photo, falling back to data URL:', uploadError.message);
       return dataUrlFallback;
     }
 

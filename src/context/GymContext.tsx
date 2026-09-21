@@ -254,7 +254,19 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (!isMounted) return;
 
         if (gymsRes.data && gymsRes.data.length > 0) setGyms(gymsRes.data);
-        if (areasRes.data && areasRes.data.length > 0) setAreas(areasRes.data);
+        if (areasRes.data && areasRes.data.length > 0) {
+          setAreas(areasRes.data);
+          try {
+            localStorage.setItem('wham_areas', JSON.stringify(areasRes.data));
+          } catch (e) {
+            console.warn('Failed to cache areas to localStorage:', e);
+          }
+          setCurrentAreaState((prev) => {
+            if (!prev) return prev;
+            const fresh = areasRes.data.find((a: GymArea) => a.id === prev.id);
+            return fresh || prev;
+          });
+        }
         if (bouldersRes.data && bouldersRes.data.length > 0) setBoulders(bouldersRes.data);
         if (attemptsRes.data && attemptsRes.data.length > 0) setAttempts(attemptsRes.data);
         if (commentsRes.data && commentsRes.data.length > 0) setComments(commentsRes.data);
@@ -291,6 +303,46 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               }
               return { ...prev, [attemptId]: updatedList };
             });
+          })
+          .on('broadcast', { event: 'area_photo_updated' }, ({ payload }) => {
+            if (!payload?.areaId) return;
+            const { areaId, imageUrl } = payload;
+            setAreas((prev) => {
+              const updated = prev.map((a) => (a.id === areaId ? { ...a, image_url: imageUrl } : a));
+              try {
+                localStorage.setItem('wham_areas', JSON.stringify(updated));
+              } catch (e) {}
+              return updated;
+            });
+            setCurrentAreaState((prev) => (prev && prev.id === areaId ? { ...prev, image_url: imageUrl } : prev));
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'gym_areas' }, (payload) => {
+            if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
+              const updated = payload.new as GymArea;
+              if (!updated?.id) return;
+              setAreas((prev) => {
+                const exists = prev.some((a) => a.id === updated.id);
+                const next = exists
+                  ? prev.map((a) => (a.id === updated.id ? { ...a, ...updated } : a))
+                  : [...prev, updated];
+                try {
+                  localStorage.setItem('wham_areas', JSON.stringify(next));
+                } catch (e) {}
+                return next;
+              });
+              setCurrentAreaState((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev));
+            } else if (payload.eventType === 'DELETE') {
+              const oldArea = payload.old as GymArea;
+              if (!oldArea?.id) return;
+              setAreas((prev) => {
+                const next = prev.filter((a) => a.id !== oldArea.id);
+                try {
+                  localStorage.setItem('wham_areas', JSON.stringify(next));
+                } catch (e) {}
+                return next;
+              });
+              setCurrentAreaState((prev) => (prev && prev.id === oldArea.id ? null : prev));
+            }
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'send_props' }, (payload) => {
             if (payload.eventType === 'INSERT') {
@@ -893,12 +945,24 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCurrentAreaState((prev) => (prev ? { ...prev, image_url: finalUrl } : null));
     }
 
+    // Broadcast immediately to all active peer sessions
+    if (channelRef.current) {
+      channelRef.current.send({
+        type: 'broadcast',
+        event: 'area_photo_updated',
+        payload: { areaId, imageUrl: finalUrl }
+      }).catch((e: any) => console.warn('Broadcast area photo error:', e));
+    }
+
     if (isSupabaseConfigured && supabase) {
       try {
-        await supabase
+        const { error: updateErr } = await supabase
           .from('gym_areas')
           .update({ image_url: finalUrl })
           .eq('id', areaId);
+        if (updateErr) {
+          console.error('Supabase update area photo error:', updateErr);
+        }
       } catch (err) {
         console.warn('Supabase update area photo notice:', err);
       }
@@ -926,16 +990,28 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCurrentAreaState((prev) => (prev ? { ...prev, image_url: null } : null));
     }
 
+    // Broadcast removal to peers
+    if (channelRef.current) {
+      channelRef.current.send({
+        type: 'broadcast',
+        event: 'area_photo_updated',
+        payload: { areaId, imageUrl: null }
+      }).catch((e: any) => console.warn('Broadcast remove area photo error:', e));
+    }
+
     if (existingUrl) {
       await deleteStoragePhotos([existingUrl]);
     }
 
     if (isSupabaseConfigured && supabase) {
       try {
-        await supabase
+        const { error: removeErr } = await supabase
           .from('gym_areas')
           .update({ image_url: null })
           .eq('id', areaId);
+        if (removeErr) {
+          console.error('Supabase remove area photo error:', removeErr);
+        }
       } catch (err) {
         console.warn('Failed to remove area photo in Supabase:', err);
       }

@@ -62,7 +62,7 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
         background: cardStyle.gradientBackground
       }}
     >
-      {/* Left colored accent bar (solid color or yellow/black hazard stripes for Bee) */}
+      {/* Left colored accent bar (solid color or half yellow / half black for Bee) */}
       <div
         className="absolute left-0 top-0 bottom-0 w-[5px] z-10"
         style={{

@@ -42,6 +42,54 @@ export const BetaDiscussionView: React.FC<BetaDiscussionViewProps> = ({
     );
   }, [comments]);
 
+  // Group boulders by Gym and Area, sorted by Gym, Area sort_order, and position_order
+  const groupedBoulders = useMemo(() => {
+    const activeBoulders = boulders.filter(b => !b.is_archived);
+    const areaMap = new Map<string, Boulder[]>();
+
+    for (const b of activeBoulders) {
+      if (!areaMap.has(b.area_id)) {
+        areaMap.set(b.area_id, []);
+      }
+      areaMap.get(b.area_id)!.push(b);
+    }
+
+    const groupedList: Array<{
+      areaId: string;
+      areaName: string;
+      gymName: string;
+      boulders: Boulder[];
+    }> = [];
+
+    for (const [areaId, bList] of areaMap.entries()) {
+      const area = areas.find(a => a.id === areaId);
+      const gym = gyms.find(g => g.id === area?.gym_id || g.id === bList[0]?.gym_id);
+      // Sort boulders clockwise within the area
+      bList.sort((a, b) => a.position_order - b.position_order);
+
+      groupedList.push({
+        areaId,
+        areaName: area?.name || 'Wall',
+        gymName: gym?.name || 'Gym',
+        boulders: bList
+      });
+    }
+
+    // Sort groups by gym name then area sort_order
+    groupedList.sort((gA, gB) => {
+      if (gA.gymName !== gB.gymName) {
+        return gA.gymName.localeCompare(gB.gymName);
+      }
+      const areaA = areas.find(a => a.id === gA.areaId);
+      const areaB = areas.find(a => a.id === gB.areaId);
+      const orderA = areaA?.sort_order ?? 999;
+      const orderB = areaB?.sort_order ?? 999;
+      return orderA - orderB;
+    });
+
+    return groupedList;
+  }, [boulders, areas, gyms]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedBoulderId || !newContent.trim() || submitting) return;
@@ -81,15 +129,23 @@ export const BetaDiscussionView: React.FC<BetaDiscussionViewProps> = ({
           className="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-xl p-2.5 outline-none focus:border-slate-500"
         >
           <option value="">Select a Boulder to drop beta on...</option>
-          {boulders.filter(b => !b.is_archived).map(b => {
-            const area = areas.find(a => a.id === b.area_id);
-            const gym = gyms.find(g => g.id === b.gym_id);
-            return (
-              <option key={b.id} value={b.id}>
-                {gym?.name} • {area?.name}: #{Math.round(b.position_order)} {b.hold_colour} {b.grade}
-              </option>
-            );
-          })}
+          {groupedBoulders.map(group => (
+            <optgroup
+              key={group.areaId}
+              label={`${group.gymName} • ${group.areaName}`}
+              className="bg-slate-900 text-slate-400 font-bold"
+            >
+              {group.boulders.map(b => (
+                <option
+                  key={b.id}
+                  value={b.id}
+                  className="bg-slate-800 text-slate-200 font-normal py-1"
+                >
+                  #{Math.round(b.position_order)} • {b.hold_colour} {b.grade}{b.notes ? ` (${b.notes})` : ''}
+                </option>
+              ))}
+            </optgroup>
+          ))}
         </select>
 
         <div className="flex items-center gap-2">

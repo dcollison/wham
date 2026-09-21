@@ -1622,14 +1622,14 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
       {activeTab === 'timeline' && (
         <div className="flex flex-col gap-6 animate-in fade-in duration-200">
           {/* Controls: Chart Mode Switcher & Climber Filter */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="flex flex-col gap-3 w-full">
             {/* Chart Mode Switcher */}
-            <div className="flex p-1 bg-slate-900 border border-slate-800 rounded-xl">
+            <div className="flex p-1 bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto no-scrollbar w-full">
               <button
                 type="button"
                 onClick={() => setTimelineChartMode('grade')}
                 style={timelineChartMode === 'grade' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
-                className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active-press ${
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all active-press ${
                   timelineChartMode === 'grade'
                     ? 'text-black shadow-md'
                     : 'text-slate-400 hover:text-white'
@@ -1643,7 +1643,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                 type="button"
                 onClick={() => setTimelineChartMode('cumulative')}
                 style={timelineChartMode === 'cumulative' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
-                className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active-press ${
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all active-press ${
                   timelineChartMode === 'cumulative'
                     ? 'text-black shadow-md'
                     : 'text-slate-400 hover:text-white'
@@ -1657,7 +1657,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                 type="button"
                 onClick={() => setTimelineChartMode('volume')}
                 style={timelineChartMode === 'volume' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
-                className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active-press ${
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all active-press ${
                   timelineChartMode === 'volume'
                     ? 'text-black shadow-md'
                     : 'text-slate-400 hover:text-white'
@@ -1669,12 +1669,12 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
             </div>
 
             {/* Climber Filter Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
               <button
                 type="button"
                 onClick={() => setTimelineClimberFilter('all')}
                 style={timelineClimberFilter === 'all' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all active-press ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all active-press shrink-0 ${
                   timelineClimberFilter === 'all'
                     ? 'text-black shadow'
                     : 'bg-slate-800/80 text-slate-300 hover:text-white'
@@ -1691,7 +1691,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                     type="button"
                     onClick={() => setTimelineClimberFilter(c.id)}
                     style={isSelected ? { backgroundColor: color.hex, color: '#000000' } : undefined}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all active-press ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all active-press shrink-0 ${
                       isSelected
                         ? `${color.bg} text-black shadow`
                         : 'bg-slate-800/80 text-slate-300 hover:text-white'

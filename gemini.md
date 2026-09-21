@@ -63,7 +63,7 @@ The app uses a distinctive editorial/utilitarian typography pairing:
 Hold colors are tuned for high contrast against dark backgrounds:
 - **Red**: `#DC2626` (crisp crimson red, avoids pinkish tones)
 - **Green**: `#16A34A` (pure grass/emerald green, avoids blueish/teal tones)
-- **Bee**: `#EAB308` with **45° alternating yellow and black hazard stripes** (`repeating-linear-gradient(...)`) to immediately differentiate from pure Yellow holds.
+- **Bee**: `#DDA82B` split into **one yellow area and one black area** (half-and-half dual tone, no stripes) to immediately differentiate from pure Yellow holds.
 - **Black, White, Yellow, Blue, Purple, Orange, Pink, Wood**: Defined in `HOLD_COLORS` with dedicated card styles, swatches, and badge gradients.
 
 ### Design Principles
@@ -290,6 +290,11 @@ CREATE POLICY "Public can insert boulders" ON public.boulders FOR INSERT TO publ
 DROP POLICY IF EXISTS "Authenticated users can delete boulders" ON public.boulders;
 DROP POLICY IF EXISTS "Public can delete boulders" ON public.boulders;
 CREATE POLICY "Public can delete boulders" ON public.boulders FOR DELETE TO public USING (true);
+
+-- Ensure gym_areas updates (such as sector photos) replicate and update seamlessly
+ALTER TABLE public.gym_areas REPLICA IDENTITY FULL;
+DROP POLICY IF EXISTS "Public can update gym areas" ON public.gym_areas;
+CREATE POLICY "Public can update gym areas" ON public.gym_areas FOR UPDATE TO public USING (true) WITH CHECK (true);
 ```
 
 ---

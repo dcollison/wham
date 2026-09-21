@@ -504,12 +504,12 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                                       : `${colorCfg.bgClass} ${colorCfg.textClass} ${colorCfg.borderClass}`
                                   }`}
                                   style={
-                                    item.boulder.hold_colour.toLowerCase() === 'bee'
-                                      ? {
-                                          background: 'repeating-linear-gradient(135deg, #DDA82B 0, #DDA82B 3px, #27272A 3px, #27272A 6px)',
-                                          textShadow: '0 1px 2px rgba(0,0,0,0.9)'
-                                        }
-                                      : undefined
+                                     item.boulder.hold_colour.toLowerCase() === 'bee'
+                                       ? {
+                                           background: 'linear-gradient(135deg, #DDA82B 0%, #DDA82B 50%, #27272A 50%, #27272A 100%)',
+                                           textShadow: '0 1px 2px rgba(0,0,0,0.9)'
+                                         }
+                                       : undefined
                                   }
                                 >
                                   {item.grade}

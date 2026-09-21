@@ -66,26 +66,25 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
   const [submittingComment, setSubmittingComment] = useState<boolean>(false);
   const [photoZoom, setPhotoZoom] = useState<boolean>(false);
 
-  if (!isOpen || !boulder) return null;
-
   const allAreas = areas || contextAreas || [];
   const allGyms = contextGyms || [];
-  const matchedArea = allAreas.find((a) => a.id === boulder.area_id);
+  const matchedArea = boulder ? allAreas.find((a) => a.id === boulder.area_id) : undefined;
   const resolvedAreaName = areaName || matchedArea?.name;
-  const matchedGym = allGyms.find((g) => g.id === boulder.gym_id || g.id === matchedArea?.gym_id);
+  const matchedGym = boulder ? allGyms.find((g) => g.id === boulder.gym_id || g.id === matchedArea?.gym_id) : undefined;
   const resolvedGymName = gymName || matchedGym?.name;
 
   const boulderComments = useMemo(() => {
+    if (!boulder) return [];
     const matching = comments.filter(c => c.boulder_id === boulder.id);
     const unique = Array.from(new Map(matching.map(c => [c.id, c])).values());
     return unique.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-  }, [comments, boulder.id]);
+  }, [comments, boulder?.id]);
   const userAttempt = attempts.find(a => a.user_id === currentUserId);
   const activeColor = climbers.find(c => c.id === currentUserId)?.accent_color || '#3B82F6';
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newComment.trim() || submittingComment) return;
+    if (!boulder || !newComment.trim() || submittingComment) return;
 
     setSubmittingComment(true);
     try {

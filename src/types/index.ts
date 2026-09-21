@@ -148,20 +148,20 @@ export const HOLD_COLORS: Record<string, HoldColorConfig> = {
     borderClass: 'border-zinc-900',
     hex: '#DDA82B',
     isBee: true,
-    isStriped: true
+    isStriped: false
   },
   Wood: { name: 'Wood', bgClass: 'bg-amber-800', textClass: 'text-white', borderClass: 'border-amber-900', hex: '#8C4E26' }
 };
 
 /**
  * Helper to get CSS style for a hold color swatch (dot/circle/pill).
- * Handles special hold colors like Bee (yellow & black hazard stripes).
+ * Handles special hold colors like Bee (split into one yellow area and one black area, no stripes).
  */
 export function getHoldSwatchStyle(colorName: string): React.CSSProperties {
   const isBee = colorName.toLowerCase() === 'bee';
   if (isBee) {
     return {
-      background: 'repeating-linear-gradient(135deg, #DDA82B 0, #DDA82B 2.5px, #27272A 2.5px, #27272A 5px)'
+      background: 'linear-gradient(135deg, #DDA82B 0%, #DDA82B 50%, #27272A 50%, #27272A 100%)'
     };
   }
   const config = HOLD_COLORS[colorName];
@@ -184,10 +184,10 @@ export function getHoldCardStyle(colorName: string): {
   const isBee = colorName.toLowerCase() === 'bee';
   if (isBee) {
     return {
-      accentBarBackground: 'repeating-linear-gradient(180deg, #DDA82B 0px, #DDA82B 8px, #27272A 8px, #27272A 16px)',
-      gradientBackground: 'linear-gradient(90deg, rgba(221, 168, 43, 0.15) 0%, rgba(39, 39, 42, 0.4) 12%, rgba(15, 23, 42, 0.95) 26%, rgba(15, 23, 42, 0.92) 100%)',
+      accentBarBackground: 'linear-gradient(180deg, #DDA82B 0%, #DDA82B 50%, #27272A 50%, #27272A 100%)',
+      gradientBackground: 'linear-gradient(90deg, rgba(221, 168, 43, 0.18) 0%, rgba(39, 39, 42, 0.4) 14%, rgba(15, 23, 42, 0.95) 26%, rgba(15, 23, 42, 0.92) 100%)',
       borderLeftColor: '#DDA82B',
-      badgeBackground: 'linear-gradient(135deg, rgba(221, 168, 43, 0.16) 0%, rgba(39, 39, 42, 0.5) 100%)',
+      badgeBackground: 'linear-gradient(135deg, rgba(221, 168, 43, 0.25) 0%, rgba(221, 168, 43, 0.25) 50%, rgba(39, 39, 42, 0.6) 50%, rgba(39, 39, 42, 0.6) 100%)',
       badgeBorderColor: '#DDA82B',
       hex: '#DDA82B'
     };
