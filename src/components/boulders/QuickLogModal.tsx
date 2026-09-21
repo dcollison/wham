@@ -17,7 +17,8 @@ import {
   CheckCircle,
   ChevronLeft,
   ChevronRight,
-  MapPin
+  MapPin,
+  FileText
 } from 'lucide-react';
 import { useGym } from '../../context/GymContext';
 
@@ -27,6 +28,7 @@ interface QuickLogModalProps {
   onClose: () => void;
   onSave: (params: { boulderId: string; status: AttemptStatus; attemptCount: number; loggedAt?: string; userId?: string }) => Promise<void>;
   onDelete?: (boulderId: string, userId?: string) => Promise<void>;
+  onOpenDetails?: (boulder: Boulder) => void;
   climbers: Profile[];
   currentUserId?: string;
   initialTargetUserId?: string;
@@ -43,6 +45,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
   onClose,
   onSave,
   onDelete,
+  onOpenDetails,
   climbers,
   currentUserId,
   initialTargetUserId,
@@ -52,7 +55,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
   areaName,
   areas
 }) => {
-  const { areas: contextAreas } = useGym();
+  const { areas: contextAreas, comments } = useGym();
   const getTodayIsoDate = () => new Date().toISOString().split('T')[0];
 
   // Active target climber for this log
@@ -164,6 +167,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
   const allAreas = areas || contextAreas || [];
   const matchedArea = allAreas.find((a) => a.id === boulder.area_id);
   const resolvedAreaName = areaName || matchedArea?.name;
+  const boulderCommentsCount = boulder ? (comments || []).filter(c => c.boulder_id === boulder.id).length : 0;
 
   // Filter-aware navigation calculations
   const currentIndex = boulder && filteredBoulders ? filteredBoulders.findIndex(b => b.id === boulder.id) : -1;
@@ -323,14 +327,65 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
             </div>
           )}
 
+          <div className="flex items-center gap-1.5 shrink-0">
+            {onOpenDetails && boulder && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenDetails(boulder);
+                }}
+                className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700/80 flex items-center gap-1 active-press transition-all shadow-xs"
+                title="View full beta notes, photos, and crew discussion"
+              >
+                <FileText className="w-3.5 h-3.5 text-amber-400" />
+                <span>Details</span>
+                <ChevronRight className="w-3 h-3 text-slate-400" />
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
+              title="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Quick link to beta/details if boulder has notes, photo, or comments */}
+        {onOpenDetails && boulder && (boulder.notes || boulder.image_url || boulderCommentsCount > 0) && (
           <button
             type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
+            onClick={() => {
+              onClose();
+              onOpenDetails(boulder);
+            }}
+            className="w-full -mt-1 py-1.5 px-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 text-slate-300 text-xs flex items-center justify-between transition-colors active-press group shadow-xs"
           >
-            <X className="w-5 h-5" />
+            <span className="flex items-center gap-2 truncate text-[11px]">
+              {boulder.image_url && (
+                <span className="text-slate-400 font-medium shrink-0">📷 Photo</span>
+              )}
+              {boulder.notes && (
+                <span className="text-amber-300 font-medium truncate max-w-[180px] sm:max-w-[260px]">
+                  📝 {boulder.notes}
+                </span>
+              )}
+              {boulderCommentsCount > 0 && (
+                <span className="text-blue-400 font-medium shrink-0">
+                  💬 {boulderCommentsCount} {boulderCommentsCount === 1 ? 'comment' : 'comments'}
+                </span>
+              )}
+            </span>
+            <span className="text-[11px] font-bold text-amber-400 group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5 shrink-0 ml-2">
+              <span>View Beta</span>
+              <ChevronRight className="w-3 h-3" />
+            </span>
           </button>
-        </div>
+        )}
 
         {/* Climber Selector / Context */}
         <div className="flex flex-col gap-2 bg-slate-800/40 p-3 rounded-2xl border border-slate-800">

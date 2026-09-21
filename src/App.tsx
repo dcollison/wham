@@ -629,6 +629,11 @@ export function App() {
         areas={areas}
         areaName={areas.find((a) => a.id === quickLogBoulder?.area_id)?.name}
         onNavigateBoulder={(next) => setQuickLogBoulder(next)}
+        onOpenDetails={(b) => {
+          setQuickLogBoulder(null);
+          setQuickLogTargetUserId(undefined);
+          setDetailBoulder(b);
+        }}
       />
 
       {/* Boulder Detail & Beta Modal */}

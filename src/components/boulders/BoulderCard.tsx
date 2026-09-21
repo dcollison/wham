@@ -71,7 +71,7 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
 
   return (
     <div
-      onClick={() => onOpenDetails(boulder)}
+      onClick={() => onQuickLog(boulder)}
       className={`group relative bg-slate-900/90 hover:bg-slate-850 border rounded-2xl p-4 sm:p-5 transition-all cursor-pointer flex flex-col gap-3.5 overflow-hidden surface-elevated ${borderShadowClass}`}
       style={{
         background: cardStyle.gradientBackground
@@ -224,10 +224,11 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
               e.stopPropagation();
               onOpenDetails(boulder);
             }}
-            className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-            title="View Beta & Details"
+            className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-750 px-2 py-1 rounded-lg border border-slate-750 active-press transition-all shadow-xs"
+            title="View Beta Notes, Photos & Comments"
           >
-            <ChevronRight className="w-4 h-4" />
+            <span>Details</span>
+            <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
