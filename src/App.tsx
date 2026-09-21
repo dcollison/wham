@@ -21,14 +21,15 @@ import { Boulder, GRADES } from './types';
 import { Plus, Compass, Sparkles, Filter, RotateCcw, Layers, Zap, ChevronRight } from 'lucide-react';
 import { WhamLogo, WhamBadge } from './components/WhamLogo';
 import { PasscodeGate } from './components/PasscodeGate';
+import { STORAGE_KEYS, getStorageString, setStorageString } from './lib/storage';
 
 export function App() {
   const [isPasscodeUnlocked, setIsPasscodeUnlocked] = useState<boolean>(() => {
-    return localStorage.getItem('wham_passcode_unlocked') === 'true';
+    return localStorage.getItem(STORAGE_KEYS.PASSCODE_UNLOCKED) === 'true';
   });
 
   const handleLockApp = () => {
-    localStorage.removeItem('wham_passcode_unlocked');
+    localStorage.removeItem(STORAGE_KEYS.PASSCODE_UNLOCKED);
     setIsPasscodeUnlocked(false);
     setIsSettingsOpen(false);
   };
@@ -64,6 +65,7 @@ export function App() {
     addBoulder,
     bulkAddBoulders,
     archiveBoulder,
+    moveBoulder,
     archiveAreaBoulders,
     updateAreaPhoto,
     removeAreaPhoto,
@@ -121,6 +123,44 @@ export function App() {
     setQuickLogBoulder(boulder);
     setQuickLogTargetUserId(targetUserId || currentUser?.id);
   };
+
+  const handleQuickFlash = async (boulder: Boulder) => {
+    await logAttempt({
+      boulderId: boulder.id,
+      status: 'flashed',
+      attemptCount: 1,
+      userId: currentUser?.id
+    });
+  };
+
+  // Track last viewed feed time for unread comments notification badge
+  const [lastViewedFeedTime, setLastViewedFeedTime] = useState<string>(() => {
+    const saved = getStorageString(STORAGE_KEYS.LAST_VIEWED_FEED, '');
+    if (!saved) {
+      const now = new Date().toISOString();
+      setStorageString(STORAGE_KEYS.LAST_VIEWED_FEED, now);
+      return now;
+    }
+    return saved;
+  });
+
+  // When visiting Crew Feed (tab 2 'beta'), mark all current comments as read
+  useEffect(() => {
+    if (currentTab === 'beta') {
+      const now = new Date().toISOString();
+      setLastViewedFeedTime(now);
+      setStorageString(STORAGE_KEYS.LAST_VIEWED_FEED, now);
+    }
+  }, [currentTab]);
+
+  const unreadFeedCommentsCount = useMemo(() => {
+    if (!lastViewedFeedTime) return 0;
+    const lastTimestamp = new Date(lastViewedFeedTime).getTime();
+    return comments.filter(
+      (c) => new Date(c.created_at).getTime() > lastTimestamp && c.user_id !== currentUser?.id
+    ).length;
+  }, [comments, lastViewedFeedTime, currentUser?.id]);
+
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const [isBulkAddOpen, setIsBulkAddOpen] = useState<boolean>(false);
   const [isAreaResetOpen, setIsAreaResetOpen] = useState<boolean>(false);
@@ -129,7 +169,7 @@ export function App() {
     return Boolean(localStorage.getItem('wham_active_profile_id'));
   });
 
-  // Boulder filters state (Grade Range, Status, Hold Colour, Climber, Search, Sort)
+  // Boulder filters state (Grade Range, Status, Hold Colour, Climber, Sort)
   const [boulderFilters, setBoulderFilters] = useState<BoulderFiltersState>(() => {
     const savedUserId = localStorage.getItem('wham_active_profile_id') || currentUser?.id || '';
     return {
@@ -138,7 +178,6 @@ export function App() {
       statusFilter: hideSent ? 'unsent' : 'all',
       selectedColour: null,
       targetClimberId: savedUserId,
-      searchQuery: '',
       sortBy: 'position'
     };
   });
@@ -189,7 +228,6 @@ export function App() {
       statusFilter: 'all',
       selectedColour: null,
       targetClimberId: currentUser?.id || localStorage.getItem('wham_active_profile_id') || '',
-      searchQuery: '',
       sortBy: 'position'
     });
   };
@@ -253,15 +291,6 @@ export function App() {
         if (boulder.hold_colour.toLowerCase() !== boulderFilters.selectedColour.toLowerCase()) {
           return false;
         }
-      }
-
-      // Search Query
-      if (boulderFilters.searchQuery.trim()) {
-        const q = boulderFilters.searchQuery.toLowerCase().trim();
-        const matchesNotes = boulder.notes?.toLowerCase().includes(q) || false;
-        const matchesColour = boulder.hold_colour.toLowerCase().includes(q);
-        const matchesGrade = boulder.grade.toLowerCase().includes(q);
-        if (!matchesNotes && !matchesColour && !matchesGrade) return false;
       }
 
       return true;
@@ -399,25 +428,68 @@ export function App() {
             {/* Boulders List */}
             {visibleBoulders.length > 0 ? (
               <div className="flex flex-col gap-3">
-                {visibleBoulders.map((boulder) => {
-                  const boulderAttempts = attempts.filter((a) => a.boulder_id === boulder.id);
-                  const boulderComments = comments.filter((c) => c.boulder_id === boulder.id);
-                  const boulderArea = areas.find((a) => a.id === boulder.area_id);
+                {!currentArea ? (
+                  // Group with sticky sector headers when viewing All Areas
+                  (() => {
+                    let lastAreaId: string | null = null;
+                    return visibleBoulders.map((boulder) => {
+                      const isNewArea = boulder.area_id !== lastAreaId;
+                      lastAreaId = boulder.area_id;
+                      const boulderArea = areas.find((a) => a.id === boulder.area_id);
+                      const areaBouldersCount = visibleBoulders.filter((b) => b.area_id === boulder.area_id).length;
+                      const boulderAttempts = attempts.filter((a) => a.boulder_id === boulder.id);
+                      const boulderComments = comments.filter((c) => c.boulder_id === boulder.id);
 
-                  return (
-                    <BoulderCard
-                      key={boulder.id}
-                      boulder={boulder}
-                      attempts={boulderAttempts}
-                      climbers={climbers}
-                      currentUserId={currentUser?.id}
-                      commentCount={boulderComments.length}
-                      areaName={!currentArea ? boulderArea?.name : undefined}
-                      onQuickLog={(b, targetUserId) => handleOpenQuickLog(b, targetUserId)}
-                      onOpenDetails={(b) => setDetailBoulder(b)}
-                    />
-                  );
-                })}
+                      return (
+                        <React.Fragment key={boulder.id}>
+                          {isNewArea && (
+                            <div className="sticky top-[92px] sm:top-[96px] z-20 -mx-1 px-3.5 py-2 bg-slate-950/95 backdrop-blur-md border-y border-slate-800/80 rounded-xl my-2 flex items-center justify-between shadow-sm">
+                              <div className="flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: activeColor }} />
+                                <span className="text-xs font-bold font-heading text-slate-200 uppercase tracking-wider">
+                                  {boulderArea?.name || 'Wall Sector'}
+                                </span>
+                              </div>
+                              <span className="text-[10px] font-mono font-medium text-slate-400 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
+                                {areaBouldersCount} {areaBouldersCount === 1 ? 'climb' : 'climbs'}
+                              </span>
+                            </div>
+                          )}
+                          <BoulderCard
+                            boulder={boulder}
+                            attempts={boulderAttempts}
+                            climbers={climbers}
+                            currentUserId={currentUser?.id}
+                            commentCount={boulderComments.length}
+                            areaName={boulderArea?.name}
+                            onQuickLog={(b, targetUserId) => handleOpenQuickLog(b, targetUserId)}
+                            onQuickFlash={handleQuickFlash}
+                            onOpenDetails={(b) => setDetailBoulder(b)}
+                          />
+                        </React.Fragment>
+                      );
+                    });
+                  })()
+                ) : (
+                  visibleBoulders.map((boulder) => {
+                    const boulderAttempts = attempts.filter((a) => a.boulder_id === boulder.id);
+                    const boulderComments = comments.filter((c) => c.boulder_id === boulder.id);
+
+                    return (
+                      <BoulderCard
+                        key={boulder.id}
+                        boulder={boulder}
+                        attempts={boulderAttempts}
+                        climbers={climbers}
+                        currentUserId={currentUser?.id}
+                        commentCount={boulderComments.length}
+                        onQuickLog={(b, targetUserId) => handleOpenQuickLog(b, targetUserId)}
+                        onQuickFlash={handleQuickFlash}
+                        onOpenDetails={(b) => setDetailBoulder(b)}
+                      />
+                    );
+                  })
+                )}
               </div>
             ) : orderedActiveBouldersInCurrentArea.length > 0 ? (
               <div className="flex flex-col items-center justify-center p-8 bg-slate-900/60 border border-slate-800 rounded-2xl text-center gap-3 my-4">
@@ -561,7 +633,7 @@ export function App() {
 
       {/* Boulder Detail & Beta Modal */}
       <BoulderDetailModal
-        boulder={detailBoulder}
+        boulder={detailBoulder ? boulders.find((b) => b.id === detailBoulder.id) || detailBoulder : null}
         isOpen={Boolean(detailBoulder)}
         onClose={() => setDetailBoulder(null)}
         attempts={detailBoulder ? attempts.filter((a) => a.boulder_id === detailBoulder.id) : []}
@@ -575,6 +647,7 @@ export function App() {
         onAddComment={addComment}
         onDeleteComment={deleteComment}
         onToggleArchive={archiveBoulder}
+        onMoveBoulder={moveBoulder}
         filteredBoulders={visibleBoulders}
         onNavigateBoulder={(next) => setDetailBoulder(next)}
       />
@@ -714,7 +787,7 @@ export function App() {
       <Navigation
         currentTab={currentTab}
         onSelectTab={(tab) => setCurrentTab(tab)}
-        unreadCommentsCount={comments.length}
+        unreadCommentsCount={unreadFeedCommentsCount}
       />
     </div>
   );

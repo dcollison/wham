@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Boulder, Grade, GRADES, HOLD_COLORS, GymArea, BulkAddBoulderItem, BulkAddBouldersParams, getHoldSwatchStyle } from '../../types';
 import { compressImage } from '../../lib/imageCompressor';
+import { HoldSwatch } from './HoldSwatch';
 import {
   X,
   Plus,
@@ -489,16 +490,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                       }`}
                       style={isSelected ? { borderColor: cfg.hex } : undefined}
                     >
-                      <span
-                        className={`w-3 h-3 rounded-full shrink-0 ${
-                          cName.toLowerCase() === 'white'
-                            ? 'border border-slate-400'
-                            : cName.toLowerCase() === 'bee'
-                            ? 'border border-yellow-400'
-                            : ''
-                        }`}
-                        style={getHoldSwatchStyle(cName)}
-                      />
+                      <HoldSwatch color={cName} size="sm" />
                       <span className="truncate text-[11px]">
                         {cName}
                       </span>

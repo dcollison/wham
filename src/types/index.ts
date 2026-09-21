@@ -80,6 +80,7 @@ export interface Boulder {
   created_by?: string | null;
   created_at?: string;
   // Computed / joined fields for convenient UI usage
+  display_order?: number;
   adjacent_prev?: { hold_colour: string; grade: Grade } | null;
   adjacent_next?: { hold_colour: string; grade: Grade } | null;
 }
@@ -161,7 +162,9 @@ export function getHoldSwatchStyle(colorName: string): React.CSSProperties {
   const isBee = colorName.toLowerCase() === 'bee';
   if (isBee) {
     return {
-      background: 'linear-gradient(135deg, #DDA82B 0%, #DDA82B 50%, #27272A 50%, #27272A 100%)'
+      background: 'linear-gradient(90deg, #DDA82B 0% 50%, #18181B 50% 100%)',
+      backgroundRepeat: 'no-repeat',
+      backgroundSize: '100% 100%'
     };
   }
   const config = HOLD_COLORS[colorName];

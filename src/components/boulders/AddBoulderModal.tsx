@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Boulder, Grade, GRADES, HOLD_COLORS, GymArea, getHoldSwatchStyle } from '../../types';
 import { compressImage, CompressionResult } from '../../lib/imageCompressor';
+import { HoldSwatch } from './HoldSwatch';
 import { X, Camera, Upload, Plus, AlertCircle, ArrowDown, Layers } from 'lucide-react';
 
 interface AddBoulderModalProps {
@@ -214,16 +215,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
                         : 'border-slate-800 bg-slate-950 text-slate-300 hover:border-slate-700'
                     }`}
                   >
-                    <span
-                      className={`w-3 h-3 rounded-full shrink-0 ${
-                        colorName.toLowerCase() === 'white'
-                          ? 'border border-slate-400'
-                          : colorName.toLowerCase() === 'bee'
-                          ? 'border border-yellow-400'
-                          : ''
-                      }`}
-                      style={getHoldSwatchStyle(colorName)}
-                    />
+                    <HoldSwatch color={colorName} size="sm" />
                     <span className="truncate">
                       {colorName}
                     </span>

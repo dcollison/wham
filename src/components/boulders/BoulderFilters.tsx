@@ -22,7 +22,6 @@ export interface BoulderFiltersState {
   statusFilter: StatusFilterType;
   selectedColour: string | null;
   targetClimberId: string;
-  searchQuery: string;
   sortBy: SortByType;
 }
 

@@ -61,6 +61,7 @@ interface GymContextType {
   addBoulder: (params: AddBoulderParams) => Promise<Boulder>;
   bulkAddBoulders: (params: BulkAddBouldersParams) => Promise<Boulder[]>;
   archiveBoulder: (boulderId: string, archive?: boolean) => Promise<void>;
+  moveBoulder: (boulderId: string, targetAreaId: string, unarchive?: boolean) => Promise<void>;
   archiveAreaBoulders: (areaId: string) => Promise<void>;
   updateAreaPhoto: (areaId: string, imageFile?: File | null, imageDataUrl?: string | null) => Promise<string | null>;
   removeAreaPhoto: (areaId: string) => Promise<void>;
@@ -552,8 +553,12 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return a.position_order - b.position_order;
     });
 
-    // Calculate adjacent prev / next indicators for each climb
+    // Calculate sequential 1-based order within each area and adjacent indicators
+    const areaCounters = new Map<string, number>();
     return filtered.map((boulder, index) => {
+      const currentAreaCount = (areaCounters.get(boulder.area_id) || 0) + 1;
+      areaCounters.set(boulder.area_id, currentAreaCount);
+
       // Only link adjacent if in the same area
       const prevBoulder =
         index > 0 && filtered[index - 1].area_id === boulder.area_id
@@ -566,6 +571,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       return {
         ...boulder,
+        display_order: currentAreaCount,
         adjacent_prev: prevBoulder ? { hold_colour: prevBoulder.hold_colour, grade: prevBoulder.grade } : null,
         adjacent_next: nextBoulder ? { hold_colour: nextBoulder.hold_colour, grade: nextBoulder.grade } : null
       };
@@ -887,6 +893,52 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           .eq('id', boulderId);
       } catch (err) {
         console.error('Failed to archive boulder in Supabase:', err);
+      }
+    }
+  };
+
+  // Move boulder to another area / wall sector (and optionally restore it if archived)
+  const moveBoulder = async (boulderId: string, targetAreaId: string, unarchive = true) => {
+    // Determine position order in the target area (append to end of active climbs)
+    const targetAreaBoulders = boulders.filter(b => b.area_id === targetAreaId && !b.is_archived);
+    const maxPos = targetAreaBoulders.reduce((max, b) => Math.max(max, b.position_order), 0);
+    const newPosition = maxPos > 0 ? maxPos + 1.0 : 1.0;
+
+    setBoulders(prev => {
+      const updated = prev.map(b => {
+        if (b.id === boulderId) {
+          return {
+            ...b,
+            area_id: targetAreaId,
+            position_order: newPosition,
+            is_archived: unarchive ? false : b.is_archived
+          };
+        }
+        return b;
+      });
+      try {
+        localStorage.setItem('wham_boulders', JSON.stringify(updated));
+      } catch (e) {
+        // Ignore
+      }
+      return updated;
+    });
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const updatePayload: Record<string, any> = {
+          area_id: targetAreaId,
+          position_order: newPosition
+        };
+        if (unarchive) {
+          updatePayload.is_archived = false;
+        }
+        await supabase
+          .from('boulders')
+          .update(updatePayload)
+          .eq('id', boulderId);
+      } catch (err) {
+        console.error('Failed to move boulder in Supabase:', err);
       }
     }
   };
@@ -1377,6 +1429,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addBoulder,
         bulkAddBoulders,
         archiveBoulder,
+        moveBoulder,
         archiveAreaBoulders,
         updateAreaPhoto,
         removeAreaPhoto,

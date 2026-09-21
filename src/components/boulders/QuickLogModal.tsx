@@ -69,7 +69,10 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
 
   const [dragOffset, setDragOffset] = useState<number>(0);
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
+  const touchEndY = useRef<number | null>(null);
 
   // Sync selected climber when modal opens or initial target changes
   useEffect(() => {
@@ -78,31 +81,58 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
       setJustSavedName(null);
       setDragOffset(0);
       setIsDragging(false);
+      touchStartX.current = null;
       touchStartY.current = null;
+      touchEndX.current = null;
+      touchEndY.current = null;
     }
   }, [isOpen, initialTargetUserId, currentUserId]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
+    touchEndX.current = e.touches[0].clientX;
+    touchEndY.current = e.touches[0].clientY;
     setIsDragging(true);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (touchStartY.current === null) return;
-    const currentY = e.touches[0].clientY;
-    const deltaY = currentY - touchStartY.current;
+    if (touchStartY.current === null || touchStartX.current === null) return;
+    touchEndX.current = e.touches[0].clientX;
+    touchEndY.current = e.touches[0].clientY;
+    const deltaY = touchEndY.current - touchStartY.current;
     if (deltaY > 0) {
       setDragOffset(deltaY);
     }
   };
 
   const handleTouchEnd = () => {
-    if (dragOffset > 75) {
-      onClose();
+    if (
+      touchStartX.current !== null &&
+      touchEndX.current !== null &&
+      touchStartY.current !== null &&
+      touchEndY.current !== null
+    ) {
+      const deltaX = touchEndX.current - touchStartX.current;
+      const deltaY = touchEndY.current - touchStartY.current;
+
+      // Horizontal swipe detected (dx > 60 and dx is dominant)
+      if (Math.abs(deltaX) > 60 && Math.abs(deltaX) > Math.abs(deltaY) * 1.4) {
+        if (deltaX < -60 && nextBoulder) {
+          onNavigateBoulder?.(nextBoulder);
+        } else if (deltaX > 60 && prevBoulder) {
+          onNavigateBoulder?.(prevBoulder);
+        }
+      } else if (dragOffset > 75) {
+        onClose();
+      }
     }
     setDragOffset(0);
     setIsDragging(false);
+    touchStartX.current = null;
     touchStartY.current = null;
+    touchEndX.current = null;
+    touchEndY.current = null;
   };
 
   const selectedClimber = climbers.find(c => c.id === selectedUserId) || climbers[0];
@@ -245,7 +275,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
           <div className="flex items-center gap-2 min-w-0 flex-wrap sm:flex-nowrap">
             <HoldBadge color={boulder.hold_colour} grade={boulder.grade} size="md" />
             <span className="font-mono text-xs text-slate-400 font-bold shrink-0 tabular-nums">
-              #{Math.round(boulder.position_order)}
+              #{boulder.display_order ?? Math.round(boulder.position_order)}
             </span>
             {resolvedAreaName && (
               <span
@@ -265,7 +295,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                 type="button"
                 onClick={() => prevBoulder && onNavigateBoulder?.(prevBoulder)}
                 className="p-1 rounded-lg hover:bg-slate-700 text-slate-300 transition-colors flex items-center gap-1"
-                title={`Previous in filter: #${Math.round(prevBoulder!.position_order)} ${prevBoulder!.hold_colour} ${prevBoulder!.grade}`}
+                title={`Previous in filter: #${prevBoulder!.display_order ?? Math.round(prevBoulder!.position_order)} ${prevBoulder!.hold_colour} ${prevBoulder!.grade}`}
               >
                 <ChevronLeft className="w-4 h-4" />
                 <span
@@ -282,7 +312,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                 type="button"
                 onClick={() => nextBoulder && onNavigateBoulder?.(nextBoulder)}
                 className="p-1 rounded-lg hover:bg-slate-700 text-slate-300 transition-colors flex items-center gap-1"
-                title={`Next in filter: #${Math.round(nextBoulder!.position_order)} ${nextBoulder!.hold_colour} ${nextBoulder!.grade}`}
+                title={`Next in filter: #${nextBoulder!.display_order ?? Math.round(nextBoulder!.position_order)} ${nextBoulder!.hold_colour} ${nextBoulder!.grade}`}
               >
                 <span
                   className="w-2.5 h-2.5 rounded-full shrink-0 hidden sm:inline-block"

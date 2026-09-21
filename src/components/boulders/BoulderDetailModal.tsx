@@ -20,9 +20,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Trash2,
-  MapPin
+  MapPin,
+  ArrowRightLeft
 } from 'lucide-react';
 import { useGym } from '../../context/GymContext';
+import { PhotoLightboxModal } from './PhotoLightboxModal';
 
 interface BoulderDetailModalProps {
   boulder: Boulder | null;
@@ -39,6 +41,7 @@ interface BoulderDetailModalProps {
   onAddComment: (boulderId: string, content: string) => Promise<void>;
   onDeleteComment?: (commentId: string) => Promise<void>;
   onToggleArchive: (boulderId: string, archive: boolean) => Promise<void>;
+  onMoveBoulder?: (boulderId: string, targetAreaId: string, unarchive?: boolean) => Promise<void>;
   filteredBoulders?: Boulder[];
   onNavigateBoulder?: (boulder: Boulder) => void;
 }
@@ -58,44 +61,87 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
   onAddComment,
   onDeleteComment,
   onToggleArchive,
+  onMoveBoulder,
   filteredBoulders,
   onNavigateBoulder
 }) => {
-  const { areas: contextAreas, gyms: contextGyms } = useGym();
+  const { areas: contextAreas, gyms: contextGyms, moveBoulder: contextMoveBoulder } = useGym();
   const [newComment, setNewComment] = useState<string>('');
   const [submittingComment, setSubmittingComment] = useState<boolean>(false);
-  const [photoZoom, setPhotoZoom] = useState<boolean>(false);
+  const [isLightboxOpen, setIsLightboxOpen] = useState<boolean>(false);
   const [dragOffset, setDragOffset] = useState<number>(0);
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [isMoveOpen, setIsMoveOpen] = useState<boolean>(false);
+  const [selectedTargetAreaId, setSelectedTargetAreaId] = useState<string>('');
+  const [restoreOnMove, setRestoreOnMove] = useState<boolean>(true);
+  const [isMoving, setIsMoving] = useState<boolean>(false);
+  const [moveSuccessMessage, setMoveSuccessMessage] = useState<string | null>(null);
+  const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
+  const touchEndY = useRef<number | null>(null);
 
   useEffect(() => {
     setDragOffset(0);
     setIsDragging(false);
+    touchStartX.current = null;
     touchStartY.current = null;
+    touchEndX.current = null;
+    touchEndY.current = null;
   }, [isOpen, boulder?.id]);
 
+  // Filter-aware navigation calculations
+  const currentIndex = boulder && filteredBoulders ? filteredBoulders.findIndex(b => b.id === boulder.id) : -1;
+  const totalFiltered = filteredBoulders ? filteredBoulders.length : 0;
+  const hasFilter = currentIndex !== -1 && totalFiltered > 0;
+  const prevBoulder = hasFilter && currentIndex > 0 ? filteredBoulders![currentIndex - 1] : null;
+  const nextBoulder = hasFilter && currentIndex < totalFiltered - 1 ? filteredBoulders![currentIndex + 1] : null;
+
   const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
+    touchEndX.current = e.touches[0].clientX;
+    touchEndY.current = e.touches[0].clientY;
     setIsDragging(true);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (touchStartY.current === null) return;
-    const currentY = e.touches[0].clientY;
-    const deltaY = currentY - touchStartY.current;
+    if (touchStartY.current === null || touchStartX.current === null) return;
+    touchEndX.current = e.touches[0].clientX;
+    touchEndY.current = e.touches[0].clientY;
+    const deltaY = touchEndY.current - touchStartY.current;
     if (deltaY > 0) {
       setDragOffset(deltaY);
     }
   };
 
   const handleTouchEnd = () => {
-    if (dragOffset > 75) {
-      onClose();
+    if (
+      touchStartX.current !== null &&
+      touchEndX.current !== null &&
+      touchStartY.current !== null &&
+      touchEndY.current !== null
+    ) {
+      const deltaX = touchEndX.current - touchStartX.current;
+      const deltaY = touchEndY.current - touchStartY.current;
+
+      // Horizontal swipe detected (dx > 60 and dx is dominant)
+      if (Math.abs(deltaX) > 60 && Math.abs(deltaX) > Math.abs(deltaY) * 1.4) {
+        if (deltaX < -60 && nextBoulder) {
+          onNavigateBoulder?.(nextBoulder);
+        } else if (deltaX > 60 && prevBoulder) {
+          onNavigateBoulder?.(prevBoulder);
+        }
+      } else if (dragOffset > 75) {
+        onClose();
+      }
     }
     setDragOffset(0);
     setIsDragging(false);
+    touchStartX.current = null;
     touchStartY.current = null;
+    touchEndX.current = null;
+    touchEndY.current = null;
   };
 
   const allAreas = areas || contextAreas || [];
@@ -114,6 +160,45 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
   const userAttempt = attempts.find(a => a.user_id === currentUserId);
   const activeColor = climbers.find(c => c.id === currentUserId)?.accent_color || '#3B82F6';
 
+  useEffect(() => {
+    if (boulder) {
+      setSelectedTargetAreaId(boulder.area_id);
+      setRestoreOnMove(boulder.is_archived);
+    }
+    setIsMoveOpen(false);
+    setMoveSuccessMessage(null);
+  }, [boulder?.id, isOpen]);
+
+  const availableGymAreas = useMemo(() => {
+    if (!boulder) return [];
+    return allAreas
+      .filter(a => a.gym_id === boulder.gym_id || a.gym_id === matchedArea?.gym_id)
+      .sort((a, b) => a.sort_order - b.sort_order);
+  }, [allAreas, boulder?.gym_id, matchedArea?.gym_id]);
+
+  const handleConfirmMove = async () => {
+    if (!boulder || !selectedTargetAreaId) return;
+    const moveFn = onMoveBoulder || contextMoveBoulder;
+    if (!moveFn) return;
+
+    setIsMoving(true);
+    try {
+      await moveFn(boulder.id, selectedTargetAreaId, restoreOnMove);
+      const targetArea = allAreas.find(a => a.id === selectedTargetAreaId);
+      setMoveSuccessMessage(
+        `Moved to ${targetArea?.name || 'target area'}${restoreOnMove && boulder.is_archived ? ' & restored to active wall' : ''}!`
+      );
+      setIsMoveOpen(false);
+      setTimeout(() => {
+        setMoveSuccessMessage(null);
+      }, 3500);
+    } catch (err) {
+      console.error('Failed to move boulder:', err);
+    } finally {
+      setIsMoving(false);
+    }
+  };
+
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!boulder || !newComment.trim() || submittingComment) return;
@@ -128,13 +213,6 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
   };
 
   if (!isOpen || !boulder) return null;
-
-  // Filter-aware navigation calculations
-  const currentIndex = boulder && filteredBoulders ? filteredBoulders.findIndex(b => b.id === boulder.id) : -1;
-  const totalFiltered = filteredBoulders ? filteredBoulders.length : 0;
-  const hasFilter = currentIndex !== -1 && totalFiltered > 0;
-  const prevBoulder = hasFilter && currentIndex > 0 ? filteredBoulders![currentIndex - 1] : null;
-  const nextBoulder = hasFilter && currentIndex < totalFiltered - 1 ? filteredBoulders![currentIndex + 1] : null;
 
   return (
     <div
@@ -166,7 +244,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
           <div className="flex items-center gap-2 min-w-0 flex-wrap sm:flex-nowrap">
             <HoldBadge color={boulder.hold_colour} grade={boulder.grade} size="md" />
             <span className="font-mono text-xs text-slate-400 bg-slate-800 px-2 py-0.5 rounded shrink-0 tabular-nums">
-              #{Math.round(boulder.position_order)}
+              #{boulder.display_order ?? Math.round(boulder.position_order)}
             </span>
             {resolvedAreaName && (
               <span
@@ -187,7 +265,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                 onClick={() => prevBoulder && onNavigateBoulder?.(prevBoulder)}
                 disabled={!prevBoulder}
                 className="p-1 rounded-lg hover:bg-slate-700 text-slate-300 disabled:opacity-25 disabled:pointer-events-none transition-colors"
-                title={prevBoulder ? `Previous Boulder: #${Math.round(prevBoulder.position_order)} ${prevBoulder.hold_colour} ${prevBoulder.grade}` : 'First boulder in filter'}
+                title={prevBoulder ? `Previous Boulder: #${prevBoulder.display_order ?? Math.round(prevBoulder.position_order)} ${prevBoulder.hold_colour} ${prevBoulder.grade}` : 'First boulder in filter'}
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -199,7 +277,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                 onClick={() => nextBoulder && onNavigateBoulder?.(nextBoulder)}
                 disabled={!nextBoulder}
                 className="p-1 rounded-lg hover:bg-slate-700 text-slate-300 disabled:opacity-25 disabled:pointer-events-none transition-colors"
-                title={nextBoulder ? `Next Boulder: #${Math.round(nextBoulder.position_order)} ${nextBoulder.hold_colour} ${nextBoulder.grade}` : 'Last boulder in filter'}
+                title={nextBoulder ? `Next Boulder: #${nextBoulder.display_order ?? Math.round(nextBoulder.position_order)} ${nextBoulder.hold_colour} ${nextBoulder.grade}` : 'Last boulder in filter'}
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -227,24 +305,56 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-5">
+          {/* Archived Climb Banner with Quick Restore & Move Sector options */}
+          {boulder.is_archived && (
+            <div className="bg-rose-950/40 border border-rose-800/60 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="p-2 rounded-xl bg-rose-900/60 text-rose-300 shrink-0 border border-rose-700/50">
+                  <Archive className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-rose-200">This climb is archived</p>
+                  <p className="text-[11px] text-rose-300/80 leading-tight">
+                    Reset from <span className="font-semibold text-rose-100">{resolvedAreaName}</span>. Move it if it belonged to another sector!
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => onToggleArchive(boulder.id, false)}
+                  className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold active-press transition-all"
+                >
+                  Restore Here
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsMoveOpen(true)}
+                  className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow active-press transition-all flex items-center gap-1.5"
+                >
+                  <ArrowRightLeft className="w-3.5 h-3.5" />
+                  <span>Move Sector</span>
+                </button>
+              </div>
+            </div>
+          )}
           {/* Photo Section */}
           {boulder.image_url && (
-            <div className="relative rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 max-h-72">
+            <div className="relative rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 max-h-72 group">
               <img
                 src={boulder.image_url}
                 alt={`${boulder.hold_colour} ${boulder.grade}`}
-                className={`w-full object-contain cursor-pointer transition-all ${
-                  photoZoom ? 'max-h-none' : 'max-h-72'
-                }`}
-                onClick={() => setPhotoZoom(!photoZoom)}
+                className="w-full max-h-72 object-contain cursor-pointer transition-transform group-hover:scale-[1.01]"
+                onClick={() => setIsLightboxOpen(true)}
               />
               <button
                 type="button"
-                onClick={() => setPhotoZoom(!photoZoom)}
-                className="absolute bottom-2 right-2 p-1.5 rounded-lg bg-black/60 text-white backdrop-blur text-xs flex items-center gap-1"
+                onClick={() => setIsLightboxOpen(true)}
+                className="absolute bottom-2.5 right-2.5 px-3 py-1.5 rounded-xl bg-black/75 text-white backdrop-blur-md text-xs font-bold flex items-center gap-1.5 shadow hover:bg-black transition-all active-press"
               >
                 <ZoomIn className="w-3.5 h-3.5" />
-                <span>{photoZoom ? 'Zoom Out' : 'Zoom'}</span>
+                <span>Fullscreen</span>
               </button>
             </div>
           )}
@@ -309,21 +419,102 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Climb Info</h3>
             <div className="bg-slate-800/40 rounded-xl p-3 border border-slate-800 space-y-2.5 text-xs">
               {/* Sector / Wall Area row */}
-              <div className="flex items-center justify-between text-slate-300 pb-2 border-b border-slate-800/80 text-xs">
-                <span className="text-slate-400 font-medium flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  Sector / Wall:
-                </span>
-                <div className="flex items-center gap-1.5 font-semibold text-slate-200">
-                  <span className="bg-slate-800 px-2 py-0.5 rounded-md border border-slate-700/60 text-slate-100 font-mono text-[11px]">
-                    {resolvedAreaName || 'General Wall'}
+              <div className="flex flex-col gap-2 pb-2 border-b border-slate-800/80 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400 font-medium flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    Sector / Wall:
                   </span>
-                  {resolvedGymName && (
-                    <span className="text-[11px] text-slate-400 font-normal">
-                      • {resolvedGymName}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 font-semibold text-slate-200">
+                      <span className="bg-slate-800 px-2 py-0.5 rounded-md border border-slate-700/60 text-slate-100 font-mono text-[11px]">
+                        {resolvedAreaName || 'General Wall'}
+                      </span>
+                      {resolvedGymName && (
+                        <span className="text-[11px] text-slate-400 font-normal">
+                          • {resolvedGymName}
+                        </span>
+                      )}
+                    </div>
+                    {availableGymAreas.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setIsMoveOpen(prev => !prev)}
+                        className="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-amber-400 hover:text-amber-300 border border-slate-700/80 text-[11px] font-bold active-press transition-colors flex items-center gap-1"
+                        title="Move climb to another sector"
+                      >
+                        <ArrowRightLeft className="w-3 h-3" />
+                        <span>{isMoveOpen ? 'Cancel' : 'Move'}</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
+
+                {/* Inline Move Sector Panel */}
+                {isMoveOpen && (
+                  <div className="mt-1 p-3 rounded-xl bg-slate-900 border border-amber-400/40 flex flex-col gap-2.5 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                        <ArrowRightLeft className="w-3.5 h-3.5 text-amber-400" />
+                        Move to Different Sector
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[11px] font-medium text-slate-400">Target Wall Area:</label>
+                      <select
+                        value={selectedTargetAreaId}
+                        onChange={(e) => setSelectedTargetAreaId(e.target.value)}
+                        className="bg-slate-950 border border-slate-700 text-slate-100 text-xs rounded-xl p-2.5 font-medium outline-none focus:border-amber-400 cursor-pointer"
+                      >
+                        {availableGymAreas.map(a => (
+                          <option key={a.id} value={a.id} disabled={a.id === boulder.area_id}>
+                            {a.name} {a.id === boulder.area_id ? '(Current Sector)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {boulder.is_archived && (
+                      <label className="flex items-center gap-2 cursor-pointer pt-0.5 select-none">
+                        <input
+                          type="checkbox"
+                          checked={restoreOnMove}
+                          onChange={(e) => setRestoreOnMove(e.target.checked)}
+                          className="w-3.5 h-3.5 rounded bg-slate-950 border-slate-700 text-amber-400 focus:ring-0"
+                        />
+                        <span className="text-xs text-slate-200 font-medium">
+                          Restore climb to active wall in target sector
+                        </span>
+                      </label>
+                    )}
+
+                    <div className="flex items-center justify-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setIsMoveOpen(false)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!selectedTargetAreaId || selectedTargetAreaId === boulder.area_id || isMoving}
+                        onClick={handleConfirmMove}
+                        className="px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow active-press disabled:opacity-40 disabled:pointer-events-none transition-all"
+                      >
+                        {isMoving ? 'Moving...' : 'Confirm Move'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {moveSuccessMessage && (
+                  <div className="p-2 rounded-lg bg-emerald-950/60 border border-emerald-800/60 text-emerald-300 text-xs font-medium flex items-center gap-2 animate-in fade-in duration-150">
+                    <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span>{moveSuccessMessage}</span>
+                  </div>
+                )}
               </div>
 
               {boulder.notes && (
@@ -454,6 +645,17 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Full-screen Photo Lightbox Modal */}
+      {boulder.image_url && (
+        <PhotoLightboxModal
+          isOpen={isLightboxOpen}
+          onClose={() => setIsLightboxOpen(false)}
+          imageUrl={boulder.image_url}
+          title={`#${boulder.display_order ?? Math.round(boulder.position_order)} • ${boulder.hold_colour} ${boulder.grade}`}
+          subtitle={resolvedAreaName}
+        />
+      )}
     </div>
   );
 };

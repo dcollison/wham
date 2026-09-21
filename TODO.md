@@ -1,8 +1,5 @@
 # Wham Tasks & Feature Tracking (TODO.md)
 
-- [x] Ensure the boulder modal shows the area that a boulder is in (added to sticky header badge and Climb Info details).
-- [x] Boulder modal fully broken blank screen (fixed React Rules of Hooks violation with early return before useMemo).
-- [x] Taiye added a photo to the slab wall and it did not sync (added gym_areas realtime subscription, broadcast sync, initial data caching, and replica identity).
-- [x] Boulder numbering seems to be per area - messes with the sorting when selecting a boulder on the beta spray tab (grouped and sorted boulders by gym, area sort_order, and position_order using optgroup).
-- [x] Change the Bee colours to just one yellow area and one black area - no stripes (replaced hazard stripes with clean 50/50 dual-tone yellow/black gradient across cards, swatches, and badges).
-- [x] Analytics - over time - the "Session Volume" and "All Crew" buttons overlap (stacked chart mode and climber filter controls in separate rows with full-width horizontal scroll).
+- [x] What if they reset an area and we realise that we actually put a boulder in the wrong area? E.g. they reset Bond Slab Wall and we realist that #23 is actually part of Gecko Prow? (Added `moveBoulder` context action and a dedicated "Move Sector" feature in `BoulderDetailModal`. Archived climbs show a prominent banner with "Restore Here" and "Move Sector" options, with automatic restoration into the active set of the new sector).
+- [x] The little bee icon, when displayed on another boulder's card as an adjacent boulder, is zoomed out too much and you can see yellow on the black side of the icon. (Replaced repeating 135deg gradient with clean 90deg vertical split and created dedicated vector `<HoldSwatch>` component with exact 50/50 dual-tone SVG geometry to eliminate tiling and antialiasing bleed).
+- [x] Update the icon a bit, I don't like how small the middle of the W is (Reverted to original logo geometry per user preference to preserve original stroke thickness and character).

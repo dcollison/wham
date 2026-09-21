@@ -1,5 +1,6 @@
 import React from 'react';
-import { Grade, HOLD_COLORS, getHoldSwatchStyle, getHoldCardStyle } from '../../types';
+import { Grade, getHoldCardStyle } from '../../types';
+import { HoldSwatch } from './HoldSwatch';
 
 interface HoldBadgeProps {
   color: string;
@@ -14,23 +15,12 @@ export const HoldBadge: React.FC<HoldBadgeProps> = ({
   size = 'md',
   showGrade = true
 }) => {
-  const isWhite = color.toLowerCase() === 'white';
-  const isBlack = color.toLowerCase() === 'black';
-  const isBee = color.toLowerCase() === 'bee';
-
   const cardStyle = getHoldCardStyle(color);
-  const swatchStyle = getHoldSwatchStyle(color);
 
   const sizeClasses = {
     sm: 'text-xs px-2.5 py-1 gap-1.5',
     md: 'text-sm px-3 py-1 gap-2',
     lg: 'text-base px-3.5 py-1.5 gap-2.5'
-  };
-
-  const dotSizes = {
-    sm: 'w-3 h-3',
-    md: 'w-3.5 h-3.5',
-    lg: 'w-4 h-4'
   };
 
   return (
@@ -43,18 +33,7 @@ export const HoldBadge: React.FC<HoldBadgeProps> = ({
       }}
     >
       {/* Prominent hold color swatch */}
-      <span
-        className={`rounded-full shrink-0 shadow-sm ring-1.5 ring-black/40 ${dotSizes[size]} ${
-          isWhite
-            ? 'border border-slate-300'
-            : isBlack
-            ? 'border border-zinc-500 ring-white/30'
-            : isBee
-            ? 'border border-yellow-400/80 ring-black/60'
-            : ''
-        }`}
-        style={swatchStyle}
-      />
+      <HoldSwatch color={color} size={size} />
 
       {/* Bold Hold Colour Name */}
       <span className="font-extrabold text-white tracking-tight">
