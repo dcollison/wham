@@ -311,7 +311,10 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col relative">
+      {/* Subtle climbing gym chalk micro-grain texture overlay */}
+      <div className="chalk-grain-overlay" aria-hidden="true" />
+
       {/* Persistent Header */}
       <Header
         currentTab={currentTab}
