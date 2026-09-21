@@ -81,10 +81,31 @@ export const Header: React.FC<HeaderProps> = ({
               Wham<span style={{ color: activeColor }}>.</span>
             </span>
           </div>
-          {isDemoMode && (
-            <span className="hidden sm:inline-block text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-800/90 text-slate-300 border border-slate-700">
-              Demo
-            </span>
+          {isDemoMode ? (
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.removeItem('wham_force_demo');
+                window.location.href = window.location.pathname;
+              }}
+              className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition-colors shadow-sm cursor-pointer"
+              title="Viewing Demo Mode. Tap to switch back to Live App"
+            >
+              <span>Demo</span>
+              <span className="text-[10px] text-amber-400 underline font-normal">Exit</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.setItem('wham_force_demo', 'true');
+                window.location.search = '?demo=true';
+              }}
+              className="hidden sm:inline-block text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-slate-800/90 text-slate-400 hover:text-amber-300 hover:border-amber-400/40 border border-slate-700 transition-colors cursor-pointer"
+              title="View Demo Mode (Mock data with reset soon sample)"
+            >
+              Demo Mode
+            </button>
           )}
         </div>
 

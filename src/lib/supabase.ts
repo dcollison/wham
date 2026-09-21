@@ -7,9 +7,26 @@ const getEnvSupabase = () => {
   return { url: url.trim(), key: key.trim() };
 };
 
+export const isDemoRequested = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  try {
+    const search = window.location.search.toLowerCase();
+    const hash = window.location.hash.toLowerCase();
+    return (
+      search.includes('demo=true') ||
+      search.includes('mode=demo') ||
+      hash.includes('demo') ||
+      localStorage.getItem('wham_force_demo') === 'true'
+    );
+  } catch {
+    return false;
+  }
+};
+
 const { url: envUrl, key: envKey } = getEnvSupabase();
 
 export const isSupabaseConfigured = Boolean(
+  !isDemoRequested() &&
   envUrl &&
   envKey &&
   envUrl.startsWith('http') &&

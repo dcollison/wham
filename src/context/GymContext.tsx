@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useMemo, useRef } from 'react';
-import { supabase, isSupabaseConfigured, uploadBoulderPhoto, uploadAreaPhoto, deleteStoragePhotos } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, isDemoRequested, uploadBoulderPhoto, uploadAreaPhoto, deleteStoragePhotos } from '../lib/supabase';
 import { Boulder, Attempt, Comment, Gym, GymArea, Grade, AttemptStatus, BulkAddBoulderItem, BulkAddBouldersParams } from '../types';
 import {
   INITIAL_GYMS,
@@ -109,26 +109,14 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [currentArea, setCurrentAreaState] = useState<GymArea | null>(null);
 
   const [boulders, setBoulders] = useState<Boulder[]>(() => {
+    if (isDemoRequested()) {
+      return INITIAL_BOULDERS;
+    }
     const cached = localStorage.getItem('wham_boulders');
     if (cached) {
       try {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          let hasChanges = false;
-          const b1 = parsed.find((b: Boulder) => b.id === 'd0000000-0000-0000-0000-000000000001');
-          if (b1 && b1.date_added === '2026-09-10') {
-            b1.date_added = '2026-08-01';
-            b1.notes = b1.notes || 'Classic problem set 7 weeks ago — due to be stripped in the next reset.';
-            hasChanges = true;
-          }
-          const b2 = parsed.find((b: Boulder) => b.id === 'd0000000-0000-0000-0000-000000000002');
-          if (b2 && b2.date_added === '2026-09-10') {
-            b2.date_added = '2026-08-02';
-            hasChanges = true;
-          }
-          if (hasChanges) {
-            localStorage.setItem('wham_boulders', JSON.stringify(parsed));
-          }
           return parsed;
         }
       } catch {
@@ -255,36 +243,13 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     climbersRef.current = climbers;
   }, [climbers]);
 
-  // Ensure running client has aged sample boulder for reset indicator demo
-  useEffect(() => {
-    setBoulders((prev) => {
-      const b1 = prev.find((b) => b.id === 'd0000000-0000-0000-0000-000000000001');
-      if (b1 && b1.date_added === '2026-09-10') {
-        const updated = prev.map((b) =>
-          b.id === 'd0000000-0000-0000-0000-000000000001'
-            ? {
-                ...b,
-                date_added: '2026-08-01',
-                notes: b.notes || 'Classic problem set 7 weeks ago — due to be stripped in the next reset.'
-              }
-            : b
-        );
-        try {
-          localStorage.setItem('wham_boulders', JSON.stringify(updated));
-        } catch {}
-        return updated;
-      }
-      return prev;
-    });
-  }, []);
-
   // Sync with Supabase or fallback to LocalStorage
   useEffect(() => {
     let channel: any = null;
     let isMounted = true;
 
     async function fetchData() {
-      if (!isSupabaseConfigured || !supabase) {
+      if (!isSupabaseConfigured || !supabase || isDemoMode || isDemoRequested()) {
         setLoading(false);
         return;
       }
