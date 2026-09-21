@@ -4,6 +4,9 @@ import { ClimberAvatar } from '../ClimberAvatar';
 import { useAuth } from '../../context/AuthContext';
 import {
   computeGymCompLeaderboard,
+  computeMonthlyHallOfFame,
+  getAvailableCompMonths,
+  getCurrentCompMonth,
   GRADE_BASE_POINTS,
   FLASH_BONUS_MULTIPLIER
 } from '../../lib/compScoring';
@@ -19,7 +22,11 @@ import {
   Flame,
   CheckCircle2,
   HelpCircle,
-  Layers
+  Layers,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Award
 } from 'lucide-react';
 
 interface CompLeaderboardProps {
@@ -28,6 +35,7 @@ interface CompLeaderboardProps {
   climbers: Profile[];
   gyms: Gym[];
   initialGymId?: string;
+  initialMonthKey?: string;
   currentUserId?: string;
   onSelectBoulder?: (boulder: Boulder) => void;
   showGymSelector?: boolean;
@@ -39,30 +47,42 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
   climbers,
   gyms,
   initialGymId = 'all',
+  initialMonthKey,
   currentUserId,
   onSelectBoulder,
   showGymSelector = true
 }) => {
+  const currentMonth = useMemo(() => getCurrentCompMonth(), []);
+  const availableMonths = useMemo(() => getAvailableCompMonths(attempts), [attempts]);
+
   const [selectedGymId, setSelectedGymId] = useState<string>(initialGymId);
+  const [selectedPeriod, setSelectedPeriod] = useState<string>(() => initialMonthKey || currentMonth.key);
   const [expandedClimberId, setExpandedClimberId] = useState<string | null>(null);
   const [showRules, setShowRules] = useState<boolean>(false);
+  const [showHallOfFame, setShowHallOfFame] = useState<boolean>(false);
 
   const { currentUser } = useAuth();
   const activeUser = climbers.find((c) => c.id === currentUserId) || currentUser;
   const activeColor = currentUser?.accent_color || activeUser?.accent_color || '#3B82F6';
 
-  // Compute leaderboard data for the selected gym
+  // Compute leaderboard data for the selected gym & period
   const leaderboardData = useMemo(() => {
     return computeGymCompLeaderboard(
       selectedGymId,
       gyms,
       boulders,
       attempts,
-      climbers
+      climbers,
+      selectedPeriod
     );
+  }, [selectedGymId, gyms, boulders, attempts, climbers, selectedPeriod]);
+
+  // Compute historic Hall of Fame
+  const hallOfFame = useMemo(() => {
+    return computeMonthlyHallOfFame(selectedGymId, gyms, boulders, attempts, climbers);
   }, [selectedGymId, gyms, boulders, attempts, climbers]);
 
-  const { standings, activeBouldersCount, totalPossiblePoints, totalBasePoints, gymName } =
+  const { standings, activeBouldersCount, totalPossiblePoints, totalBasePoints, gymName, monthInfo, isMonthly } =
     leaderboardData;
 
   const firstPlace = standings[0];
@@ -73,8 +93,10 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
     setExpandedClimberId((prev) => (prev === id ? null : id));
   };
 
+  const currentMonthIndex = availableMonths.findIndex((m) => m.key === selectedPeriod);
+
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4 sm:gap-5">
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-sm">
         <div>
@@ -85,15 +107,36 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
             </h2>
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
-            Real-time points scored on active problems ({activeBouldersCount} active boulders)
+            {isMonthly
+              ? `Points scored during ${monthInfo?.label || 'this month'} (${activeBouldersCount} climbs scored)`
+              : `Real-time points scored on active wall set (${activeBouldersCount} active boulders)`}
           </p>
         </div>
 
-        {/* Controls: Rules toggle & Gym filter */}
+        {/* Controls: Hall of Fame, Rules toggle & Gym filter */}
         <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
-            onClick={() => setShowRules(!showRules)}
+            onClick={() => {
+              setShowHallOfFame(!showHallOfFame);
+              if (showRules) setShowRules(false);
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+              showHallOfFame
+                ? 'bg-amber-400/20 text-amber-300 border-amber-400/40'
+                : 'bg-slate-900 border-slate-700/80 text-slate-400 hover:text-slate-200 hover:border-slate-600'
+            }`}
+          >
+            <Award className="w-3.5 h-3.5 text-amber-400" />
+            <span>Hall of Fame</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setShowRules(!showRules);
+              if (showHallOfFame) setShowHallOfFame(false);
+            }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
               showRules
                 ? 'bg-amber-400/20 text-amber-300 border-amber-400/40'
@@ -101,7 +144,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
             }`}
           >
             <HelpCircle className="w-3.5 h-3.5" />
-            <span>Scoring Rules</span>
+            <span>Rules</span>
           </button>
 
           {showGymSelector && (
@@ -112,7 +155,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                 style={selectedGymId === 'all' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all active-press ${
                   selectedGymId === 'all'
-                    ? 'text-black shadow-md'
+                    ? 'text-black shadow-md font-black'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -126,7 +169,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                   style={selectedGymId === gym.id ? { backgroundColor: activeColor, color: '#000000' } : undefined}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all active-press ${
                     selectedGymId === gym.id
-                      ? 'text-black shadow-md'
+                      ? 'text-black shadow-md font-black'
                       : 'text-slate-400 hover:text-white'
                   }`}
                 >
@@ -137,6 +180,197 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
           )}
         </div>
       </div>
+
+      {/* Period Selection & Month Stepper Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900/70 border border-slate-800 rounded-2xl p-3 shadow-sm">
+        {/* Mode Switcher: Monthly Comp vs Wall Set */}
+        <div className="flex items-center gap-1.5 p-1 bg-slate-950/80 border border-slate-800 rounded-xl shrink-0 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={() => setSelectedPeriod(currentMonth.key)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              selectedPeriod !== 'active_set'
+                ? 'bg-amber-400 text-slate-950 shadow-md font-black'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>Monthly Comp</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedPeriod('active_set')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              selectedPeriod === 'active_set'
+                ? 'bg-amber-400 text-slate-950 shadow-md font-black'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Active Wall Set</span>
+          </button>
+        </div>
+
+        {/* If Monthly Mode: Stepper and Month Dropdown */}
+        {selectedPeriod !== 'active_set' && (
+          <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
+            {/* Stepper Buttons */}
+            <div className="flex items-center gap-1 bg-slate-950/80 border border-slate-800 rounded-xl p-1">
+              <button
+                type="button"
+                onClick={() => {
+                  if (currentMonthIndex !== -1 && currentMonthIndex < availableMonths.length - 1) {
+                    setSelectedPeriod(availableMonths[currentMonthIndex + 1].key);
+                  }
+                }}
+                disabled={currentMonthIndex >= availableMonths.length - 1}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                title="Previous Month"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              {/* Month Dropdown Select */}
+              <select
+                value={selectedPeriod}
+                onChange={(e) => setSelectedPeriod(e.target.value)}
+                className="bg-transparent text-xs font-bold font-mono text-white py-1 px-2 focus:outline-none cursor-pointer"
+              >
+                {availableMonths.map((m) => (
+                  <option key={m.key} value={m.key} className="bg-slate-900 text-white">
+                    {m.label} {m.isCurrent ? '● LIVE' : ''}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (currentMonthIndex > 0) {
+                    setSelectedPeriod(availableMonths[currentMonthIndex - 1].key);
+                  }
+                }}
+                disabled={currentMonthIndex <= 0}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                title="Next Month"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Status Pill */}
+            {monthInfo?.isCurrent ? (
+              <span className="flex items-center gap-1.5 text-[11px] font-mono font-bold px-2.5 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 shrink-0">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>LIVE • {monthInfo.daysRemaining ?? 0}d left</span>
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-[11px] font-mono font-bold px-2.5 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 shrink-0">
+                <Award className="w-3.5 h-3.5 text-amber-400" />
+                <span>FINALIZED</span>
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Hall of Fame Drawer */}
+      {showHallOfFame && (
+        <div className="bg-slate-900/95 border border-amber-400/30 rounded-2xl p-4 sm:p-5 flex flex-col gap-4 shadow-xl animate-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+            <div className="flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-amber-400" />
+              <h3 className="text-sm font-bold text-white font-heading">
+                Monthly Comp Hall of Fame
+              </h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowHallOfFame(false)}
+              className="text-xs text-slate-400 hover:text-slate-200"
+            >
+              Close
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {hallOfFame.map((entry) => {
+              const isSelected = selectedPeriod === entry.month.key;
+
+              return (
+                <div
+                  key={entry.month.key}
+                  onClick={() => {
+                    setSelectedPeriod(entry.month.key);
+                    setShowHallOfFame(false);
+                  }}
+                  className={`p-3.5 rounded-xl border flex flex-col gap-2 cursor-pointer transition-all hover:scale-[1.02] ${
+                    isSelected
+                      ? 'bg-slate-800/90 border-amber-400 shadow-md'
+                      : 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-white font-mono">
+                      {entry.month.label}
+                    </span>
+                    {entry.month.isCurrent ? (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 font-mono font-bold">
+                        LIVE
+                      </span>
+                    ) : (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-400 font-mono">
+                        FINAL
+                      </span>
+                    )}
+                  </div>
+
+                  {entry.champion ? (
+                    <div className="flex items-center gap-2.5 mt-1">
+                      <div className="relative shrink-0">
+                        <ClimberAvatar profile={entry.champion.climber} size="sm" />
+                        <span className="absolute -bottom-1 -right-1 text-xs">👑</span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-xs font-bold text-white truncate block">
+                          {entry.champion.climber.display_name}
+                        </span>
+                        <span className="text-[11px] font-mono text-amber-400 font-bold">
+                          {entry.champion.totalPoints.toLocaleString()} pts • {entry.champion.topsCount} tops
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-slate-500 italic py-2">
+                      No sends recorded
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Finalized Month Champion Banner */}
+      {!monthInfo?.isCurrent && isMonthly && firstPlace && firstPlace.totalPoints > 0 && (
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-slate-900 to-amber-500/15 border border-amber-400/50 flex items-center justify-between gap-3 shadow-md">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-amber-400 text-black flex items-center justify-center font-black shrink-0 shadow-md">
+              <Crown className="w-5 h-5 fill-slate-950" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[11px] uppercase tracking-wider font-mono text-amber-400 font-bold block">
+                {monthInfo?.label} Champion
+              </span>
+              <span className="text-sm sm:text-base font-black text-white font-heading truncate block">
+                {firstPlace.climber.display_name} won with {firstPlace.totalPoints.toLocaleString()} pts ({firstPlace.topsCount} tops)!
+              </span>
+            </div>
+          </div>
+          <span className="text-2xl shrink-0">🏆</span>
+        </div>
+      )}
 
       {/* Collapsible Scoring Rules Card */}
       {showRules && (
@@ -176,10 +410,10 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
 
             <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-700/60 flex flex-col gap-1">
               <span className="font-bold text-cyan-400 flex items-center gap-1">
-                <Layers className="w-3.5 h-3.5" /> Active Wall Sets Only
+                <Calendar className="w-3.5 h-3.5" /> Monthly Comps & Archive
               </span>
               <p className="text-[11px] text-slate-400 leading-relaxed">
-                Only problems currently set on the mats count. When a sector gets reset, the competition rolls forward with the new problems!
+                Monthly comps automatically reset on the 1st of every month! All climbs logged during the month count, and past winners are preserved in the Hall of Fame.
               </p>
             </div>
           </div>
@@ -463,20 +697,29 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                   <div className="p-3.5 sm:p-4 bg-slate-950/70 border-t border-slate-800/80 flex flex-col gap-3 animate-in slide-in-from-top-1 duration-150">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-bold text-slate-300 flex items-center gap-1.5">
-                        <span>Scorecard: Active Boulders Topped</span>
+                        <span>
+                          {isMonthly
+                            ? `Scorecard: Climbs Topped in ${monthInfo?.label || 'Month'}`
+                            : 'Scorecard: Active Boulders Topped'}
+                        </span>
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 font-mono text-slate-400">
                           {standing.toppedBoulders.length} sent
                         </span>
                       </span>
 
                       <span className="text-xs font-mono text-slate-400">
-                        Gym Completion: <strong className="font-bold text-white">{standing.completionPercentage}%</strong>
+                        {isMonthly ? 'Month Score' : 'Gym Completion'}:{' '}
+                        <strong className="font-bold text-white">
+                          {isMonthly ? `${standing.totalPoints.toLocaleString()} pts` : `${standing.completionPercentage}%`}
+                        </strong>
                       </span>
                     </div>
 
                     {standing.toppedBoulders.length === 0 ? (
                       <div className="py-4 text-center text-xs text-slate-500 font-mono">
-                        No active boulders topped yet in this gym.
+                        {isMonthly
+                          ? `No climbs topped during ${monthInfo?.label || 'this month'}.`
+                          : 'No active boulders topped yet in this gym.'}
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

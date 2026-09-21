@@ -50,6 +50,86 @@ export interface ClimberCompStanding {
   toppedBoulders: BoulderCompResult[];
 }
 
+export interface CompMonthInfo {
+  key: string; // '2026-09'
+  year: number;
+  month: number; // 1-12
+  label: string; // 'September 2026'
+  shortLabel: string; // 'Sep 2026'
+  isCurrent: boolean;
+  daysRemaining?: number;
+}
+
+/**
+ * Get info for the current calendar month
+ */
+export function getCurrentCompMonth(): CompMonthInfo {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const key = `${year}-${String(month).padStart(2, '0')}`;
+  const dateObj = new Date(year, month - 1, 1);
+  const label = dateObj.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+  const shortLabel = dateObj.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+
+  // Days remaining until end of the month
+  const lastDayOfMonth = new Date(year, month, 0).getDate();
+  const currentDay = now.getDate();
+  const daysRemaining = Math.max(0, lastDayOfMonth - currentDay);
+
+  return {
+    key,
+    year,
+    month,
+    label,
+    shortLabel,
+    isCurrent: true,
+    daysRemaining
+  };
+}
+
+/**
+ * Extract all distinct calendar months containing attempts, ordered newest first.
+ * Always includes the current month.
+ */
+export function getAvailableCompMonths(attempts: Attempt[]): CompMonthInfo[] {
+  const current = getCurrentCompMonth();
+  const monthMap = new Map<string, { year: number; month: number }>();
+  monthMap.set(current.key, { year: current.year, month: current.month });
+
+  attempts.forEach((a) => {
+    if (!a.logged_at) return;
+    const d = new Date(a.logged_at);
+    if (isNaN(d.getTime())) return;
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1;
+    const key = `${year}-${String(month).padStart(2, '0')}`;
+    if (!monthMap.has(key)) {
+      monthMap.set(key, { year, month });
+    }
+  });
+
+  const sortedKeys = Array.from(monthMap.keys()).sort().reverse();
+
+  return sortedKeys.map((key) => {
+    const { year, month } = monthMap.get(key)!;
+    const isCurrent = key === current.key;
+    const dateObj = new Date(year, month - 1, 1);
+    const label = dateObj.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    const shortLabel = dateObj.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+
+    return {
+      key,
+      year,
+      month,
+      label,
+      shortLabel,
+      isCurrent,
+      daysRemaining: isCurrent ? current.daysRemaining : undefined
+    };
+  });
+}
+
 export interface GymCompLeaderboardData {
   gymId: string;
   gymName: string;
@@ -57,6 +137,8 @@ export interface GymCompLeaderboardData {
   totalPossiblePoints: number; // Maximum possible points if all active boulders are flashed
   totalBasePoints: number; // Maximum base points if all active boulders are topped
   standings: ClimberCompStanding[];
+  monthInfo?: CompMonthInfo;
+  isMonthly: boolean;
 }
 
 /**
@@ -76,22 +158,87 @@ export function calculateBoulderCompPoints(
 }
 
 /**
- * Compute competition leaderboard standings for active boulders in a gym (or across all gyms).
+ * Compute competition leaderboard standings for a gym or across all gyms.
+ * Supports:
+ * - 'current': Current active monthly competition (default)
+ * - 'YYYY-MM': Specific past or active month competition (e.g. '2026-08')
+ * - 'active_set': All active (non-archived) boulders currently set in the gym
  */
 export function computeGymCompLeaderboard(
   gymId: string, // 'all' or specific gym id
   gyms: Gym[],
   boulders: Boulder[],
   attempts: Attempt[],
-  climbers: Profile[]
+  climbers: Profile[],
+  monthKey: string = 'current'
 ): GymCompLeaderboardData {
   const gymObj = gyms.find((g) => g.id === gymId);
   const gymName = gymId === 'all' ? 'All Gyms' : (gymObj?.name || 'Current Gym');
 
-  // 1. Filter only active (non-archived) boulders in the specified gym
-  const activeBoulders = boulders.filter(
-    (b) => !b.is_archived && (gymId === 'all' || b.gym_id === gymId)
+  const isMonthly = monthKey !== 'active_set';
+  let monthInfo: CompMonthInfo | undefined = undefined;
+
+  // 1. Resolve boulders and attempts based on mode
+  let activeBoulders: Boulder[] = [];
+  let attemptsToScore: Attempt[] = [];
+
+  const gymBoulders = boulders.filter(
+    (b) => gymId === 'all' || b.gym_id === gymId
   );
+  const gymBoulderMap = new Map<string, Boulder>();
+  gymBoulders.forEach((b) => gymBoulderMap.set(b.id, b));
+
+  if (!isMonthly) {
+    // Mode A: Active Wall Set (Only non-archived boulders currently on the wall)
+    activeBoulders = gymBoulders.filter((b) => !b.is_archived);
+    attemptsToScore = attempts;
+  } else {
+    // Mode B: Monthly Competition
+    const currentMonth = getCurrentCompMonth();
+    const targetKey = monthKey === 'current' ? currentMonth.key : monthKey;
+    const isCurrent = targetKey === currentMonth.key;
+
+    const [yStr, mStr] = targetKey.split('-');
+    const year = parseInt(yStr, 10) || currentMonth.year;
+    const month = parseInt(mStr, 10) || currentMonth.month;
+    const dateObj = new Date(year, month - 1, 1);
+
+    monthInfo = {
+      key: targetKey,
+      year,
+      month,
+      label: dateObj.toLocaleString('en-US', { month: 'long', year: 'numeric' }),
+      shortLabel: dateObj.toLocaleString('en-US', { month: 'short', year: 'numeric' }),
+      isCurrent,
+      daysRemaining: isCurrent ? currentMonth.daysRemaining : undefined
+    };
+
+    // Filter attempts logged within this calendar month
+    const startOfMonth = new Date(year, month - 1, 1, 0, 0, 0, 0);
+    const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
+
+    attemptsToScore = attempts.filter((a) => {
+      if (!a.logged_at) return false;
+      const d = new Date(a.logged_at);
+      return d >= startOfMonth && d <= endOfMonth;
+    });
+
+    // In-scope boulders for this month:
+    // Any boulder topped this month + (if current month) all currently active boulders in the gym
+    const monthBoulderIds = new Set<string>();
+    if (isCurrent) {
+      gymBoulders.filter((b) => !b.is_archived).forEach((b) => monthBoulderIds.add(b.id));
+    }
+    attemptsToScore.forEach((a) => {
+      if ((a.status === 'sent' || a.status === 'flashed') && gymBoulderMap.has(a.boulder_id)) {
+        monthBoulderIds.add(a.boulder_id);
+      }
+    });
+
+    activeBoulders = Array.from(monthBoulderIds)
+      .map((id) => gymBoulderMap.get(id)!)
+      .filter(Boolean);
+  }
 
   const activeBoulderMap = new Map<string, Boulder>();
   activeBoulders.forEach((b) => activeBoulderMap.set(b.id, b));
@@ -106,10 +253,10 @@ export function computeGymCompLeaderboard(
     totalPossiblePoints += totalPoints;
   });
 
-  // 3. Compute each climber's comp score on active boulders
+  // 3. Compute each climber's comp score
   const standings: ClimberCompStanding[] = climbers.map((climber) => {
-    // Find all completed attempts by this climber on active boulders in this gym
-    const climberAttempts = attempts.filter(
+    // Find all completed attempts by this climber on in-scope boulders
+    const climberAttempts = attemptsToScore.filter(
       (a) =>
         a.user_id === climber.id &&
         activeBoulderMap.has(a.boulder_id) &&
@@ -123,7 +270,6 @@ export function computeGymCompLeaderboard(
       if (!existing) {
         bestAttemptPerBoulder.set(a.boulder_id, a);
       } else {
-        // If current is flashed and existing is not, prioritize flash
         if (a.status === 'flashed' && existing.status !== 'flashed') {
           bestAttemptPerBoulder.set(a.boulder_id, a);
         } else if (
@@ -259,6 +405,52 @@ export function computeGymCompLeaderboard(
     activeBouldersCount: activeBoulders.length,
     totalPossiblePoints,
     totalBasePoints,
-    standings
+    standings,
+    monthInfo,
+    isMonthly
   };
 }
+
+export interface MonthlyHallOfFameEntry {
+  month: CompMonthInfo;
+  champion: ClimberCompStanding | null;
+  runnersUp: ClimberCompStanding[];
+  totalTops: number;
+  totalParticipants: number;
+}
+
+/**
+ * Compute the historical Hall of Fame across all months.
+ */
+export function computeMonthlyHallOfFame(
+  gymId: string,
+  gyms: Gym[],
+  boulders: Boulder[],
+  attempts: Attempt[],
+  climbers: Profile[]
+): MonthlyHallOfFameEntry[] {
+  const allMonths = getAvailableCompMonths(attempts);
+  return allMonths.map((month) => {
+    const data = computeGymCompLeaderboard(
+      gymId,
+      gyms,
+      boulders,
+      attempts,
+      climbers,
+      month.key
+    );
+    const activeParticipants = data.standings.filter((s) => s.totalPoints > 0);
+    const champion = activeParticipants[0] || null;
+    const runnersUp = activeParticipants.slice(1, 3);
+    const totalTops = activeParticipants.reduce((sum, s) => sum + s.topsCount, 0);
+
+    return {
+      month,
+      champion,
+      runnersUp,
+      totalTops,
+      totalParticipants: activeParticipants.length
+    };
+  });
+}
+

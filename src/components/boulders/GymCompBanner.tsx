@@ -41,7 +41,7 @@ export const GymCompBanner: React.FC<GymCompBannerProps> = ({
     return computeGymCompLeaderboard(gymId, gyms, boulders, attempts, climbers);
   }, [gymId, gyms, boulders, attempts, climbers]);
 
-  const { standings, activeBouldersCount, gymName } = leaderboardData;
+  const { standings, activeBouldersCount, gymName, monthInfo } = leaderboardData;
 
   const topThree = standings.slice(0, 3);
   const currentUserStanding = standings.find((s) => s.climber.id === currentUserId);
@@ -51,6 +51,8 @@ export const GymCompBanner: React.FC<GymCompBannerProps> = ({
   if (activeBouldersCount === 0 || standings.length === 0) {
     return null;
   }
+
+  const hasAnySends = topThree[0] && topThree[0].totalPoints > 0;
 
   return (
     <div
@@ -77,7 +79,7 @@ export const GymCompBanner: React.FC<GymCompBannerProps> = ({
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="text-xs sm:text-sm font-black text-white tracking-tight flex items-center gap-1 font-heading">
-                <span>{gym?.name || 'Gym'} Comp Standings</span>
+                <span>{monthInfo?.shortLabel || 'Monthly'} Comp</span>
               </span>
               <span
                 style={{
@@ -85,21 +87,26 @@ export const GymCompBanner: React.FC<GymCompBannerProps> = ({
                   color: activeColor,
                   borderColor: `${activeColor}40`
                 }}
-                className="text-[10px] px-2 py-0.5 font-mono font-bold rounded-md border"
+                className="text-[10px] px-2 py-0.5 font-mono font-bold rounded-md border flex items-center gap-1"
               >
-                ACTIVE
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>{monthInfo?.daysRemaining ?? 0}d left</span>
               </span>
             </div>
 
             {/* Quick text summary for mobile */}
             <div className="text-xs text-slate-300 truncate mt-0.5 flex items-center gap-2">
-              {topThree[0] && (
+              {hasAnySends && topThree[0] ? (
                 <span className="truncate">
                   <span className="text-amber-400 font-bold mr-1">#1</span>
                   <strong className="text-white font-bold">{topThree[0].climber.display_name}</strong> ({topThree[0].totalPoints.toLocaleString()} pts)
                 </span>
+              ) : (
+                <span className="text-slate-400 italic">
+                  Comp active • Be the first to score this month!
+                </span>
               )}
-              {currentUserStanding && (
+              {currentUserStanding && hasAnySends && (
                 <span className="text-slate-400 hidden sm:inline">
                   • You: <strong style={{ color: activeColor }}>#{currentUserStanding.rank}</strong> ({currentUserStanding.totalPoints.toLocaleString()} pts)
                 </span>
@@ -196,7 +203,7 @@ export const GymCompBanner: React.FC<GymCompBannerProps> = ({
 
           <div className="flex items-center justify-between text-xs pt-1 text-slate-400 font-mono">
             <span>
-              Scored on {activeBouldersCount} active climbs
+              {monthInfo?.label || 'This Month'} • {activeBouldersCount} climbs scored
             </span>
             <button
               type="button"
