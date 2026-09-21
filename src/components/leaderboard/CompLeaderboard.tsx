@@ -182,13 +182,13 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
       </div>
 
       {/* Period Selection & Month Stepper Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900/70 border border-slate-800 rounded-2xl p-3 shadow-sm">
+      <div className="flex flex-col gap-3 bg-slate-900/70 border border-slate-800 rounded-2xl p-3 shadow-sm">
         {/* Mode Switcher: Monthly Comp vs Wall Set */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-950/80 border border-slate-800 rounded-xl shrink-0 self-start sm:self-auto">
+        <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-950/80 border border-slate-800 rounded-xl w-full">
           <button
             type="button"
             onClick={() => setSelectedPeriod(currentMonth.key)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 active-press ${
               selectedPeriod !== 'active_set'
                 ? 'bg-amber-400 text-slate-950 shadow-md font-black'
                 : 'text-slate-400 hover:text-white'
@@ -200,7 +200,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
           <button
             type="button"
             onClick={() => setSelectedPeriod('active_set')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 active-press ${
               selectedPeriod === 'active_set'
                 ? 'bg-amber-400 text-slate-950 shadow-md font-black'
                 : 'text-slate-400 hover:text-white'
@@ -212,10 +212,10 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
         </div>
 
         {/* If Monthly Mode: Stepper and Month Dropdown */}
-        {selectedPeriod !== 'active_set' && (
-          <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
-            {/* Stepper Buttons */}
-            <div className="flex items-center gap-1 bg-slate-950/80 border border-slate-800 rounded-xl p-1">
+        {selectedPeriod !== 'active_set' ? (
+          <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1 border-t border-slate-800/60">
+            {/* Stepper Buttons & Dropdown */}
+            <div className="flex items-center gap-1 bg-slate-950/80 border border-slate-800 rounded-xl p-1 max-w-full">
               <button
                 type="button"
                 onClick={() => {
@@ -224,7 +224,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                   }
                 }}
                 disabled={currentMonthIndex >= availableMonths.length - 1}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-colors shrink-0"
                 title="Previous Month"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -234,7 +234,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
               <select
                 value={selectedPeriod}
                 onChange={(e) => setSelectedPeriod(e.target.value)}
-                className="bg-transparent text-xs font-bold font-mono text-white py-1 px-2 focus:outline-none cursor-pointer"
+                className="bg-transparent text-xs font-bold font-mono text-white py-1 px-2 focus:outline-none cursor-pointer truncate max-w-[160px] sm:max-w-none"
               >
                 {availableMonths.map((m) => (
                   <option key={m.key} value={m.key} className="bg-slate-900 text-white">
@@ -251,7 +251,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                   }
                 }}
                 disabled={currentMonthIndex <= 0}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-colors shrink-0"
                 title="Next Month"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -270,6 +270,11 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                 <span>FINALIZED</span>
               </span>
             )}
+          </div>
+        ) : (
+          <div className="flex items-center justify-between text-xs text-slate-400 px-1 pt-0.5 border-t border-slate-800/60">
+            <span>Points from all problems physically on the gym walls</span>
+            <span className="font-mono font-bold text-slate-300">{activeBouldersCount} active climbs</span>
           </div>
         )}
       </div>

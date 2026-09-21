@@ -155,26 +155,18 @@ export const HOLD_COLORS: Record<string, HoldColorConfig> = {
 
 /**
  * Helper to get CSS style for a hold color swatch (dot/circle/pill).
- * Handles special hold colors like Bee (split into one yellow area and one black area, no stripes)
- * and gives all holds a tactile 3D resin specular rim highlight.
+ * Handles special hold colors like Bee (split into one yellow area and one black area, no stripes).
  */
 export function getHoldSwatchStyle(colorName: string): React.CSSProperties {
   const isBee = colorName.toLowerCase() === 'bee';
-  const resinLighting: React.CSSProperties = {
-    boxShadow: 'inset 0 1px 1px 0 rgba(255, 255, 255, 0.45), inset 0 -1px 2px 0 rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.35)',
-    border: '1px solid rgba(255, 255, 255, 0.15)'
-  };
-
   if (isBee) {
     return {
-      background: 'linear-gradient(135deg, #DDA82B 0%, #DDA82B 50%, #27272A 50%, #27272A 100%)',
-      ...resinLighting
+      background: 'linear-gradient(135deg, #DDA82B 0%, #DDA82B 50%, #27272A 50%, #27272A 100%)'
     };
   }
   const config = HOLD_COLORS[colorName];
   return {
-    backgroundColor: config?.hex || '#64748B',
-    ...resinLighting
+    backgroundColor: config?.hex || '#64748B'
   };
 }
 
