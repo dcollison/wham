@@ -4,6 +4,7 @@ import { HoldBadge } from './HoldBadge';
 import { HoldSwatch } from './HoldSwatch';
 import { ClimberStatusPills } from './ClimberStatusPills';
 import { Zap, Check, Clock, MessageSquare, ChevronRight, Image as ImageIcon, FileText } from 'lucide-react';
+import { getBoulderAgeInfo } from '../../lib/resetStatus';
 
 interface BoulderCardProps {
   boulder: Boulder;
@@ -28,6 +29,7 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
 }) => {
   const userAttempt = attempts.find(a => a.user_id === currentUserId);
   const cardStyle = getHoldCardStyle(boulder.hold_colour);
+  const resetInfo = getBoulderAgeInfo(boulder.date_added);
 
   const isFlash = userAttempt?.status === 'flashed';
   const isSent = userAttempt?.status === 'sent';
@@ -92,6 +94,15 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
           {areaName && (
             <span className="text-xs font-medium text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700/50 truncate max-w-[150px]">
               {areaName}
+            </span>
+          )}
+          {resetInfo.isDueForReset && (
+            <span
+              className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold text-amber-400/90 bg-amber-400/10 border border-amber-400/25 px-2 py-0.5 rounded-md shrink-0 select-none"
+              title={`Set ${resetInfo.weeksOld} weeks ago (${boulder.date_added}) – this climb is due for a reset`}
+            >
+              <Clock className="w-2.5 h-2.5 text-amber-400 shrink-0" />
+              <span>Reset soon ({resetInfo.weeksOld}w)</span>
             </span>
           )}
         </div>

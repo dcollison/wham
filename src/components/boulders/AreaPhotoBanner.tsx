@@ -2,12 +2,14 @@ import React, { useState, useRef } from 'react';
 import { GymArea } from '../../types';
 import { compressImage } from '../../lib/imageCompressor';
 import { AreaPhotoModal } from './AreaPhotoModal';
-import { Camera, Image as ImageIcon, Maximize2, Trash2, ChevronDown, ChevronUp, Upload } from 'lucide-react';
+import { Camera, Image as ImageIcon, Maximize2, Trash2, ChevronDown, ChevronUp, Upload, Clock } from 'lucide-react';
+import { ResetAgeInfo } from '../../lib/resetStatus';
 
 interface AreaPhotoBannerProps {
   currentArea: GymArea | null;
   activeBouldersCount: number;
   activeColor: string;
+  resetInfo?: ResetAgeInfo | null;
   onUploadPhoto: (file: File, dataUrl: string) => Promise<void>;
   onRemovePhoto: () => Promise<void>;
 }
@@ -16,6 +18,7 @@ export const AreaPhotoBanner: React.FC<AreaPhotoBannerProps> = ({
   currentArea,
   activeBouldersCount,
   activeColor,
+  resetInfo,
   onUploadPhoto,
   onRemovePhoto
 }) => {
@@ -81,6 +84,15 @@ export const AreaPhotoBanner: React.FC<AreaPhotoBannerProps> = ({
                 <span className="text-[10px] font-mono text-slate-400 shrink-0">
                   ({activeBouldersCount} climbs)
                 </span>
+                {resetInfo?.isDueForReset && (
+                  <span
+                    className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold text-amber-400 bg-amber-400/10 border border-amber-400/25 px-2 py-0.5 rounded-full shrink-0"
+                    title={`Set ${resetInfo.weeksOld} weeks ago – sector may be reset soon`}
+                  >
+                    <Clock className="w-2.5 h-2.5 text-amber-400 shrink-0" />
+                    <span>Reset soon ({resetInfo.weeksOld}w)</span>
+                  </span>
+                )}
               </div>
 
               <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>

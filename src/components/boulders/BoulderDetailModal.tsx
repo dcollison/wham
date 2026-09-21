@@ -3,6 +3,7 @@ import { Boulder, Attempt, Comment, Profile, GymArea } from '../../types';
 import { HoldBadge } from './HoldBadge';
 import { ClimberStatusPills } from './ClimberStatusPills';
 import { ClimberAvatar } from '../ClimberAvatar';
+import { getBoulderAgeInfo } from '../../lib/resetStatus';
 import {
   X,
   Send,
@@ -150,6 +151,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
   const resolvedAreaName = areaName || matchedArea?.name;
   const matchedGym = boulder ? allGyms.find((g) => g.id === boulder.gym_id || g.id === matchedArea?.gym_id) : undefined;
   const resolvedGymName = gymName || matchedGym?.name;
+  const resetInfo = getBoulderAgeInfo(boulder?.date_added);
 
   const boulderComments = useMemo(() => {
     if (!boulder) return [];
@@ -524,9 +526,20 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                 </div>
               )}
               <div className="flex items-center justify-between text-slate-400 pt-1 text-[11px]">
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-3 h-3" /> Added {boulder.date_added}
-                </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" /> Added {boulder.date_added}
+                  </span>
+                  {resetInfo.isDueForReset && (
+                    <span
+                      className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold text-amber-400 bg-amber-400/10 border border-amber-400/25 px-2 py-0.5 rounded"
+                      title={`Set ${resetInfo.weeksOld} weeks ago – this climb is due for a reset`}
+                    >
+                      <Clock className="w-2.5 h-2.5 text-amber-400 shrink-0" />
+                      <span>Reset soon ({resetInfo.weeksOld}w old)</span>
+                    </span>
+                  )}
+                </div>
                 {boulder.is_archived && (
                   <span className="text-rose-400 font-semibold uppercase font-mono">Archived</span>
                 )}

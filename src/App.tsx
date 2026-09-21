@@ -18,10 +18,11 @@ import { AreaPhotoBanner } from './components/boulders/AreaPhotoBanner';
 import { BoulderFilters, BoulderFiltersState } from './components/boulders/BoulderFilters';
 import { ClimberAvatar } from './components/ClimberAvatar';
 import { Boulder, GRADES } from './types';
-import { Plus, Compass, Sparkles, Filter, RotateCcw, Layers, Zap, ChevronRight } from 'lucide-react';
+import { Plus, Compass, Sparkles, Filter, RotateCcw, Layers, Zap, ChevronRight, Clock } from 'lucide-react';
 import { WhamLogo, WhamBadge } from './components/WhamLogo';
 import { PasscodeGate } from './components/PasscodeGate';
 import { STORAGE_KEYS, getStorageString, setStorageString } from './lib/storage';
+import { getAreaResetInfo } from './lib/resetStatus';
 
 export function App() {
   const [isPasscodeUnlocked, setIsPasscodeUnlocked] = useState<boolean>(() => {
@@ -346,6 +347,7 @@ export function App() {
         onSelectArea={setCurrentArea}
         currentUser={currentUser}
         climbers={climbers}
+        boulders={boulders}
         onOpenProfileSwitcher={() => {
           setSettingsInitialTab('crew');
           setIsSettingsOpen(true);
@@ -372,7 +374,9 @@ export function App() {
       {/* Main View Area */}
       <main className="flex-1 max-w-2xl w-full mx-auto p-4 sm:p-6 pb-28 sm:pb-24 flex flex-col">
         {/* TAB 1: Clockwise Boulders View */}
-        {currentTab === 'boulders' && (
+        {currentTab === 'boulders' && (() => {
+          const currentAreaResetInfo = currentArea ? getAreaResetInfo(currentArea.id, boulders) : null;
+          return (
           <div className="flex flex-col gap-4 animate-in fade-in duration-200">
             {/* Area Header & Info */}
             <div className="flex items-center justify-between">
@@ -380,10 +384,21 @@ export function App() {
                 <h1 className="text-lg font-black tracking-tight text-white flex items-center gap-1.5">
                   <span>{currentArea?.name || `${currentGym?.name || 'Gym'} • All Areas`}</span>
                 </h1>
-                <p className="text-xs text-slate-400 font-mono">
-                  {orderedActiveBouldersInCurrentArea.length}{' '}
-                  {orderedActiveBouldersInCurrentArea.length === 1 ? 'boulder' : 'boulders'} •{' '}
-                  {currentArea ? 'Clockwise wall sequence' : 'All wall sectors'}
+                <p className="text-xs text-slate-400 font-mono flex items-center gap-1.5 flex-wrap">
+                  <span>
+                    {orderedActiveBouldersInCurrentArea.length}{' '}
+                    {orderedActiveBouldersInCurrentArea.length === 1 ? 'boulder' : 'boulders'} •{' '}
+                    {currentArea ? 'Clockwise wall sequence' : 'All wall sectors'}
+                  </span>
+                  {currentAreaResetInfo?.isDueForReset && (
+                    <span
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-400 bg-amber-400/10 border border-amber-400/25 px-2 py-0.5 rounded-full"
+                      title={`Wall set ${currentAreaResetInfo.weeksOld} weeks ago – sector is due for a reset`}
+                    >
+                      <Clock className="w-3 h-3 text-amber-400 shrink-0" />
+                      <span>Reset soon ({currentAreaResetInfo.weeksOld}w old)</span>
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
@@ -394,6 +409,7 @@ export function App() {
                 currentArea={currentArea}
                 activeBouldersCount={orderedActiveBouldersInCurrentArea.length}
                 activeColor={activeColor}
+                resetInfo={currentAreaResetInfo}
                 onUploadPhoto={async (file, dataUrl) => {
                   if (currentArea) await updateAreaPhoto(currentArea.id, file, dataUrl);
                 }}
@@ -430,6 +446,7 @@ export function App() {
                       const areaBouldersCount = visibleBoulders.filter((b) => b.area_id === boulder.area_id).length;
                       const boulderAttempts = attempts.filter((a) => a.boulder_id === boulder.id);
                       const boulderComments = comments.filter((c) => c.boulder_id === boulder.id);
+                      const sectorResetInfo = isNewArea && boulderArea ? getAreaResetInfo(boulderArea.id, boulders) : null;
 
                       return (
                         <React.Fragment key={boulder.id}>
@@ -440,6 +457,15 @@ export function App() {
                                 <span className="text-xs font-bold font-heading text-slate-200 uppercase tracking-wider">
                                   {boulderArea?.name || 'Wall Sector'}
                                 </span>
+                                {sectorResetInfo?.isDueForReset && (
+                                  <span
+                                    className="inline-flex items-center gap-1 text-[10px] font-mono font-medium text-amber-400 bg-amber-400/10 border border-amber-400/25 px-2 py-0.5 rounded-full"
+                                    title={`Wall set ${sectorResetInfo.weeksOld} weeks ago – reset soon`}
+                                  >
+                                    <Clock className="w-2.5 h-2.5 text-amber-400 shrink-0" />
+                                    <span>Reset soon ({sectorResetInfo.weeksOld}w)</span>
+                                  </span>
+                                )}
                               </div>
                               <span className="text-[10px] font-mono font-medium text-slate-400 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
                                 {areaBouldersCount} {areaBouldersCount === 1 ? 'climb' : 'climbs'}
@@ -539,7 +565,8 @@ export function App() {
               </div>
             )}
           </div>
-        )}
+          );
+        })()}
 
         {/* TAB 2: Crew Feed (Recent Sends & Beta Spray) */}
         {currentTab === 'beta' && (
@@ -687,6 +714,7 @@ export function App() {
         onClose={() => setIsAreaResetOpen(false)}
         areaName={currentArea?.name || 'Current Area'}
         activeCount={orderedActiveBouldersInCurrentArea.length}
+        resetInfo={currentArea ? getAreaResetInfo(currentArea.id, boulders) : null}
         onConfirm={async () => {
           if (currentArea) {
             await archiveAreaBoulders(currentArea.id);

@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Gym, GymArea, Profile } from '../types';
+import { Gym, GymArea, Profile, Boulder } from '../types';
 import { ClimberAvatar } from './ClimberAvatar';
-import { Zap, ChevronDown, Plus, Archive, Layers, Trophy, MoreHorizontal, Check, Eye, ShieldCheck } from 'lucide-react';
+import { Zap, ChevronDown, Plus, Archive, Layers, Trophy, MoreHorizontal, Check, Eye, ShieldCheck, Clock } from 'lucide-react';
 import { WhamLogo, WhamBadge } from './WhamLogo';
+import { getAreaResetInfo } from '../lib/resetStatus';
 
 interface HeaderProps {
   currentTab?: 'boulders' | 'beta' | 'stats' | 'settings';
@@ -14,6 +15,7 @@ interface HeaderProps {
   onSelectArea: (area: GymArea | null) => void;
   currentUser: Profile | null;
   climbers: Profile[];
+  boulders?: Boulder[];
   onOpenProfileSwitcher: () => void;
   onOpenLeaderboard?: () => void;
   onOpenAddBoulder: () => void;
@@ -35,6 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectArea,
   currentUser,
   climbers,
+  boulders = [],
   onOpenProfileSwitcher,
   onOpenLeaderboard,
   onOpenAddBoulder,
@@ -153,19 +156,35 @@ export const Header: React.FC<HeaderProps> = ({
 
             {currentGymAreas.map((area) => {
               const isSelected = currentArea?.id === area.id;
+              const areaReset = getAreaResetInfo(area.id, boulders);
               return (
                 <button
                   key={area.id}
                   type="button"
                   onClick={() => onSelectArea(area)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all active-press shrink-0 ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all active-press shrink-0 flex items-center gap-1.5 ${
                     isSelected
                       ? 'text-black shadow-md'
                       : 'bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-850'
                   }`}
                   style={isSelected ? { backgroundColor: activeColor, color: '#000' } : undefined}
+                  title={
+                    areaReset.isDueForReset
+                      ? `${area.name} (Set ${areaReset.weeksOld}w ago – reset soon)`
+                      : area.name
+                  }
                 >
-                  {area.name}
+                  <span>{area.name}</span>
+                  {areaReset.isDueForReset && (
+                    <span
+                      className={`inline-flex items-center shrink-0 ${
+                        isSelected ? 'text-black/80' : 'text-amber-400'
+                      }`}
+                      title={`Wall set ${areaReset.weeksOld} weeks ago – reset soon`}
+                    >
+                      <Clock className="w-3 h-3 stroke-[2.5]" />
+                    </span>
+                  )}
                 </button>
               );
             })}

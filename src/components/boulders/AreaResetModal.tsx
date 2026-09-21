@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { X, AlertTriangle, Archive, Layers, ShieldCheck } from 'lucide-react';
+import { X, AlertTriangle, Archive, Layers, ShieldCheck, Clock } from 'lucide-react';
+import { ResetAgeInfo } from '../../lib/resetStatus';
 
 interface AreaResetModalProps {
   isOpen: boolean;
   onClose: () => void;
   areaName: string;
   activeCount: number;
+  resetInfo?: ResetAgeInfo | null;
   onConfirm: () => Promise<void>;
   onConfirmAndBulkAdd?: () => Promise<void>;
 }
@@ -16,6 +18,7 @@ export const AreaResetModal: React.FC<AreaResetModalProps> = ({
   onClose,
   areaName,
   activeCount,
+  resetInfo,
   onConfirm,
   onConfirmAndBulkAdd
 }) => {
@@ -65,6 +68,12 @@ export const AreaResetModal: React.FC<AreaResetModalProps> = ({
           <p>
             You are about to archive all <strong className="text-white font-mono text-sm">{activeCount}</strong> active boulders in <strong className="text-white font-bold">{areaName}</strong>.
           </p>
+          {resetInfo?.isDueForReset && (
+            <p className="flex items-center gap-1.5 text-amber-400 font-semibold font-mono">
+              <Clock className="w-3.5 h-3.5 shrink-0" />
+              <span>This wall was set {resetInfo.weeksOld} weeks ago and is due for a reset.</span>
+            </p>
+          )}
           <p className="text-slate-400">
             This represents a complete wall reset. Historical attempts and beta comments will be saved for statistics and can still be reviewed by enabling "Show Archived".
           </p>
