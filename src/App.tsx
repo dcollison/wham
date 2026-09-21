@@ -347,10 +347,10 @@ export function App() {
       />
 
       {/* Main View Area */}
-      <main className="flex-1 max-w-2xl w-full mx-auto p-4 sm:p-6 flex flex-col">
+      <main className="flex-1 max-w-2xl w-full mx-auto p-4 sm:p-6 pb-28 sm:pb-24 flex flex-col">
         {/* TAB 1: Clockwise Boulders View */}
         {currentTab === 'boulders' && (
-          <div className="flex flex-col gap-4 pb-20 animate-in fade-in duration-200">
+          <div className="flex flex-col gap-4 animate-in fade-in duration-200">
             {/* Area Header & Info */}
             <div className="flex items-center justify-between">
               <div>
@@ -510,7 +510,7 @@ export function App() {
 
         {/* TAB 4: The Circle & Settings View */}
         {currentTab === 'settings' && (
-          <div className="flex flex-col gap-4 pb-20 animate-in fade-in duration-200">
+          <div className="flex flex-col gap-4 animate-in fade-in duration-200">
             <h2 className="text-lg font-bold text-white">The Circle & Account</h2>
             <SettingsModal
               isOpen={true}

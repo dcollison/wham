@@ -186,16 +186,22 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+    >
       <div
-        className="w-full max-w-lg bg-slate-900 border-t sm:border border-slate-700/80 rounded-t-3xl sm:rounded-2xl p-4 sm:p-5 shadow-2xl flex flex-col gap-4 max-h-[92vh] overflow-y-auto"
+        className="w-full max-w-lg bg-slate-900 border-t sm:border border-slate-700/80 rounded-t-3xl sm:rounded-2xl p-4 sm:p-5 shadow-2xl flex flex-col gap-4 max-h-[92vh] overflow-y-auto sheet-elevated pb-safe"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Mobile pull/drag indicator */}
+        <div className="w-12 h-1.5 bg-slate-700/80 rounded-full mx-auto -mt-1 mb-1 sm:hidden shrink-0" />
+
         {/* Header with Boulder info & Filter Navigation */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-3 gap-2">
           <div className="flex items-center gap-2 min-w-0 flex-wrap sm:flex-nowrap">
             <HoldBadge color={boulder.hold_colour} grade={boulder.grade} size="md" />
-            <span className="font-mono text-xs text-slate-400 font-bold shrink-0">
+            <span className="font-mono text-xs text-slate-400 font-bold shrink-0 tabular-nums">
               #{Math.round(boulder.position_order)}
             </span>
             {resolvedAreaName && (
@@ -416,13 +422,13 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
               type="button"
               onClick={handleDecrement}
               disabled={attemptCount <= 1}
-              className="w-12 h-12 rounded-xl bg-slate-700/80 border border-slate-600 flex items-center justify-center text-slate-200 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-transform"
+              className="w-12 h-12 rounded-xl bg-slate-700/80 hover:bg-slate-700 border border-slate-600 flex items-center justify-center text-slate-200 active-press disabled:opacity-30 disabled:pointer-events-none transition-all surface-elevated"
             >
               <Minus className="w-6 h-6" />
             </button>
 
             <div className="flex flex-col items-center min-w-[70px]">
-              <span className="font-mono text-4xl font-black text-white">
+              <span className="font-mono text-4xl font-black text-white tabular-nums">
                 {attemptCount}
               </span>
               <span className="text-[11px] text-slate-400 font-medium">
@@ -433,7 +439,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
             <button
               type="button"
               onClick={handleIncrement}
-              className="w-12 h-12 rounded-xl bg-slate-700/80 border border-slate-600 flex items-center justify-center text-slate-200 active:scale-95 transition-transform"
+              className="w-12 h-12 rounded-xl bg-slate-700/80 hover:bg-slate-700 border border-slate-600 flex items-center justify-center text-slate-200 active-press transition-all surface-elevated"
             >
               <Plus className="w-6 h-6" />
             </button>

@@ -28,6 +28,16 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
   const userAttempt = attempts.find(a => a.user_id === currentUserId);
   const cardStyle = getHoldCardStyle(boulder.hold_colour);
 
+  const isFlash = userAttempt?.status === 'flashed';
+  const isSent = userAttempt?.status === 'sent';
+
+  let borderShadowClass = 'border-slate-800 hover:border-slate-700/80 shadow-md shadow-black/20';
+  if (isFlash) {
+    borderShadowClass = 'border-amber-500/40 shadow-[0_0_18px_-2px_rgba(245,158,11,0.22)]';
+  } else if (isSent) {
+    borderShadowClass = 'border-emerald-500/35 shadow-[0_0_18px_-2px_rgba(16,185,129,0.18)]';
+  }
+
   let statusBadge = (
     <span className="text-xs font-medium text-slate-400 bg-slate-800/90 px-2.5 py-1 rounded-full border border-slate-700/80">
       Untried
@@ -43,13 +53,13 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
   } else if (userAttempt?.status === 'sent') {
     statusBadge = (
       <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/30">
-        <Check className="w-3.5 h-3.5 stroke-[3]" /> Sent ({userAttempt.attempt_count}t)
+        <Check className="w-3.5 h-3.5 stroke-[3]" /> Sent (<span className="tabular-nums">{userAttempt.attempt_count}t</span>)
       </span>
     );
   } else if (userAttempt?.status === 'attempted') {
     statusBadge = (
       <span className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded-full border border-blue-500/30">
-        <Clock className="w-3.5 h-3.5" /> Project ({userAttempt.attempt_count}t)
+        <Clock className="w-3.5 h-3.5" /> Project (<span className="tabular-nums">{userAttempt.attempt_count}t</span>)
       </span>
     );
   }
@@ -57,7 +67,7 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
   return (
     <div
       onClick={() => onQuickLog(boulder)}
-      className="group relative bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 rounded-2xl p-4 sm:p-5 transition-all shadow-md active-press cursor-pointer flex flex-col gap-3.5 overflow-hidden"
+      className={`group relative bg-slate-900/90 hover:bg-slate-850 border rounded-2xl p-4 sm:p-5 transition-all active-press cursor-pointer flex flex-col gap-3.5 overflow-hidden surface-elevated ${borderShadowClass}`}
       style={{
         background: cardStyle.gradientBackground
       }}
@@ -72,7 +82,7 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
       {/* Top row: Order #, Hold Color & Grade, Current User Status */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-mono text-xs font-bold text-slate-300 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700/60 shrink-0">
+          <span className="font-mono text-xs font-bold text-slate-300 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700/60 shrink-0 tabular-nums">
             #{Math.round(boulder.position_order)}
           </span>
           <HoldBadge color={boulder.hold_colour} grade={boulder.grade} size="md" />
@@ -174,7 +184,7 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
               title="Crew Comments"
             >
               <MessageSquare className="w-3.5 h-3.5" />
-              <span>{commentCount}</span>
+              <span className="tabular-nums">{commentCount}</span>
             </button>
           )}
 
