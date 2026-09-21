@@ -1083,7 +1083,7 @@ export const INITIAL_BOULDERS: Boulder[] = [
     "position_order": 1.0,
     "notes": null,
     "image_url": null,
-    "date_added": "2026-09-15",
+    "date_added": "2026-08-01",
     "is_archived": false,
     "created_by": "a0000000-0000-0000-0000-000000000001"
   },
@@ -1096,7 +1096,7 @@ export const INITIAL_BOULDERS: Boulder[] = [
     "position_order": 2.0,
     "notes": null,
     "image_url": null,
-    "date_added": "2026-09-15",
+    "date_added": "2026-08-01",
     "is_archived": false,
     "created_by": "a0000000-0000-0000-0000-000000000001"
   },
@@ -1109,7 +1109,7 @@ export const INITIAL_BOULDERS: Boulder[] = [
     "position_order": 3.0,
     "notes": null,
     "image_url": null,
-    "date_added": "2026-09-15",
+    "date_added": "2026-08-01",
     "is_archived": false,
     "created_by": "a0000000-0000-0000-0000-000000000001"
   },
@@ -1122,7 +1122,7 @@ export const INITIAL_BOULDERS: Boulder[] = [
     "position_order": 4.0,
     "notes": null,
     "image_url": null,
-    "date_added": "2026-09-15",
+    "date_added": "2026-08-01",
     "is_archived": false,
     "created_by": "a0000000-0000-0000-0000-000000000001"
   },
