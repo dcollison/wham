@@ -16,9 +16,10 @@ import { CrewFeedView } from './components/feed/CrewFeedView';
 import { SettingsModal } from './components/settings/SettingsModal';
 import { AreaPhotoBanner } from './components/boulders/AreaPhotoBanner';
 import { BoulderFilters, BoulderFiltersState } from './components/boulders/BoulderFilters';
+import { GymWallMap } from './components/map/GymWallMap';
 import { ClimberAvatar } from './components/ClimberAvatar';
 import { Boulder, GRADES } from './types';
-import { Plus, Compass, Sparkles, Filter, RotateCcw, Layers, Zap, ChevronRight } from 'lucide-react';
+import { Plus, Compass, Sparkles, Filter, RotateCcw, Layers, Zap, ChevronRight, List, Map as MapIcon } from 'lucide-react';
 import { WhamLogo, WhamBadge } from './components/WhamLogo';
 import { PasscodeGate } from './components/PasscodeGate';
 
@@ -77,6 +78,7 @@ export function App() {
 
   // Hash-based routing for 100% static hosting on GitHub Pages
   const [currentTab, setCurrentTab] = useState<'boulders' | 'beta' | 'stats' | 'settings'>('boulders');
+  const [boulderViewMode, setBoulderViewMode] = useState<'ticklist' | 'map'>('ticklist');
   const [statsInitialTab, setStatsInitialTab] = useState<
     'overview' | 'leaderboard' | 'comparison' | 'timeline' | 'pyramid' | 'circuits'
   >('overview');
@@ -98,6 +100,9 @@ export function App() {
       } else if (hash.includes('storage') || hash.includes('photos')) {
         setSettingsInitialTab('storage');
         setCurrentTab('settings');
+      } else if (hash.includes('map')) {
+        setCurrentTab('boulders');
+        setBoulderViewMode('map');
       } else if (hash.includes('settings')) {
         setSettingsInitialTab('crew');
         setCurrentTab('settings');
@@ -354,10 +359,10 @@ export function App() {
         {/* TAB 1: Clockwise Boulders View */}
         {currentTab === 'boulders' && (
           <div className="flex flex-col gap-4 animate-in fade-in duration-200">
-            {/* Area Header & Info */}
-            <div className="flex items-center justify-between">
+            {/* Area Header & Info with View Switcher */}
+            <div className="flex items-center justify-between gap-2">
               <div>
-                <h1 className="text-lg font-black tracking-tight text-white flex items-center gap-1.5">
+                <h1 className="text-lg font-black tracking-tight text-white flex items-center gap-1.5 font-heading">
                   <span>{currentArea?.name || `${currentGym?.name || 'Gym'} • All Areas`}</span>
                 </h1>
                 <p className="text-xs text-slate-400 font-mono">
@@ -366,116 +371,163 @@ export function App() {
                   {currentArea ? 'Clockwise wall sequence' : 'All wall sectors'}
                 </p>
               </div>
-            </div>
 
-            {/* Area Wall Overview Photo */}
-            {currentArea && (
-              <AreaPhotoBanner
-                currentArea={currentArea}
-                activeBouldersCount={orderedActiveBouldersInCurrentArea.length}
-                activeColor={activeColor}
-                onUploadPhoto={async (file, dataUrl) => {
-                  if (currentArea) await updateAreaPhoto(currentArea.id, file, dataUrl);
-                }}
-                onRemovePhoto={async () => {
-                  if (currentArea) await removeAreaPhoto(currentArea.id);
-                }}
-              />
-            )}
-
-            {/* Compact Boulder Filters: Search Bar & Single Filters Icon */}
-            <BoulderFilters
-              filters={boulderFilters}
-              onUpdateFilters={handleUpdateFilters}
-              onResetFilters={handleResetFilters}
-              availableColours={availableColours}
-              colourCounts={colourCounts}
-              climbers={climbers}
-              currentUserId={currentUser?.id}
-              totalBouldersCount={orderedActiveBouldersInCurrentArea.length}
-              filteredBouldersCount={visibleBoulders.length}
-            />
-
-            {/* Boulders List */}
-            {visibleBoulders.length > 0 ? (
-              <div className="flex flex-col gap-3">
-                {visibleBoulders.map((boulder) => {
-                  const boulderAttempts = attempts.filter((a) => a.boulder_id === boulder.id);
-                  const boulderComments = comments.filter((c) => c.boulder_id === boulder.id);
-                  const boulderArea = areas.find((a) => a.id === boulder.area_id);
-
-                  return (
-                    <BoulderCard
-                      key={boulder.id}
-                      boulder={boulder}
-                      attempts={boulderAttempts}
-                      climbers={climbers}
-                      currentUserId={currentUser?.id}
-                      commentCount={boulderComments.length}
-                      areaName={!currentArea ? boulderArea?.name : undefined}
-                      onQuickLog={(b, targetUserId) => handleOpenQuickLog(b, targetUserId)}
-                      onOpenDetails={(b) => setDetailBoulder(b)}
-                    />
-                  );
-                })}
-              </div>
-            ) : orderedActiveBouldersInCurrentArea.length > 0 ? (
-              <div className="flex flex-col items-center justify-center p-8 bg-slate-900/60 border border-slate-800 rounded-2xl text-center gap-3 my-4">
-                <div className="p-3 bg-slate-800 rounded-2xl" style={{ color: activeColor }}>
-                  <Filter className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-200">
-                    No matching boulders found
-                  </h3>
-                  <p className="text-xs text-slate-400 max-w-xs mt-1">
-                    No climbs matched your filter criteria. Try adjusting your grade range or switching status to "All".
-                  </p>
-                </div>
+              {/* View Switcher: Ticklist vs Wall Map */}
+              <div className="flex items-center bg-slate-900 border border-slate-800 p-1 rounded-xl shadow-inner">
                 <button
                   type="button"
-                  onClick={handleResetFilters}
-                  style={{ backgroundColor: activeColor }}
-                  className="mt-2 flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-black active-press shadow"
+                  onClick={() => setBoulderViewMode('ticklist')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 ${
+                    boulderViewMode === 'ticklist'
+                      ? 'bg-slate-800 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
                 >
-                  <RotateCcw className="w-3.5 h-3.5 stroke-[2.5]" />
-                  <span>Reset All Filters</span>
+                  <List className="w-3.5 h-3.5" />
+                  <span className="font-heading tracking-wider">Ticklist</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBoulderViewMode('map')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 ${
+                    boulderViewMode === 'map'
+                      ? 'bg-slate-800 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                  style={boulderViewMode === 'map' ? { color: activeColor } : undefined}
+                >
+                  <MapIcon className="w-3.5 h-3.5" />
+                  <span className="font-heading tracking-wider">Map</span>
                 </button>
               </div>
+            </div>
+
+            {/* View Mode: Interactive Wall Map OR Standard Ticklist */}
+            {boulderViewMode === 'map' ? (
+              <GymWallMap
+                gym={currentGym}
+                areas={areas}
+                currentArea={currentArea}
+                onSelectArea={setCurrentArea}
+                boulders={boulders}
+                attempts={attempts}
+                climbers={climbers}
+                currentUserId={currentUser?.id}
+                onQuickLog={(b, targetUserId) => handleOpenQuickLog(b, targetUserId)}
+                onSelectBoulder={(b) => setDetailBoulder(b)}
+              />
             ) : (
-              <div className="flex flex-col items-center justify-center p-8 bg-slate-900/60 border border-slate-800 rounded-2xl text-center gap-3 my-6">
-                <div className="p-3 bg-slate-800 rounded-2xl" style={{ color: activeColor }}>
-                  <Compass className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-200">
-                    No climbs here yet
-                  </h3>
-                  <p className="text-xs text-slate-400 max-w-xs mt-1">
-                    Be the first to log a new problem in this sector.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2.5 flex-wrap justify-center mt-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsAddModalOpen(true)}
-                    style={{ backgroundColor: activeColor }}
-                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-black active-press shadow"
-                  >
-                    <Plus className="w-4 h-4 stroke-[3]" />
-                    <span>Add Single Climb</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsBulkAddOpen(true)}
-                    style={{ color: activeColor, borderColor: `${activeColor}50` }}
-                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 border active-press shadow"
-                  >
-                    <Layers className="w-4 h-4" />
-                    <span>Bulk Log Wall Set</span>
-                  </button>
-                </div>
-              </div>
+              <>
+                {/* Area Wall Overview Photo */}
+                {currentArea && (
+                  <AreaPhotoBanner
+                    currentArea={currentArea}
+                    activeBouldersCount={orderedActiveBouldersInCurrentArea.length}
+                    activeColor={activeColor}
+                    onUploadPhoto={async (file, dataUrl) => {
+                      if (currentArea) await updateAreaPhoto(currentArea.id, file, dataUrl);
+                    }}
+                    onRemovePhoto={async () => {
+                      if (currentArea) await removeAreaPhoto(currentArea.id);
+                    }}
+                  />
+                )}
+
+                {/* Compact Boulder Filters: Search Bar & Single Filters Icon */}
+                <BoulderFilters
+                  filters={boulderFilters}
+                  onUpdateFilters={handleUpdateFilters}
+                  onResetFilters={handleResetFilters}
+                  availableColours={availableColours}
+                  colourCounts={colourCounts}
+                  climbers={climbers}
+                  currentUserId={currentUser?.id}
+                  totalBouldersCount={orderedActiveBouldersInCurrentArea.length}
+                  filteredBouldersCount={visibleBoulders.length}
+                />
+
+                {/* Boulders List */}
+                {visibleBoulders.length > 0 ? (
+                  <div className="flex flex-col gap-3">
+                    {visibleBoulders.map((boulder) => {
+                      const boulderAttempts = attempts.filter((a) => a.boulder_id === boulder.id);
+                      const boulderComments = comments.filter((c) => c.boulder_id === boulder.id);
+                      const boulderArea = areas.find((a) => a.id === boulder.area_id);
+
+                      return (
+                        <BoulderCard
+                          key={boulder.id}
+                          boulder={boulder}
+                          attempts={boulderAttempts}
+                          climbers={climbers}
+                          currentUserId={currentUser?.id}
+                          commentCount={boulderComments.length}
+                          areaName={!currentArea ? boulderArea?.name : undefined}
+                          onQuickLog={(b, targetUserId) => handleOpenQuickLog(b, targetUserId)}
+                          onOpenDetails={(b) => setDetailBoulder(b)}
+                        />
+                      );
+                    })}
+                  </div>
+                ) : orderedActiveBouldersInCurrentArea.length > 0 ? (
+                  <div className="flex flex-col items-center justify-center p-8 bg-slate-900/60 border border-slate-800 rounded-2xl text-center gap-3 my-4">
+                    <div className="p-3 bg-slate-800 rounded-2xl" style={{ color: activeColor }}>
+                      <Filter className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-200">
+                        No matching boulders found
+                      </h3>
+                      <p className="text-xs text-slate-400 max-w-xs mt-1">
+                        No climbs matched your filter criteria. Try adjusting your grade range or switching status to "All".
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleResetFilters}
+                      style={{ backgroundColor: activeColor }}
+                      className="mt-2 flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-black active-press shadow"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 stroke-[2.5]" />
+                      <span>Reset All Filters</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-8 bg-slate-900/60 border border-slate-800 rounded-2xl text-center gap-3 my-6">
+                    <div className="p-3 bg-slate-800 rounded-2xl" style={{ color: activeColor }}>
+                      <Compass className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-200">
+                        No climbs here yet
+                      </h3>
+                      <p className="text-xs text-slate-400 max-w-xs mt-1">
+                        Be the first to log a new problem in this sector.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2.5 flex-wrap justify-center mt-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsAddModalOpen(true)}
+                        style={{ backgroundColor: activeColor }}
+                        className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-black active-press shadow"
+                      >
+                        <Plus className="w-4 h-4 stroke-[3]" />
+                        <span>Add Single Climb</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsBulkAddOpen(true)}
+                        style={{ color: activeColor, borderColor: `${activeColor}50` }}
+                        className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 border active-press shadow"
+                      >
+                        <Layers className="w-4 h-4" />
+                        <span>Bulk Log Wall Set</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
