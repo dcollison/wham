@@ -132,9 +132,9 @@ export const INITIAL_BOULDERS: Boulder[] = [
     "hold_colour": "Orange",
     "grade": "V3",
     "position_order": 2.0,
-    "notes": null,
+    "notes": "Classic problem set 7 weeks ago — due to be stripped in the next reset.",
     "image_url": null,
-    "date_added": "2026-09-10",
+    "date_added": "2026-08-02",
     "is_archived": false,
     "created_by": "a0000000-0000-0000-0000-000000000001"
   },

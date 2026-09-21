@@ -110,7 +110,23 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [boulders, setBoulders] = useState<Boulder[]>(() => {
     const cached = localStorage.getItem('wham_boulders');
-    return cached ? JSON.parse(cached) : INITIAL_BOULDERS;
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const sample = parsed.find((b: Boulder) => b.id === 'd0000000-0000-0000-0000-000000000002');
+          if (sample && sample.date_added === '2026-09-10') {
+            sample.date_added = '2026-08-02';
+            sample.notes = sample.notes || 'Classic problem set 7 weeks ago — due to be stripped in the next reset.';
+            localStorage.setItem('wham_boulders', JSON.stringify(parsed));
+          }
+          return parsed;
+        }
+      } catch {
+        // Fallback
+      }
+    }
+    return INITIAL_BOULDERS;
   });
 
   const [attempts, setAttempts] = useState<Attempt[]>(() => {
