@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Boulder, Attempt, Comment, Profile, GymArea } from '../../types';
 import { HoldBadge } from './HoldBadge';
 import { ClimberStatusPills } from './ClimberStatusPills';
@@ -65,6 +65,38 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
   const [newComment, setNewComment] = useState<string>('');
   const [submittingComment, setSubmittingComment] = useState<boolean>(false);
   const [photoZoom, setPhotoZoom] = useState<boolean>(false);
+  const [dragOffset, setDragOffset] = useState<number>(0);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const touchStartY = useRef<number | null>(null);
+
+  useEffect(() => {
+    setDragOffset(0);
+    setIsDragging(false);
+    touchStartY.current = null;
+  }, [isOpen, boulder?.id]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartY.current === null) return;
+    const currentY = e.touches[0].clientY;
+    const deltaY = currentY - touchStartY.current;
+    if (deltaY > 0) {
+      setDragOffset(deltaY);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (dragOffset > 75) {
+      onClose();
+    }
+    setDragOffset(0);
+    setIsDragging(false);
+    touchStartY.current = null;
+  };
 
   const allAreas = areas || contextAreas || [];
   const allGyms = contextGyms || [];
@@ -110,11 +142,24 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
     >
       <div
-        className="w-full max-w-lg bg-slate-900 border-t sm:border border-slate-700/80 rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden sheet-elevated"
+        className="w-full max-w-lg bg-slate-900 border-t sm:border border-slate-700/80 rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden sheet-elevated pb-safe overscroll-contain"
+        style={{
+          transform: dragOffset > 0 ? `translateY(${dragOffset}px)` : undefined,
+          transition: isDragging ? 'none' : 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Mobile pull/drag indicator */}
-        <div className="w-12 h-1.5 bg-slate-700/80 rounded-full mx-auto my-2 sm:hidden shrink-0" />
+        {/* Mobile pull/drag handle */}
+        <div
+          className="w-full py-2.5 flex items-center justify-center cursor-grab active:cursor-grabbing sm:hidden shrink-0 select-none touch-none"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onClick={onClose}
+          title="Drag down or tap to dismiss"
+        >
+          <div className="w-12 h-1.5 bg-slate-700 hover:bg-slate-600 rounded-full transition-colors" />
+        </div>
 
         {/* Sticky Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-900/95 sticky top-0 z-10 gap-2">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Boulder, Attempt, AttemptStatus, determineAttemptStatus, Profile, getHoldSwatchStyle, GymArea } from '../../types';
 import { HoldBadge } from './HoldBadge';
 import { ClimberAvatar } from '../ClimberAvatar';
@@ -67,13 +67,43 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
   const [saving, setSaving] = useState<boolean>(false);
   const [justSavedName, setJustSavedName] = useState<string | null>(null);
 
+  const [dragOffset, setDragOffset] = useState<number>(0);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const touchStartY = useRef<number | null>(null);
+
   // Sync selected climber when modal opens or initial target changes
   useEffect(() => {
     if (isOpen) {
       setSelectedUserId(initialTargetUserId || currentUserId || climbers[0]?.id || '');
       setJustSavedName(null);
+      setDragOffset(0);
+      setIsDragging(false);
+      touchStartY.current = null;
     }
   }, [isOpen, initialTargetUserId, currentUserId]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartY.current === null) return;
+    const currentY = e.touches[0].clientY;
+    const deltaY = currentY - touchStartY.current;
+    if (deltaY > 0) {
+      setDragOffset(deltaY);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (dragOffset > 75) {
+      onClose();
+    }
+    setDragOffset(0);
+    setIsDragging(false);
+    touchStartY.current = null;
+  };
 
   const selectedClimber = climbers.find(c => c.id === selectedUserId) || climbers[0];
   const selectedClimberColor = selectedClimber?.accent_color || '#3B82F6';
@@ -191,11 +221,24 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
     >
       <div
-        className="w-full max-w-lg bg-slate-900 border-t sm:border border-slate-700/80 rounded-t-3xl sm:rounded-2xl p-4 sm:p-5 shadow-2xl flex flex-col gap-4 max-h-[92vh] overflow-y-auto sheet-elevated pb-safe"
+        className="w-full max-w-lg bg-slate-900 border-t sm:border border-slate-700/80 rounded-t-3xl sm:rounded-2xl p-4 sm:p-5 shadow-2xl flex flex-col gap-4 max-h-[92vh] overflow-y-auto sheet-elevated pb-safe overscroll-contain"
+        style={{
+          transform: dragOffset > 0 ? `translateY(${dragOffset}px)` : undefined,
+          transition: isDragging ? 'none' : 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Mobile pull/drag indicator */}
-        <div className="w-12 h-1.5 bg-slate-700/80 rounded-full mx-auto -mt-1 mb-1 sm:hidden shrink-0" />
+        {/* Mobile pull/drag handle */}
+        <div
+          className="w-full py-2 -mt-2 mb-1 flex items-center justify-center cursor-grab active:cursor-grabbing sm:hidden shrink-0 select-none touch-none"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onClick={onClose}
+          title="Drag down or tap to dismiss"
+        >
+          <div className="w-12 h-1.5 bg-slate-700 hover:bg-slate-600 rounded-full transition-colors" />
+        </div>
 
         {/* Header with Boulder info & Filter Navigation */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-3 gap-2">

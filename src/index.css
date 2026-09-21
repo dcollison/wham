@@ -11,6 +11,10 @@
     --wham-accent: #e2a336;
   }
 
+  html, body {
+    overscroll-behavior-y: none;
+  }
+
   body {
     background-color: var(--color-bg);
     background-image: 
