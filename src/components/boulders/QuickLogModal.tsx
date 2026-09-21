@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Boulder, Attempt, AttemptStatus, determineAttemptStatus, Profile, getHoldSwatchStyle, GymArea } from '../../types';
+import { Boulder, Attempt, AttemptStatus, determineAttemptStatus, Profile, GymArea } from '../../types';
 import { HoldBadge } from './HoldBadge';
+import { HoldSwatch } from './HoldSwatch';
 import { ClimberAvatar } from '../ClimberAvatar';
 import {
   Zap,
@@ -284,30 +285,32 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
             </span>
           </div>
 
-          {/* Right: Stepper (if filter active) + Close button */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Right: Stepper with adjacent hold swatches + Close button */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {hasFilter && totalFiltered > 1 && (
-              <div className="flex items-center gap-1 bg-slate-800/90 px-1.5 py-0.5 rounded-xl border border-slate-700/80 text-xs">
+              <div className="flex items-center bg-slate-800/90 rounded-xl border border-slate-700/80 p-0.5 text-xs shadow-xs">
                 <button
                   type="button"
                   onClick={() => prevBoulder && onNavigateBoulder?.(prevBoulder)}
-                  className="p-1 rounded-lg hover:bg-slate-700 text-slate-300 transition-colors"
+                  className="px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-lg hover:bg-slate-700 text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 active:scale-95 touch-manipulation"
                   title={`Previous in filter: #${prevBoulder!.display_order ?? Math.round(prevBoulder!.position_order)} ${prevBoulder!.hold_colour} ${prevBoulder!.grade}`}
                 >
-                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <ChevronLeft className="w-4 h-4 shrink-0" />
+                  {prevBoulder && <HoldSwatch color={prevBoulder.hold_colour} size="sm" />}
                 </button>
 
-                <span className="font-mono text-[11px] text-slate-300 font-bold px-1 select-none">
+                <span className="font-mono text-xs text-slate-300 font-bold px-1 select-none whitespace-nowrap">
                   {currentIndex + 1} of {totalFiltered}
                 </span>
 
                 <button
                   type="button"
                   onClick={() => nextBoulder && onNavigateBoulder?.(nextBoulder)}
-                  className="p-1 rounded-lg hover:bg-slate-700 text-slate-300 transition-colors"
+                  className="px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-lg hover:bg-slate-700 text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 active:scale-95 touch-manipulation"
                   title={`Next in filter: #${nextBoulder!.display_order ?? Math.round(nextBoulder!.position_order)} ${nextBoulder!.hold_colour} ${nextBoulder!.grade}`}
                 >
-                  <ChevronRight className="w-3.5 h-3.5" />
+                  {nextBoulder && <HoldSwatch color={nextBoulder.hold_colour} size="sm" />}
+                  <ChevronRight className="w-4 h-4 shrink-0" />
                 </button>
               </div>
             )}
@@ -315,7 +318,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors active:scale-95 touch-manipulation shrink-0"
               title="Close"
             >
               <X className="w-5 h-5" />
@@ -323,39 +326,12 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
           </div>
         </div>
 
-        {/* Sub-bar: Sector Location & Boulder Details / Beta Button */}
-        <div className="flex items-center justify-between gap-2 text-xs -mt-1 pb-0.5">
-          {/* Sector name */}
-          <div className="flex items-center gap-1 text-slate-400 font-medium truncate min-w-0">
-            <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span className="truncate text-[11px] sm:text-xs text-slate-300">
-              {resolvedAreaName || 'Wall Sector'}
-            </span>
-          </div>
-
-          {/* Boulder Details Action */}
-          {onOpenDetails && boulder && (
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                onOpenDetails(boulder);
-              }}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-750 text-slate-300 hover:text-white text-xs font-semibold border border-slate-750 active-press transition-all shrink-0 shadow-xs group"
-              title="View full beta notes, photos, and crew discussion"
-            >
-              <FileText className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span>Details &amp; Beta</span>
-              {(boulder.notes || boulderCommentsCount > 0 || boulder.image_url) && (
-                <span className="flex items-center gap-1 text-[10px] font-mono text-amber-300/90 bg-amber-400/15 px-1 rounded">
-                  {boulder.image_url && '📷'}
-                  {boulder.notes && '📝'}
-                  {boulderCommentsCount > 0 && `💬${boulderCommentsCount}`}
-                </span>
-              )}
-              <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-            </button>
-          )}
+        {/* Sub-bar: Sector Location */}
+        <div className="flex items-center gap-1.5 text-slate-400 font-medium text-xs -mt-1 pb-0.5">
+          <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <span className="truncate text-xs text-slate-300">
+            {resolvedAreaName || 'Wall Sector'}
+          </span>
         </div>
 
         {/* Climber Selector / Context */}
@@ -649,10 +625,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                 </span>
 
                 <div className="flex items-center gap-1.5 bg-black/25 px-2 py-0.5 rounded-lg text-[11px] font-mono font-bold">
-                  <span
-                    className="w-2.5 h-2.5 rounded-full shrink-0 border border-black/30"
-                    style={getHoldSwatchStyle(nextBoulder.hold_colour)}
-                  />
+                  <HoldSwatch color={nextBoulder.hold_colour} size="xs" />
                   <span>#{Math.round(nextBoulder.position_order)} {nextBoulder.grade}</span>
                   <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                 </div>
@@ -680,15 +653,15 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
             </button>
           </div>
 
-          {/* Secondary Utility Row: Next Climber, Skip Boulder without saving, Delete */}
+          {/* Secondary Utility Row: Next Climber, Details & Beta, Delete */}
           <div className="flex items-center justify-between gap-2 pt-0.5">
-            <div className="flex items-center gap-2 flex-1">
+            <div className="flex items-center gap-2 flex-1 flex-wrap">
               {climbers.length > 1 && (
                 <button
                   type="button"
                   onClick={() => handleSaveAttempt(false)}
                   disabled={saving}
-                  className="py-2 px-2.5 rounded-xl text-[11px] font-bold bg-slate-800/80 hover:bg-slate-750 text-slate-300 border border-slate-700 active-press transition-all flex items-center gap-1.5"
+                  className="py-2 px-2.5 rounded-xl text-[11px] font-bold bg-slate-800/80 hover:bg-slate-750 text-slate-300 border border-slate-700 active-press transition-all flex items-center gap-1.5 touch-manipulation"
                   title="Save this climber's log and keep modal open to log for another crew member"
                 >
                   <Users className="w-3.5 h-3.5" style={{ color: selectedClimberColor }} />
@@ -696,16 +669,26 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                 </button>
               )}
 
-              {nextBoulder && nextBoulder.id !== boulder.id && onNavigateBoulder && (
+              {onOpenDetails && boulder && (
                 <button
                   type="button"
-                  onClick={() => onNavigateBoulder(nextBoulder)}
-                  disabled={saving}
-                  className="py-2 px-2.5 rounded-xl text-[11px] font-semibold text-slate-400 hover:text-white bg-slate-850 hover:bg-slate-800 border border-slate-750 active-press transition-colors flex items-center gap-1"
-                  title={`Skip to #${Math.round(nextBoulder.position_order)} ${nextBoulder.hold_colour} without logging`}
+                  onClick={() => {
+                    onClose();
+                    onOpenDetails(boulder);
+                  }}
+                  className="py-2 px-3 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-750 border border-slate-700 active-press transition-all flex items-center gap-1.5 group shadow-xs touch-manipulation"
+                  title="View full beta notes, photos, and crew discussion"
                 >
-                  <span>Skip to #{Math.round(nextBoulder.position_order)}</span>
-                  <ChevronRight className="w-3 h-3" />
+                  <FileText className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span>Details &amp; Beta</span>
+                  {(boulder.notes || boulderCommentsCount > 0 || boulder.image_url) && (
+                    <span className="flex items-center gap-1 text-[10px] font-mono text-amber-300/90 bg-amber-400/15 px-1 py-0.5 rounded">
+                      {boulder.image_url && '📷'}
+                      {boulder.notes && '📝'}
+                      {boulderCommentsCount > 0 && `💬${boulderCommentsCount}`}
+                    </span>
+                  )}
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
                 </button>
               )}
             </div>
@@ -715,7 +698,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                 type="button"
                 onClick={handleDelete}
                 disabled={saving}
-                className="p-2 rounded-xl border border-rose-900/40 bg-rose-950/30 text-rose-300 hover:bg-rose-900/50 transition-colors flex items-center justify-center shrink-0"
+                className="p-2 rounded-xl border border-rose-900/40 bg-rose-950/30 text-rose-300 hover:bg-rose-900/50 transition-colors flex items-center justify-center shrink-0 active:scale-95 touch-manipulation"
                 title={`Clear / Delete Log for ${selectedClimber?.display_name}`}
               >
                 <Trash2 className="w-3.5 h-3.5" />

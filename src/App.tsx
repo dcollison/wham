@@ -124,15 +124,6 @@ export function App() {
     setQuickLogTargetUserId(targetUserId || currentUser?.id);
   };
 
-  const handleQuickFlash = async (boulder: Boulder) => {
-    await logAttempt({
-      boulderId: boulder.id,
-      status: 'flashed',
-      attemptCount: 1,
-      userId: currentUser?.id
-    });
-  };
-
   // Track last viewed feed time for unread comments notification badge
   const [lastViewedFeedTime, setLastViewedFeedTime] = useState<string>(() => {
     const saved = getStorageString(STORAGE_KEYS.LAST_VIEWED_FEED, '');
@@ -463,7 +454,6 @@ export function App() {
                             commentCount={boulderComments.length}
                             areaName={boulderArea?.name}
                             onQuickLog={(b, targetUserId) => handleOpenQuickLog(b, targetUserId)}
-                            onQuickFlash={handleQuickFlash}
                             onOpenDetails={(b) => setDetailBoulder(b)}
                           />
                         </React.Fragment>
@@ -484,7 +474,6 @@ export function App() {
                         currentUserId={currentUser?.id}
                         commentCount={boulderComments.length}
                         onQuickLog={(b, targetUserId) => handleOpenQuickLog(b, targetUserId)}
-                        onQuickFlash={handleQuickFlash}
                         onOpenDetails={(b) => setDetailBoulder(b)}
                       />
                     );

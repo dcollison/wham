@@ -1,5 +1,5 @@
 import React from 'react';
-import { Boulder, Attempt, Profile, HOLD_COLORS, getHoldCardStyle, getHoldSwatchStyle } from '../../types';
+import { Boulder, Attempt, Profile, HOLD_COLORS, getHoldCardStyle } from '../../types';
 import { HoldBadge } from './HoldBadge';
 import { HoldSwatch } from './HoldSwatch';
 import { ClimberStatusPills } from './ClimberStatusPills';
@@ -13,7 +13,6 @@ interface BoulderCardProps {
   commentCount: number;
   areaName?: string;
   onQuickLog: (boulder: Boulder, targetUserId?: string) => void;
-  onQuickFlash?: (boulder: Boulder) => void;
   onOpenDetails: (boulder: Boulder) => void;
 }
 
@@ -25,7 +24,6 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
   commentCount,
   areaName,
   onQuickLog,
-  onQuickFlash,
   onOpenDetails
 }) => {
   const userAttempt = attempts.find(a => a.user_id === currentUserId);
@@ -99,26 +97,6 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          {/* 1-Tap Quick Flash button for unsent boulders */}
-          {!isCompletedByActiveUser && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onQuickFlash) {
-                  onQuickFlash(boulder);
-                } else {
-                  onQuickLog(boulder);
-                }
-              }}
-              className="inline-flex items-center gap-1 text-xs font-bold text-amber-300 hover:text-amber-200 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 px-2.5 py-1 rounded-full transition-all active-press shadow-sm"
-              title="1-Tap Flash (Logs 1 attempt flash with celebration)"
-            >
-              <Zap className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-              <span>Flash</span>
-            </button>
-          )}
-
           {/* User Status Badge / Quick Log Trigger */}
           <button
             type="button"
