@@ -231,10 +231,11 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
           }
         }
 
-        // 2. Try matching Grade (case insensitive, e.g. V3, v3, vb, VB, V10+)
+        // 2. Try matching Grade (case insensitive, e.g. V3, v3, vb, VB, V10, V10+)
         if (!foundGrade) {
           const upper = cleanToken.toUpperCase();
-          const matchedGrade = GRADES.find((g) => g.toUpperCase() === upper);
+          const normalized = upper === 'V10' ? 'V10+' : upper;
+          const matchedGrade = GRADES.find((g) => g.toUpperCase() === normalized);
           if (matchedGrade) {
             foundGrade = matchedGrade;
             continue;
@@ -275,6 +276,10 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
   // Submit bulk batch
   const handleSaveAll = async () => {
     if (draftQueue.length === 0) return;
+    if (!effectiveAreaId) {
+      alert('Please select a wall sector/area before saving.');
+      return;
+    }
     setIsSubmitting(true);
     try {
       await onBulkAdd({

@@ -92,13 +92,18 @@ Hold colors are tuned for high contrast against dark backgrounds:
   - Group and climber send completion percentages
   - Automatically updates whenever boulders are added or archived.
 
-### 4.3 Redpoint Gym Comp Scoring
-- Active boulders at each gym award competition points:
-  - Base points scale with grade: `VB` (50 pts), `V0` (100 pts), `V1` (200 pts) ... `V10+` (1100 pts).
-  - **Flash Bonus**: $+20\%$ points for first-attempt sends (`base * 1.2`).
-  - **Attempt Scaling**: $-5\%$ per attempt after try 1 (capped at minimum $70\%$ base points).
-  - Projects award zero points.
-- Real-time standings appear on the Gym Comp Banner and full modal leaderboard.
+### 4.3 Redpoint Gym Comp Scoring & Monthly Competitions
+- **Monthly Competitions**:
+  - Automatically resets on the 1st of every calendar month at midnight with zero cron jobs or manual database resets needed.
+  - Dynamically time-windows attempts by calendar month (`logged_at` timestamps).
+  - Climbers can navigate past monthly competitions via the month stepper/selector to inspect historic podiums and scorecards.
+  - Features a **Hall of Fame** tracking monthly champions and total tops across all past months.
+  - Climbers can toggle between **Monthly Comp** and **Active Wall Set** (all problems currently physically on the wall).
+- **Scoring Scale**:
+  - Base points scale with grade: `VB` (50 pts), `V0` (100 pts), `V1` (200 pts) ... `V10+` (1200 pts).
+  - **Flash Bonus**: $+25\%$ bonus points on first-try sends (`base * 1.25`).
+  - Tie-breakers: 1st Total Points $\rightarrow$ 2nd Tops Count $\rightarrow$ 3rd Flashes Count $\rightarrow$ 4th Fewest Attempts on Tops.
+- Real-time standings appear on the Gym Comp Banner (with days remaining in month) and full modal leaderboard.
 
 ### 4.4 Shared Device / Crew Logging
 - Climbers frequently share a single phone at the gym.
