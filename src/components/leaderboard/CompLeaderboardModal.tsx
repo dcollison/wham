@@ -29,6 +29,10 @@ export const CompLeaderboardModal: React.FC<CompLeaderboardModalProps> = ({
   onSelectBoulder,
   onNavigateToStats
 }) => {
+  const { currentUser } = useAuth();
+  const activeUser = climbers.find(c => c.id === currentUserId) || currentUser;
+  const activeColor = currentUser?.accent_color || activeUser?.accent_color || '#3B82F6';
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -43,10 +47,6 @@ export const CompLeaderboardModal: React.FC<CompLeaderboardModalProps> = ({
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
-
-  const { currentUser } = useAuth();
-  const activeUser = climbers.find(c => c.id === currentUserId) || currentUser;
-  const activeColor = currentUser?.accent_color || activeUser?.accent_color || '#3B82F6';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">

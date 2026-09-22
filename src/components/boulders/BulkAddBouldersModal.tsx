@@ -43,7 +43,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
   areaId,
   areaName,
   areas = [],
-  existingBoulders,
+  existingBoulders = [],
   onBulkAdd,
   onSwitchToSingle
 }) => {
@@ -77,6 +77,15 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
   // Paste mode text
   const [pasteText, setPasteText] = useState<string>('');
   const [pasteFeedback, setPasteFeedback] = useState<{ success: number; warnings: string[] } | null>(null);
+
+  // Grade count breakdown for draft queue (must remain before early return to preserve hook order)
+  const gradeBreakdown = useMemo(() => {
+    const counts: Record<string, number> = {};
+    draftQueue.forEach((item) => {
+      counts[item.grade] = (counts[item.grade] || 0) + 1;
+    });
+    return counts;
+  }, [draftQueue]);
 
   const prevIsOpenRef = useRef(false);
 
@@ -114,15 +123,6 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
   const existingActiveInArea = existingBoulders.filter(
     (b) => b.gym_id === gymId && b.area_id === effectiveAreaId && !b.is_archived
   );
-
-  // Grade count breakdown for draft queue
-  const gradeBreakdown = useMemo(() => {
-    const counts: Record<string, number> = {};
-    draftQueue.forEach((item) => {
-      counts[item.grade] = (counts[item.grade] || 0) + 1;
-    });
-    return counts;
-  }, [draftQueue]);
 
   // Add a single climb to draft queue
   const handleAddDraft = (hold: string = curHoldColour, gr: Grade = curGrade, notes: string = curNotes) => {

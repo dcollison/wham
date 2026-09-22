@@ -5,12 +5,16 @@ import { AuthProvider } from './context/AuthContext';
 import { GymProvider } from './context/GymContext';
 import './index.css';
 
+import { ErrorBoundary } from './components/ErrorBoundary';
+
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
-    <AuthProvider>
-      <GymProvider>
-        <App />
-      </GymProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <GymProvider>
+          <App />
+        </GymProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );

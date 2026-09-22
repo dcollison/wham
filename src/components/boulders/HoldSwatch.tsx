@@ -19,16 +19,17 @@ export const HoldSwatch: React.FC<HoldSwatchProps> = ({
   className = '',
   style
 }) => {
-  const isBee = color.toLowerCase() === 'bee';
-  const isWhite = color.toLowerCase() === 'white';
-  const isBlack = color.toLowerCase() === 'black';
+  const safeColor = typeof color === 'string' && color ? color : 'Yellow';
+  const isBee = safeColor.toLowerCase() === 'bee';
+  const isWhite = safeColor.toLowerCase() === 'white';
+  const isBlack = safeColor.toLowerCase() === 'black';
 
   const sizeClasses = {
     xs: 'w-2.5 h-2.5',
     sm: 'w-3 h-3',
     md: 'w-3.5 h-3.5',
     lg: 'w-4 h-4'
-  }[size];
+  }[size] || 'w-3 h-3';
 
   if (isBee) {
     return (
@@ -48,7 +49,7 @@ export const HoldSwatch: React.FC<HoldSwatchProps> = ({
     );
   }
 
-  const hex = HOLD_COLORS[color]?.hex || '#64748B';
+  const hex = HOLD_COLORS[safeColor]?.hex || '#64748B';
 
   return (
     <span
