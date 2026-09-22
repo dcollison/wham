@@ -30,6 +30,7 @@ interface RoadmapTabProps {
   onToggleUpvote: (id: string, userId: string) => Promise<void>;
   onDeleteRequest: (id: string) => Promise<void>;
   onShowSuccess: (msg: string) => void;
+  onShowError?: (msg: string) => void;
 }
 
 const CATEGORY_MAP: Record<
@@ -105,7 +106,8 @@ export const RoadmapTab: React.FC<RoadmapTabProps> = ({
   onUpdateStatus,
   onToggleUpvote,
   onDeleteRequest,
-  onShowSuccess
+  onShowSuccess,
+  onShowError
 }) => {
   const [selectedStatus, setSelectedStatus] = useState<FeatureStatus | 'all'>('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -366,9 +368,14 @@ export const RoadmapTab: React.FC<RoadmapTabProps> = ({
                     {/* Delete Request */}
                     <button
                       type="button"
-                      onClick={() => {
+                      onClick={async () => {
                         if (window.confirm(`Delete feature request "${req.title}"?`)) {
-                          onDeleteRequest(req.id);
+                          try {
+                            await onDeleteRequest(req.id);
+                            onShowSuccess('Feature request deleted');
+                          } catch (err: any) {
+                            if (onShowError) onShowError(err?.message || 'Failed to delete request');
+                          }
                         }
                       }}
                       className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/30 transition-colors"

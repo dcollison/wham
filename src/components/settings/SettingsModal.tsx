@@ -321,6 +321,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             onToggleUpvote={toggleFeatureUpvote}
             onDeleteRequest={deleteFeatureRequest}
             onShowSuccess={showSuccess}
+            onShowError={showError}
           />
         )}
 

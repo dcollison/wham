@@ -193,14 +193,17 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (cached) {
       try {
         const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+        if (Array.isArray(parsed)) {
+          const cleaned = parsed.filter(
+            (r: FeatureRequest) => !['req-001', 'req-002', 'req-003'].includes(r.id)
+          );
+          return cleaned;
         }
       } catch {
         // Fallback
       }
     }
-    return INITIAL_FEATURE_REQUESTS;
+    return [];
   });
 
   const channelRef = useRef<any>(null);
@@ -306,10 +309,13 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (bouldersRes.data && bouldersRes.data.length > 0) setBoulders(bouldersRes.data);
         if (attemptsRes.data && attemptsRes.data.length > 0) setAttempts(attemptsRes.data);
         if (commentsRes.data && commentsRes.data.length > 0) setComments(commentsRes.data);
-        if (featureRequestsRes?.data && Array.isArray(featureRequestsRes.data) && featureRequestsRes.data.length > 0) {
-          setFeatureRequests(featureRequestsRes.data);
+        if (!featureRequestsRes.error && Array.isArray(featureRequestsRes.data)) {
+          const cleanRequests = featureRequestsRes.data.filter(
+            (r: FeatureRequest) => !['req-001', 'req-002', 'req-003'].includes(r.id)
+          );
+          setFeatureRequests(cleanRequests);
           try {
-            localStorage.setItem('wham_feature_requests', JSON.stringify(featureRequestsRes.data));
+            localStorage.setItem('wham_feature_requests', JSON.stringify(cleanRequests));
           } catch (e) {}
         }
 
@@ -357,6 +363,31 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               return updated;
             });
             setCurrentAreaState((prev) => (prev && prev.id === areaId ? { ...prev, image_url: imageUrl } : prev));
+          })
+          .on('broadcast', { event: 'feature_request_created' }, ({ payload }) => {
+            if (!payload?.request?.id) return;
+            setFeatureRequests((prev) => {
+              if (prev.some((r) => r.id === payload.request.id)) return prev;
+              const next = [payload.request, ...prev];
+              try { localStorage.setItem('wham_feature_requests', JSON.stringify(next)); } catch (e) {}
+              return next;
+            });
+          })
+          .on('broadcast', { event: 'feature_request_deleted' }, ({ payload }) => {
+            if (!payload?.id) return;
+            setFeatureRequests((prev) => {
+              const next = prev.filter((r) => r.id !== payload.id);
+              try { localStorage.setItem('wham_feature_requests', JSON.stringify(next)); } catch (e) {}
+              return next;
+            });
+          })
+          .on('broadcast', { event: 'feature_request_updated' }, ({ payload }) => {
+            if (!payload?.id || !payload?.updates) return;
+            setFeatureRequests((prev) => {
+              const next = prev.map((r) => (r.id === payload.id ? { ...r, ...payload.updates } : r));
+              try { localStorage.setItem('wham_feature_requests', JSON.stringify(next)); } catch (e) {}
+              return next;
+            });
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'gym_areas' }, (payload) => {
             if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
@@ -1360,8 +1391,18 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     description?: string;
     category: FeatureCategory;
   }): Promise<FeatureRequest> => {
+    // Generate valid standard RFC 4122 v4 UUID
+    const id =
+      typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+            const r = (Math.random() * 16) | 0;
+            const v = c === 'x' ? r : (r & 0x3) | 0x8;
+            return v.toString(16);
+          });
+
     const newReq: FeatureRequest = {
-      id: `req-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      id,
       user_id: params.userId,
       title: params.title.trim(),
       description: params.description?.trim() || null,
@@ -1371,7 +1412,9 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       created_at: new Date().toISOString()
     };
 
+    // 1. Optimistic local state update
     setFeatureRequests((prev) => {
+      if (prev.some((r) => r.id === newReq.id)) return prev;
       const next = [newReq, ...prev];
       try {
         localStorage.setItem('wham_feature_requests', JSON.stringify(next));
@@ -1379,22 +1422,41 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return next;
     });
 
+    // 2. Realtime broadcast to peers
+    if (channelRef.current) {
+      try {
+        channelRef.current.send({
+          type: 'broadcast',
+          event: 'feature_request_created',
+          payload: { request: newReq }
+        });
+      } catch (e) {}
+    }
+
+    // 3. Persist to Supabase
     if (isSupabaseConfigured && supabase && !isDemoMode && !isDemoRequested()) {
       try {
         const { data, error } = await supabase
           .from('feature_requests')
           .insert({
-            user_id: params.userId,
-            title: params.title.trim(),
-            description: params.description?.trim() || null,
-            category: params.category,
-            status: 'backlog',
-            upvotes: [params.userId]
+            id: newReq.id,
+            user_id: newReq.user_id,
+            title: newReq.title,
+            description: newReq.description,
+            category: newReq.category,
+            status: newReq.status,
+            upvotes: newReq.upvotes,
+            created_at: newReq.created_at
           })
           .select()
           .single();
 
-        if (!error && data) {
+        if (error) {
+          console.error('Supabase feature_requests insert error:', error.message);
+          throw new Error(error.message);
+        }
+
+        if (data) {
           setFeatureRequests((prev) => {
             const next = prev.map((r) => (r.id === newReq.id ? data : r));
             try {
@@ -1404,8 +1466,9 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           });
           return data;
         }
-      } catch (err) {
-        console.warn('Could not sync feature request to Supabase, preserved locally:', err);
+      } catch (err: any) {
+        console.error('Could not sync feature request to Supabase:', err);
+        throw err;
       }
     }
 
@@ -1429,17 +1492,30 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
     }
 
-    if (isSupabaseConfigured && supabase && !isDemoMode && !isDemoRequested()) {
+    if (channelRef.current) {
       try {
-        const { error } = await supabase
-          .from('feature_requests')
-          .update({ status })
-          .eq('id', requestId);
-        if (error) {
-          console.warn('Failed to update feature status in Supabase:', error.message);
+        channelRef.current.send({
+          type: 'broadcast',
+          event: 'feature_request_updated',
+          payload: { id: requestId, updates: { status } }
+        });
+      } catch (e) {}
+    }
+
+    if (isSupabaseConfigured && supabase && !isDemoMode && !isDemoRequested()) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestId);
+      if (isUuid) {
+        try {
+          const { error } = await supabase
+            .from('feature_requests')
+            .update({ status })
+            .eq('id', requestId);
+          if (error) {
+            console.error('Failed to update feature status in Supabase:', error.message);
+          }
+        } catch (err) {
+          console.error('Supabase updateFeatureStatus error:', err);
         }
-      } catch (err) {
-        console.warn('Supabase updateFeatureStatus error:', err);
       }
     }
   };
@@ -1462,22 +1538,36 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return next;
     });
 
-    if (isSupabaseConfigured && supabase && !isDemoMode && !isDemoRequested()) {
+    if (channelRef.current) {
       try {
-        const { error } = await supabase
-          .from('feature_requests')
-          .update({ upvotes: finalUpvotes })
-          .eq('id', requestId);
-        if (error) {
-          console.warn('Failed to sync upvote in Supabase:', error.message);
+        channelRef.current.send({
+          type: 'broadcast',
+          event: 'feature_request_updated',
+          payload: { id: requestId, updates: { upvotes: finalUpvotes } }
+        });
+      } catch (e) {}
+    }
+
+    if (isSupabaseConfigured && supabase && !isDemoMode && !isDemoRequested()) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestId);
+      if (isUuid) {
+        try {
+          const { error } = await supabase
+            .from('feature_requests')
+            .update({ upvotes: finalUpvotes })
+            .eq('id', requestId);
+          if (error) {
+            console.error('Failed to sync upvote in Supabase:', error.message);
+          }
+        } catch (err) {
+          console.error('Supabase toggleFeatureUpvote error:', err);
         }
-      } catch (err) {
-        console.warn('Supabase toggleFeatureUpvote error:', err);
       }
     }
   };
 
   const deleteFeatureRequest = async (requestId: string): Promise<void> => {
+    // 1. Optimistic remove
     setFeatureRequests((prev) => {
       const next = prev.filter((r) => r.id !== requestId);
       try {
@@ -1486,17 +1576,34 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return next;
     });
 
-    if (isSupabaseConfigured && supabase && !isDemoMode && !isDemoRequested()) {
+    // 2. Realtime broadcast to peers
+    if (channelRef.current) {
       try {
-        const { error } = await supabase
-          .from('feature_requests')
-          .delete()
-          .eq('id', requestId);
-        if (error) {
-          console.warn('Failed to delete feature request in Supabase:', error.message);
+        channelRef.current.send({
+          type: 'broadcast',
+          event: 'feature_request_deleted',
+          payload: { id: requestId }
+        });
+      } catch (e) {}
+    }
+
+    // 3. Persist deletion in Supabase
+    if (isSupabaseConfigured && supabase && !isDemoMode && !isDemoRequested()) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestId);
+      if (isUuid) {
+        try {
+          const { error } = await supabase
+            .from('feature_requests')
+            .delete()
+            .eq('id', requestId);
+          if (error) {
+            console.error('Failed to delete feature request in Supabase:', error.message);
+            throw new Error(error.message);
+          }
+        } catch (err: any) {
+          console.error('Supabase deleteFeatureRequest error:', err);
+          throw err;
         }
-      } catch (err) {
-        console.warn('Supabase deleteFeatureRequest error:', err);
       }
     }
   };
