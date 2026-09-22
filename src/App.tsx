@@ -67,6 +67,8 @@ export function App() {
     addBoulder,
     bulkAddBoulders,
     archiveBoulder,
+    updateBoulder,
+    deleteBoulder,
     moveBoulder,
     archiveAreaBoulders,
     updateAreaPhoto,
@@ -677,6 +679,8 @@ export function App() {
         onAddComment={addComment}
         onDeleteComment={deleteComment}
         onToggleArchive={archiveBoulder}
+        onUpdateBoulder={updateBoulder}
+        onDeleteBoulder={deleteBoulder}
         onMoveBoulder={moveBoulder}
         filteredBoulders={visibleBoulders}
         onNavigateBoulder={(next) => setDetailBoulder(next)}

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Boulder, Attempt, Comment, Profile, GymArea } from '../../types';
+import { Boulder, Attempt, Comment, Profile, GymArea, Grade, GRADES, HOLD_COLORS } from '../../types';
 import { HoldBadge } from './HoldBadge';
+import { HoldSwatch } from './HoldSwatch';
 import { ClimberStatusPills } from './ClimberStatusPills';
 import { ClimberAvatar } from '../ClimberAvatar';
 import { getBoulderAgeInfo } from '../../lib/resetStatus';
@@ -22,7 +23,10 @@ import {
   ChevronRight,
   Trash2,
   MapPin,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Pencil,
+  AlertTriangle,
+  AlertCircle
 } from 'lucide-react';
 import { useGym } from '../../context/GymContext';
 import { PhotoLightboxModal } from './PhotoLightboxModal';
@@ -43,6 +47,8 @@ interface BoulderDetailModalProps {
   onDeleteComment?: (commentId: string) => Promise<void>;
   onToggleArchive: (boulderId: string, archive: boolean) => Promise<void>;
   onMoveBoulder?: (boulderId: string, targetAreaId: string, unarchive?: boolean) => Promise<void>;
+  onUpdateBoulder?: (boulderId: string, updates: { holdColour?: string; grade?: Grade; notes?: string | null }) => Promise<void>;
+  onDeleteBoulder?: (boulderId: string) => Promise<void>;
   filteredBoulders?: Boulder[];
   onNavigateBoulder?: (boulder: Boulder) => void;
 }
@@ -63,10 +69,18 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
   onDeleteComment,
   onToggleArchive,
   onMoveBoulder,
+  onUpdateBoulder,
+  onDeleteBoulder,
   filteredBoulders,
   onNavigateBoulder
 }) => {
-  const { areas: contextAreas, gyms: contextGyms, moveBoulder: contextMoveBoulder } = useGym();
+  const {
+    areas: contextAreas,
+    gyms: contextGyms,
+    moveBoulder: contextMoveBoulder,
+    updateBoulder: contextUpdateBoulder,
+    deleteBoulder: contextDeleteBoulder
+  } = useGym();
   const [newComment, setNewComment] = useState<string>('');
   const [submittingComment, setSubmittingComment] = useState<boolean>(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState<boolean>(false);
@@ -77,6 +91,19 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
   const [restoreOnMove, setRestoreOnMove] = useState<boolean>(true);
   const [isMoving, setIsMoving] = useState<boolean>(false);
   const [moveSuccessMessage, setMoveSuccessMessage] = useState<string | null>(null);
+
+  // Edit Climb state
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [editHoldColour, setEditHoldColour] = useState<string>('');
+  const [editGrade, setEditGrade] = useState<Grade>('VB');
+  const [editNotes, setEditNotes] = useState<string>('');
+  const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  // Delete Climb confirmation state
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState<boolean>(false);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
@@ -166,10 +193,62 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
     if (boulder) {
       setSelectedTargetAreaId(boulder.area_id);
       setRestoreOnMove(boulder.is_archived);
+      setEditHoldColour(boulder.hold_colour);
+      setEditGrade(boulder.grade);
+      setEditNotes(boulder.notes || '');
     }
     setIsMoveOpen(false);
+    setIsEditing(false);
+    setIsConfirmingDelete(false);
+    setEditError(null);
     setMoveSuccessMessage(null);
   }, [boulder?.id, isOpen]);
+
+  useEffect(() => {
+    if (boulder && !isEditing) {
+      setEditHoldColour(boulder.hold_colour);
+      setEditGrade(boulder.grade);
+      setEditNotes(boulder.notes || '');
+    }
+  }, [boulder?.hold_colour, boulder?.grade, boulder?.notes, isEditing]);
+
+  const handleSaveEdit = async () => {
+    if (!boulder) return;
+    const updateFn = onUpdateBoulder || contextUpdateBoulder;
+    if (!updateFn) return;
+
+    setIsSavingEdit(true);
+    setEditError(null);
+    try {
+      await updateFn(boulder.id, {
+        holdColour: editHoldColour,
+        grade: editGrade,
+        notes: editNotes.trim() || null
+      });
+      setIsEditing(false);
+    } catch (err: any) {
+      console.error('Failed to update boulder:', err);
+      setEditError(err?.message || 'Failed to save changes. Please try again.');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const handleDeleteBoulder = async () => {
+    if (!boulder) return;
+    const deleteFn = onDeleteBoulder || contextDeleteBoulder;
+    if (!deleteFn) return;
+
+    setIsDeleting(true);
+    try {
+      await deleteFn(boulder.id);
+      onClose();
+    } catch (err: any) {
+      console.error('Failed to delete boulder:', err);
+      alert('Failed to delete climb: ' + (err?.message || 'Unknown error'));
+      setIsDeleting(false);
+    }
+  };
 
   const availableGymAreas = useMemo(() => {
     if (!boulder) return [];
@@ -244,7 +323,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
         {/* Sticky Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-900/95 sticky top-0 z-10 gap-2">
           <div className="flex items-center gap-2 min-w-0 flex-wrap sm:flex-nowrap">
-            <HoldBadge color={boulder.hold_colour} grade={boulder.grade} size="md" />
+            <HoldBadge color={isEditing ? editHoldColour : boulder.hold_colour} grade={isEditing ? editGrade : boulder.grade} size="md" />
             <span className="font-mono text-xs text-slate-400 bg-slate-800 px-2 py-0.5 rounded shrink-0 tabular-nums">
               #{boulder.display_order ?? Math.round(boulder.position_order)}
             </span>
@@ -289,11 +368,37 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
           <div className="flex items-center gap-1 shrink-0">
             <button
               type="button"
+              onClick={() => {
+                setIsEditing(prev => !prev);
+                setIsConfirmingDelete(false);
+              }}
+              className={`p-2 rounded-lg transition-colors ${
+                isEditing
+                  ? 'bg-amber-400 text-slate-950 font-bold shadow'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+              title={isEditing ? 'Cancel Editing' : 'Edit Climb (Colour, Grade, Beta)'}
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
               onClick={() => onToggleArchive(boulder.id, !boulder.is_archived)}
               className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
               title={boulder.is_archived ? 'Restore / Unarchive Climb' : 'Archive Climb'}
             >
               <Archive className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsConfirmingDelete(true);
+                setIsEditing(false);
+              }}
+              className="p-2 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 transition-colors"
+              title="Permanently Delete Climb"
+            >
+              <Trash2 className="w-4 h-4" />
             </button>
             <button
               type="button"
@@ -307,6 +412,184 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-5">
+          {/* Permanent Delete Confirmation Dialog */}
+          {isConfirmingDelete && (
+            <div className="p-4 rounded-2xl bg-rose-950/80 border-2 border-rose-500/80 text-rose-200 flex flex-col gap-3 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-xl bg-rose-900 text-rose-200 shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-rose-300" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-bold text-white font-mono">
+                    Permanently delete climb #{boulder.display_order ?? Math.round(boulder.position_order)}?
+                  </h4>
+                  <p className="text-xs text-rose-200/90 mt-1 leading-relaxed">
+                    This will permanently remove <span className="font-bold text-white">{boulder.hold_colour} {boulder.grade}</span> from the gym wall, including all logged attempts, flashes, and beta comments.
+                  </p>
+                  <p className="text-[11px] text-rose-400 font-semibold mt-1">
+                    ⚠️ This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-rose-800/60">
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={() => setIsConfirmingDelete(false)}
+                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-semibold active-press transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={handleDeleteBoulder}
+                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg active-press transition-all flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>{isDeleting ? 'Deleting...' : 'Yes, Delete Permanently'}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Edit Climb Panel */}
+          {isEditing && (
+            <div className="bg-slate-900 border-2 border-amber-400/60 rounded-2xl p-4 flex flex-col gap-4 shadow-xl animate-in fade-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <Pencil className="w-4 h-4 text-amber-400" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-white">
+                    Edit Climb #{boulder.display_order ?? Math.round(boulder.position_order)}
+                  </span>
+                </div>
+                <HoldBadge color={editHoldColour} grade={editGrade} size="sm" />
+              </div>
+
+              {editError && (
+                <div className="p-3 rounded-xl bg-rose-950/70 border border-rose-500/40 text-xs text-rose-200 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  <span>{editError}</span>
+                </div>
+              )}
+
+              {/* Hold Colour Picker */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  Hold Colour
+                </label>
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                  {Object.entries(HOLD_COLORS).map(([colorName]) => {
+                    const isSelected = editHoldColour === colorName;
+                    return (
+                      <button
+                        key={colorName}
+                        type="button"
+                        onClick={() => setEditHoldColour(colorName)}
+                        style={isSelected ? { borderColor: activeColor, boxShadow: `0 0 0 1px ${activeColor}80` } : undefined}
+                        className={`flex items-center gap-1.5 px-2.5 py-2 rounded-xl border text-xs font-semibold transition-all active-press ${
+                          isSelected
+                            ? 'bg-slate-800 text-white shadow-md'
+                            : 'border-slate-800 bg-slate-950 text-slate-300 hover:border-slate-700'
+                        }`}
+                      >
+                        <HoldSwatch color={colorName} size="sm" />
+                        <span className="truncate">{colorName}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Grade Picker */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    Grade
+                  </label>
+                  <span className="font-mono text-xs font-black" style={{ color: activeColor }}>
+                    Selected: {editGrade}
+                  </span>
+                </div>
+                <div className="flex gap-1.5 overflow-x-auto pb-1.5 scrollbar-thin">
+                  {GRADES.map((g) => {
+                    const isSelected = editGrade === g;
+                    return (
+                      <button
+                        key={g}
+                        type="button"
+                        onClick={() => setEditGrade(g)}
+                        style={isSelected ? { backgroundColor: activeColor, color: '#000000' } : undefined}
+                        className={`px-3 py-2 rounded-xl font-mono text-xs font-bold shrink-0 transition-all active-press ${
+                          isSelected
+                            ? 'shadow-md'
+                            : 'bg-slate-950 text-slate-300 hover:bg-slate-800 border border-slate-800'
+                        }`}
+                      >
+                        {g}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Notes / Beta Input */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  Notes & Beta Description
+                </label>
+                <textarea
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  placeholder="Crux beta, foot placements, or problem description..."
+                  rows={2}
+                  className="w-full bg-slate-950 border border-slate-700 text-slate-100 placeholder:text-slate-500 text-xs rounded-xl p-3 outline-none focus:border-amber-400 resize-none leading-relaxed"
+                />
+              </div>
+
+              {/* Action Buttons & Danger Zone */}
+              <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditing(false);
+                    setIsConfirmingDelete(true);
+                  }}
+                  className="px-2.5 py-1.5 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete Climb</span>
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={isSavingEdit}
+                    onClick={() => {
+                      setIsEditing(false);
+                      setEditHoldColour(boulder.hold_colour);
+                      setEditGrade(boulder.grade);
+                      setEditNotes(boulder.notes || '');
+                    }}
+                    className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isSavingEdit}
+                    onClick={handleSaveEdit}
+                    style={{ backgroundColor: activeColor, color: '#000000' }}
+                    className="px-4 py-2 rounded-xl font-bold text-xs shadow active-press transition-all flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                    <span>{isSavingEdit ? 'Saving...' : 'Save Changes'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           {/* Archived Climb Banner with Quick Restore & Move Sector options */}
           {boulder.is_archived && (
             <div className="bg-rose-950/40 border border-rose-800/60 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner">
@@ -418,7 +701,23 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
 
           {/* Climb Details */}
           <div className="flex flex-col gap-2">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Climb Info</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Climb Info</h3>
+              {!isEditing && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditing(true);
+                    setIsConfirmingDelete(false);
+                  }}
+                  className="text-[11px] font-semibold text-amber-400 hover:text-amber-300 flex items-center gap-1 px-2 py-0.5 rounded-md hover:bg-slate-800 transition-colors"
+                  title="Edit hold colour, grade, or notes"
+                >
+                  <Pencil className="w-3 h-3" />
+                  <span>Edit Climb</span>
+                </button>
+              )}
+            </div>
             <div className="bg-slate-800/40 rounded-xl p-3 border border-slate-800 space-y-2.5 text-xs">
               {/* Sector / Wall Area row */}
               <div className="flex flex-col gap-2 pb-2 border-b border-slate-800/80 text-xs">

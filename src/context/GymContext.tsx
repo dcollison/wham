@@ -62,6 +62,8 @@ interface GymContextType {
   addBoulder: (params: AddBoulderParams) => Promise<Boulder>;
   bulkAddBoulders: (params: BulkAddBouldersParams) => Promise<Boulder[]>;
   archiveBoulder: (boulderId: string, archive?: boolean) => Promise<void>;
+  updateBoulder: (boulderId: string, updates: { holdColour?: string; grade?: Grade; notes?: string | null }) => Promise<void>;
+  deleteBoulder: (boulderId: string) => Promise<void>;
   moveBoulder: (boulderId: string, targetAreaId: string, unarchive?: boolean) => Promise<void>;
   archiveAreaBoulders: (areaId: string) => Promise<void>;
   updateAreaPhoto: (areaId: string, imageFile?: File | null, imageDataUrl?: string | null) => Promise<string | null>;
@@ -593,11 +595,19 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           client.from('send_props').select('attempt_id, user_id')
         ]);
 
-        if (!bouldersRes.error && bouldersRes.data && bouldersRes.data.length > 0) {
+        if (!bouldersRes.error && Array.isArray(bouldersRes.data)) {
           setBoulders(prev => {
             if (
               prev.length === bouldersRes.data.length &&
-              prev.every((b, idx) => b.id === bouldersRes.data[idx].id && b.is_archived === bouldersRes.data[idx].is_archived && b.position_order === bouldersRes.data[idx].position_order)
+              prev.every((b, idx) =>
+                b.id === bouldersRes.data[idx].id &&
+                b.is_archived === bouldersRes.data[idx].is_archived &&
+                b.position_order === bouldersRes.data[idx].position_order &&
+                b.hold_colour === bouldersRes.data[idx].hold_colour &&
+                b.grade === bouldersRes.data[idx].grade &&
+                b.notes === bouldersRes.data[idx].notes &&
+                b.area_id === bouldersRes.data[idx].area_id
+              )
             ) {
               return prev;
             }
@@ -1080,7 +1090,13 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Archive / unarchive single climb
   const archiveBoulder = async (boulderId: string, archive = true) => {
-    setBoulders(prev => prev.map(b => b.id === boulderId ? { ...b, is_archived: archive } : b));
+    setBoulders(prev => {
+      const updated = prev.map(b => b.id === boulderId ? { ...b, is_archived: archive } : b);
+      try {
+        localStorage.setItem('wham_boulders', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
 
     if (isSupabaseConfigured && supabase) {
       try {
@@ -1090,6 +1106,108 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           .eq('id', boulderId);
       } catch (err) {
         console.error('Failed to archive boulder in Supabase:', err);
+      }
+    }
+  };
+
+  // Update climb hold colour, grade, and notes
+  const updateBoulder = async (
+    boulderId: string,
+    updates: { holdColour?: string; grade?: Grade; notes?: string | null }
+  ) => {
+    setBoulders(prev => {
+      const updated = prev.map(b => {
+        if (b.id === boulderId) {
+          return {
+            ...b,
+            ...(updates.holdColour !== undefined ? { hold_colour: updates.holdColour } : {}),
+            ...(updates.grade !== undefined ? { grade: updates.grade } : {}),
+            ...(updates.notes !== undefined ? { notes: updates.notes } : {})
+          };
+        }
+        return b;
+      });
+      try {
+        localStorage.setItem('wham_boulders', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const payload: Record<string, any> = {};
+        if (updates.holdColour !== undefined) payload.hold_colour = updates.holdColour;
+        if (updates.grade !== undefined) payload.grade = updates.grade;
+        if (updates.notes !== undefined) payload.notes = updates.notes;
+
+        const { error } = await supabase
+          .from('boulders')
+          .update(payload)
+          .eq('id', boulderId);
+
+        if (error) {
+          console.error('Failed to update boulder in Supabase:', error);
+          throw error;
+        }
+      } catch (err) {
+        console.error('Failed to update boulder in Supabase:', err);
+        throw err;
+      }
+    }
+  };
+
+  // Permanently delete a climb and all associated attempts, comments, and storage photo
+  const deleteBoulder = async (boulderId: string) => {
+    const targetBoulder = boulders.find(b => b.id === boulderId);
+
+    // Optimistically update boulders, attempts, and comments state
+    setBoulders(prev => {
+      const filtered = prev.filter(b => b.id !== boulderId);
+      try {
+        localStorage.setItem('wham_boulders', JSON.stringify(filtered));
+      } catch (e) {}
+      return filtered;
+    });
+
+    setAttempts(prev => {
+      const filtered = prev.filter(a => a.boulder_id !== boulderId);
+      try {
+        localStorage.setItem('wham_attempts', JSON.stringify(filtered));
+      } catch (e) {}
+      return filtered;
+    });
+
+    setComments(prev => {
+      const filtered = prev.filter(c => c.boulder_id !== boulderId);
+      try {
+        localStorage.setItem('wham_comments', JSON.stringify(filtered));
+      } catch (e) {}
+      return filtered;
+    });
+
+    // Prune storage photo if present
+    if (targetBoulder?.image_url) {
+      try {
+        await deleteStoragePhotos([targetBoulder.image_url]);
+      } catch (photoErr) {
+        console.warn('Failed to prune boulder storage photo on delete:', photoErr);
+      }
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { error } = await supabase
+          .from('boulders')
+          .delete()
+          .eq('id', boulderId);
+
+        if (error) {
+          console.error('Failed to delete boulder from Supabase:', error);
+          throw error;
+        }
+      } catch (err) {
+        console.error('Failed to delete boulder from Supabase:', err);
+        throw err;
       }
     }
   };
@@ -1865,6 +1983,8 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addBoulder,
         bulkAddBoulders,
         archiveBoulder,
+        updateBoulder,
+        deleteBoulder,
         moveBoulder,
         archiveAreaBoulders,
         updateAreaPhoto,
