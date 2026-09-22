@@ -1,7 +1,53 @@
-import React from 'react';
-import { ShieldCheck, Download, Upload, History, RotateCcw, Database } from 'lucide-react';
+import React, { useState } from 'react';
+import { ShieldCheck, Download, Upload, History, RotateCcw, Database, Copy, Check } from 'lucide-react';
 import { Boulder, Attempt } from '../../types';
 import { LocalSnapshotMeta } from '../../lib/backup';
+
+const RLS_MIGRATION_SQL = `-- Enable public (anon) boulder creation, updating, and deletion for shared crew devices
+DROP POLICY IF EXISTS "Public can view boulders" ON public.boulders;
+DROP POLICY IF EXISTS "Public can insert boulders" ON public.boulders;
+DROP POLICY IF EXISTS "Public can update boulders" ON public.boulders;
+DROP POLICY IF EXISTS "Public can delete boulders" ON public.boulders;
+DROP POLICY IF EXISTS "Authenticated users can view all boulders" ON public.boulders;
+DROP POLICY IF EXISTS "Authenticated users can insert boulders" ON public.boulders;
+DROP POLICY IF EXISTS "Authenticated users can update boulders" ON public.boulders;
+DROP POLICY IF EXISTS "Authenticated users can delete boulders" ON public.boulders;
+
+CREATE POLICY "Public can view boulders" ON public.boulders FOR SELECT TO public USING (true);
+CREATE POLICY "Public can insert boulders" ON public.boulders FOR INSERT TO public WITH CHECK (true);
+CREATE POLICY "Public can update boulders" ON public.boulders FOR UPDATE TO public USING (true) WITH CHECK (true);
+CREATE POLICY "Public can delete boulders" ON public.boulders FOR DELETE TO public USING (true);
+
+-- Ensure public view/management for gyms and gym_areas
+DROP POLICY IF EXISTS "Public can view gyms" ON public.gyms;
+DROP POLICY IF EXISTS "Public can insert gyms" ON public.gyms;
+DROP POLICY IF EXISTS "Public can update gyms" ON public.gyms;
+CREATE POLICY "Public can view gyms" ON public.gyms FOR SELECT TO public USING (true);
+CREATE POLICY "Public can insert gyms" ON public.gyms FOR INSERT TO public WITH CHECK (true);
+CREATE POLICY "Public can update gyms" ON public.gyms FOR UPDATE TO public USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public can view gym areas" ON public.gym_areas;
+DROP POLICY IF EXISTS "Public can insert gym areas" ON public.gym_areas;
+DROP POLICY IF EXISTS "Public can update gym areas" ON public.gym_areas;
+DROP POLICY IF EXISTS "Public can delete gym areas" ON public.gym_areas;
+CREATE POLICY "Public can view gym areas" ON public.gym_areas FOR SELECT TO public USING (true);
+CREATE POLICY "Public can insert gym areas" ON public.gym_areas FOR INSERT TO public WITH CHECK (true);
+CREATE POLICY "Public can update gym areas" ON public.gym_areas FOR UPDATE TO public USING (true) WITH CHECK (true);
+CREATE POLICY "Public can delete gym areas" ON public.gym_areas FOR DELETE TO public USING (true);
+
+-- Ensure full replica identity for realtime sync
+ALTER TABLE public.boulders REPLICA IDENTITY FULL;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+      AND schemaname = 'public' 
+      AND tablename = 'boulders'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.boulders;
+  END IF;
+END $$;`;
 
 interface BackupsSettingsTabProps {
   boulders: Boulder[];
@@ -24,6 +70,18 @@ export const BackupsSettingsTab: React.FC<BackupsSettingsTabProps> = ({
   onFileSelected,
   fileInputRef
 }) => {
+  const [copiedSql, setCopiedSql] = useState(false);
+
+  const handleCopyMigrationSql = () => {
+    try {
+      navigator.clipboard.writeText(RLS_MIGRATION_SQL);
+      setCopiedSql(true);
+      setTimeout(() => setCopiedSql(false), 3000);
+    } catch (e) {
+      console.warn('Clipboard write failed:', e);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-3.5 animate-in fade-in duration-150">
       <div>
@@ -135,14 +193,33 @@ export const BackupsSettingsTab: React.FC<BackupsSettingsTabProps> = ({
       </div>
 
       {/* Database Backup & Archive Peace of Mind */}
-      <div className="p-3 rounded-xl bg-slate-850/60 border border-slate-800 text-xs text-slate-400 leading-relaxed flex items-start gap-2.5">
-        <Database className="w-4 h-4 shrink-0 text-blue-400 mt-0.5" />
-        <div className="flex flex-col gap-0.5">
-          <span className="text-slate-200 font-bold text-[11px]">Database Peace of Mind:</span>
-          <span className="text-[11px]">
-            Climbs in Wham use <strong className="text-slate-300">soft archiving</strong>—resets and deleted sectors are safely archived rather than destroyed. An automatic safety snapshot is also created before any area reset.
-          </span>
+      <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800 text-xs text-slate-400 leading-relaxed flex flex-col gap-2.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-slate-200 font-bold text-xs">
+            <Database className="w-4 h-4 text-blue-400" />
+            <span>Supabase Sync & Permissions</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleCopyMigrationSql}
+            className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 active-press transition-colors"
+          >
+            {copiedSql ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-emerald-400">Copied SQL!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5" />
+                <span>Copy Fix SQL</span>
+              </>
+            )}
+          </button>
         </div>
+        <p className="text-[11px] text-slate-400 leading-normal">
+          If new boulders fail to sync across devices (Supabase error 42501), your database Row-Level Security policies need to be unlocked for crew devices. Tap <strong>Copy Fix SQL</strong> and run it once in your Supabase Dashboard SQL Editor.
+        </p>
       </div>
     </div>
   );

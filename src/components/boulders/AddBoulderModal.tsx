@@ -57,6 +57,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
   const [compressionResult, setCompressionResult] = useState<CompressionResult | null>(null);
   const [compressing, setCompressing] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Sync selected area and reset form when modal opens or active gym/area changes
@@ -72,6 +73,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
       setInsertAfterId(defaultInsertAfterId || '');
       setNotes('');
       setCompressionResult(null);
+      setErrorMessage(null);
     }
   }, [isOpen, gymId, areaId, gymAreas, defaultInsertAfterId]);
 
@@ -111,6 +113,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setErrorMessage(null);
     try {
       await onAdd({
         gymId,
@@ -127,6 +130,9 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
       setNotes('');
       setCompressionResult(null);
       setInsertAfterId('');
+    } catch (err: any) {
+      console.error('Failed to add boulder:', err);
+      setErrorMessage(err?.message || 'Failed to save climb to database. Please check your connection.');
     } finally {
       setSubmitting(false);
     }
@@ -171,6 +177,16 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
             </button>
           </div>
         </div>
+
+        {errorMessage && (
+          <div className="p-3.5 rounded-2xl bg-rose-950/70 border border-rose-500/40 text-xs text-rose-200 flex items-start gap-2.5 animate-in fade-in duration-200">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+            <div className="flex flex-col gap-1">
+              <span className="font-bold text-white">Database Sync Blocked</span>
+              <span className="leading-relaxed text-[11px] text-rose-300">{errorMessage}</span>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Target Sector Selector (Shown when browsing All Areas) */}

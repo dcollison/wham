@@ -437,11 +437,37 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'boulders' }, (payload) => {
             if (payload.eventType === 'INSERT') {
-              setBoulders(prev => [...prev, payload.new as Boulder]);
+              const incoming = payload.new as Boulder;
+              if (!incoming?.id) return;
+              setBoulders((prev) => {
+                if (prev.some((b) => b.id === incoming.id)) return prev;
+
+                // Match and replace any optimistic boulder with temp ID
+                const optIdx = prev.findIndex(
+                  (b) =>
+                    b.id.startsWith('bould-') &&
+                    b.gym_id === incoming.gym_id &&
+                    b.area_id === incoming.area_id &&
+                    b.hold_colour === incoming.hold_colour &&
+                    b.grade === incoming.grade &&
+                    Math.abs(b.position_order - incoming.position_order) < 0.001
+                );
+                if (optIdx !== -1) {
+                  const updated = [...prev];
+                  updated[optIdx] = incoming;
+                  return updated;
+                }
+
+                return [...prev, incoming];
+              });
             } else if (payload.eventType === 'UPDATE') {
-              setBoulders(prev => prev.map(b => b.id === payload.new.id ? { ...b, ...payload.new } : b));
+              const incoming = payload.new as Boulder;
+              if (!incoming?.id) return;
+              setBoulders((prev) => prev.map((b) => (b.id === incoming.id ? { ...b, ...incoming } : b)));
             } else if (payload.eventType === 'DELETE') {
-              setBoulders(prev => prev.filter(b => b.id !== payload.old.id));
+              const oldId = (payload.old as { id?: string })?.id;
+              if (!oldId) return;
+              setBoulders((prev) => prev.filter((b) => b.id !== oldId));
             }
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'attempts' }, (payload) => {
@@ -559,12 +585,26 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const refreshData = async () => {
       try {
-        const [attRes, commRes, propsRes] = await Promise.all([
+        const [bouldersRes, areasRes, attRes, commRes, propsRes] = await Promise.all([
+          client.from('boulders').select('*').order('position_order'),
+          client.from('gym_areas').select('*').order('sort_order'),
           client.from('attempts').select('*, profile:profiles(*)'),
           client.from('comments').select('*, profile:profiles(*)'),
           client.from('send_props').select('attempt_id, user_id')
         ]);
 
+        if (!bouldersRes.error && bouldersRes.data && bouldersRes.data.length > 0) {
+          setBoulders(bouldersRes.data);
+          try {
+            localStorage.setItem('wham_boulders', JSON.stringify(bouldersRes.data));
+          } catch (e) {}
+        }
+        if (!areasRes.error && areasRes.data && areasRes.data.length > 0) {
+          setAreas(areasRes.data);
+          try {
+            localStorage.setItem('wham_areas', JSON.stringify(areasRes.data));
+          } catch (e) {}
+        }
         if (!attRes.error && attRes.data && attRes.data.length > 0) {
           setAttempts(attRes.data);
         }
@@ -814,6 +854,10 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       finalImageUrl = imageDataUrl;
     }
 
+    const effectiveCreatedBy = currentUser?.id && climbersRef.current.some(c => c.id === currentUser.id)
+      ? currentUser.id
+      : null;
+
     const newBoulder: Boulder = {
       id: tempBoulderId,
       gym_id: gymId,
@@ -825,7 +869,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       image_url: finalImageUrl,
       date_added: new Date().toISOString().split('T')[0],
       is_archived: false,
-      created_by: currentUser?.id || null,
+      created_by: effectiveCreatedBy,
       created_at: new Date().toISOString()
     };
 
@@ -845,18 +889,38 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             image_url: finalImageUrl,
             date_added: newBoulder.date_added,
             is_archived: false,
-            created_by: currentUser?.id
+            created_by: effectiveCreatedBy
           })
           .select()
           .single();
 
-        if (!error && data) {
+        if (error) {
+          console.error('Failed to insert boulder into Supabase:', error);
+          setBoulders(prev => prev.filter(b => b.id !== tempBoulderId));
+          const isRls = error.code === '42501' || error.message?.toLowerCase().includes('row-level security');
+          const errorMsg = isRls
+            ? `Supabase RLS policy blocked boulder creation (Error 42501). Run the SQL migration in Supabase SQL Editor.`
+            : `Database error: ${error.message}`;
+          throw new Error(errorMsg);
+        }
+
+        if (data) {
           // Replace temp id with Supabase-generated UUID
           setBoulders(prev => prev.map(b => b.id === tempBoulderId ? data : b));
+          try {
+            const currentCached = localStorage.getItem('wham_boulders');
+            if (currentCached) {
+              const parsed = JSON.parse(currentCached);
+              const replaced = parsed.map((b: Boulder) => b.id === tempBoulderId ? data : b);
+              localStorage.setItem('wham_boulders', JSON.stringify(replaced));
+            }
+          } catch (e) {}
           return data;
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to insert boulder into Supabase:', err);
+        setBoulders(prev => prev.filter(b => b.id !== tempBoulderId));
+        throw err;
       }
     }
 
@@ -874,6 +938,9 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!newItems || newItems.length === 0) return [];
 
     const effectiveDate = dateAdded || new Date().toISOString().split('T')[0];
+    const effectiveCreatedBy = currentUser?.id && climbersRef.current.some(c => c.id === currentUser.id)
+      ? currentUser.id
+      : null;
 
     // If archiveExistingAreaBoulders is true, archive current active boulders in this area
     if (archiveExistingAreaBoulders) {
@@ -926,7 +993,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         image_url: finalImageUrl,
         date_added: effectiveDate,
         is_archived: false,
-        created_by: currentUser?.id || null,
+        created_by: effectiveCreatedBy,
         created_at: new Date().toISOString()
       });
     }
@@ -960,11 +1027,22 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           image_url: b.image_url,
           date_added: b.date_added,
           is_archived: false,
-          created_by: currentUser?.id || null
+          created_by: effectiveCreatedBy
         }));
 
         const { data, error } = await supabase.from('boulders').insert(payload).select();
-        if (!error && data && data.length > 0) {
+        if (error) {
+          console.error('Failed to bulk insert boulders to Supabase:', error);
+          const tempIds = new Set(preparedBoulders.map(pb => pb.id));
+          setBoulders(prev => prev.filter(b => !tempIds.has(b.id)));
+          const isRls = error.code === '42501' || error.message?.toLowerCase().includes('row-level security');
+          const errorMsg = isRls
+            ? `Supabase RLS policy blocked bulk boulder creation (Error 42501). Run the SQL migration in Supabase SQL Editor.`
+            : `Database error: ${error.message}`;
+          throw new Error(errorMsg);
+        }
+
+        if (data && data.length > 0) {
           // Replace temporary IDs with database UUIDs
           setBoulders(prev => {
             const tempIds = new Set(preparedBoulders.map(pb => pb.id));
@@ -973,8 +1051,11 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           });
           return data;
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to bulk insert boulders to Supabase:', err);
+        const tempIds = new Set(preparedBoulders.map(pb => pb.id));
+        setBoulders(prev => prev.filter(b => !tempIds.has(b.id)));
+        throw err;
       }
     }
 

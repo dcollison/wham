@@ -181,6 +181,13 @@ CREATE POLICY "Public can update profiles"
     WITH CHECK (true);
 
 -- 4.2 Gyms policies
+DROP POLICY IF EXISTS "Public can view gyms" ON public.gyms;
+DROP POLICY IF EXISTS "Public can insert gyms" ON public.gyms;
+DROP POLICY IF EXISTS "Public can update gyms" ON public.gyms;
+DROP POLICY IF EXISTS "Authenticated users can view gyms" ON public.gyms;
+DROP POLICY IF EXISTS "Authenticated users can insert gyms" ON public.gyms;
+DROP POLICY IF EXISTS "Authenticated users can update gyms" ON public.gyms;
+
 CREATE POLICY "Public can view gyms"
     ON public.gyms FOR SELECT
     TO public
@@ -194,9 +201,19 @@ CREATE POLICY "Public can insert gyms"
 CREATE POLICY "Public can update gyms"
     ON public.gyms FOR UPDATE
     TO public
-    USING (true);
+    USING (true)
+    WITH CHECK (true);
 
 -- 4.3 Gym Areas policies
+DROP POLICY IF EXISTS "Public can view gym areas" ON public.gym_areas;
+DROP POLICY IF EXISTS "Public can insert gym areas" ON public.gym_areas;
+DROP POLICY IF EXISTS "Public can update gym areas" ON public.gym_areas;
+DROP POLICY IF EXISTS "Public can delete gym areas" ON public.gym_areas;
+DROP POLICY IF EXISTS "Authenticated users can view gym areas" ON public.gym_areas;
+DROP POLICY IF EXISTS "Authenticated users can insert gym areas" ON public.gym_areas;
+DROP POLICY IF EXISTS "Authenticated users can update gym areas" ON public.gym_areas;
+DROP POLICY IF EXISTS "Authenticated users can delete gym areas" ON public.gym_areas;
+
 CREATE POLICY "Public can view gym areas"
     ON public.gym_areas FOR SELECT
     TO public
@@ -210,7 +227,8 @@ CREATE POLICY "Public can insert gym areas"
 CREATE POLICY "Public can update gym areas"
     ON public.gym_areas FOR UPDATE
     TO public
-    USING (true);
+    USING (true)
+    WITH CHECK (true);
 
 CREATE POLICY "Public can delete gym areas"
     ON public.gym_areas FOR DELETE
@@ -218,6 +236,16 @@ CREATE POLICY "Public can delete gym areas"
     USING (true);
 
 -- 4.4 Boulders policies
+DROP POLICY IF EXISTS "Public can view boulders" ON public.boulders;
+DROP POLICY IF EXISTS "Public can insert boulders" ON public.boulders;
+DROP POLICY IF EXISTS "Public can update boulders" ON public.boulders;
+DROP POLICY IF EXISTS "Public can delete boulders" ON public.boulders;
+DROP POLICY IF EXISTS "Authenticated users can view boulders" ON public.boulders;
+DROP POLICY IF EXISTS "Authenticated users can view all boulders" ON public.boulders;
+DROP POLICY IF EXISTS "Authenticated users can insert boulders" ON public.boulders;
+DROP POLICY IF EXISTS "Authenticated users can update boulders" ON public.boulders;
+DROP POLICY IF EXISTS "Authenticated users can delete boulders" ON public.boulders;
+
 CREATE POLICY "Public can view boulders"
     ON public.boulders FOR SELECT
     TO public
@@ -231,7 +259,8 @@ CREATE POLICY "Public can insert boulders"
 CREATE POLICY "Public can update boulders"
     ON public.boulders FOR UPDATE
     TO public
-    USING (true);
+    USING (true)
+    WITH CHECK (true);
 
 CREATE POLICY "Public can delete boulders"
     ON public.boulders FOR DELETE
@@ -369,11 +398,31 @@ CREATE POLICY "Public can delete boulder-photos"
 -- =========================================================
 ALTER TABLE public.profiles REPLICA IDENTITY FULL;
 ALTER TABLE public.gym_areas REPLICA IDENTITY FULL;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.boulders;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.attempts;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.comments;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.gym_areas;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.send_props;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.feature_requests;
+ALTER TABLE public.boulders REPLICA IDENTITY FULL;
+ALTER TABLE public.attempts REPLICA IDENTITY FULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'profiles') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'boulders') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.boulders;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'attempts') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.attempts;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'comments') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.comments;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'gym_areas') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.gym_areas;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'send_props') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.send_props;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'feature_requests') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.feature_requests;
+  END IF;
+END $$;
 

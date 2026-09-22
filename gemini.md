@@ -285,21 +285,58 @@ CREATE POLICY "Public can insert profiles" ON public.profiles FOR INSERT TO publ
 
 -- Ensure boulders updates and archives work from shared devices
 DROP POLICY IF EXISTS "Authenticated users can update boulders" ON public.boulders;
-DROP POLICY IF EXISTS "Public can update boulders" ON public.boulders;
-CREATE POLICY "Public can update boulders" ON public.boulders FOR UPDATE TO public USING (true) WITH CHECK (true);
-
 DROP POLICY IF EXISTS "Authenticated users can insert boulders" ON public.boulders;
-DROP POLICY IF EXISTS "Public can insert boulders" ON public.boulders;
-CREATE POLICY "Public can insert boulders" ON public.boulders FOR INSERT TO public WITH CHECK (true);
-
 DROP POLICY IF EXISTS "Authenticated users can delete boulders" ON public.boulders;
+DROP POLICY IF EXISTS "Public can view boulders" ON public.boulders;
+DROP POLICY IF EXISTS "Public can update boulders" ON public.boulders;
+DROP POLICY IF EXISTS "Public can insert boulders" ON public.boulders;
 DROP POLICY IF EXISTS "Public can delete boulders" ON public.boulders;
+
+CREATE POLICY "Public can view boulders" ON public.boulders FOR SELECT TO public USING (true);
+CREATE POLICY "Public can insert boulders" ON public.boulders FOR INSERT TO public WITH CHECK (true);
+CREATE POLICY "Public can update boulders" ON public.boulders FOR UPDATE TO public USING (true) WITH CHECK (true);
 CREATE POLICY "Public can delete boulders" ON public.boulders FOR DELETE TO public USING (true);
 
--- Ensure gym_areas updates (such as sector photos) replicate and update seamlessly
-ALTER TABLE public.gym_areas REPLICA IDENTITY FULL;
+-- Ensure gyms and gym_areas work seamlessly from shared devices
+DROP POLICY IF EXISTS "Public can view gyms" ON public.gyms;
+DROP POLICY IF EXISTS "Public can insert gyms" ON public.gyms;
+DROP POLICY IF EXISTS "Public can update gyms" ON public.gyms;
+DROP POLICY IF EXISTS "Authenticated users can view gyms" ON public.gyms;
+DROP POLICY IF EXISTS "Authenticated users can insert gyms" ON public.gyms;
+DROP POLICY IF EXISTS "Authenticated users can update gyms" ON public.gyms;
+
+CREATE POLICY "Public can view gyms" ON public.gyms FOR SELECT TO public USING (true);
+CREATE POLICY "Public can insert gyms" ON public.gyms FOR INSERT TO public WITH CHECK (true);
+CREATE POLICY "Public can update gyms" ON public.gyms FOR UPDATE TO public USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public can view gym areas" ON public.gym_areas;
+DROP POLICY IF EXISTS "Public can insert gym areas" ON public.gym_areas;
 DROP POLICY IF EXISTS "Public can update gym areas" ON public.gym_areas;
+DROP POLICY IF EXISTS "Public can delete gym areas" ON public.gym_areas;
+DROP POLICY IF EXISTS "Authenticated users can view gym areas" ON public.gym_areas;
+DROP POLICY IF EXISTS "Authenticated users can insert gym areas" ON public.gym_areas;
+DROP POLICY IF EXISTS "Authenticated users can update gym areas" ON public.gym_areas;
+DROP POLICY IF EXISTS "Authenticated users can delete gym areas" ON public.gym_areas;
+
+CREATE POLICY "Public can view gym areas" ON public.gym_areas FOR SELECT TO public USING (true);
+CREATE POLICY "Public can insert gym areas" ON public.gym_areas FOR INSERT TO public WITH CHECK (true);
 CREATE POLICY "Public can update gym areas" ON public.gym_areas FOR UPDATE TO public USING (true) WITH CHECK (true);
+CREATE POLICY "Public can delete gym areas" ON public.gym_areas FOR DELETE TO public USING (true);
+
+-- Ensure full replica identity for realtime sync
+ALTER TABLE public.boulders REPLICA IDENTITY FULL;
+ALTER TABLE public.gym_areas REPLICA IDENTITY FULL;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+      AND schemaname = 'public' 
+      AND tablename = 'boulders'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.boulders;
+  END IF;
+END $$;
 ```
 
 ---

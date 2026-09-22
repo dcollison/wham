@@ -72,6 +72,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
   // Queued draft climbs list
   const [draftQueue, setDraftQueue] = useState<DraftBoulder[]>([]);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Paste mode text
   const [pasteText, setPasteText] = useState<string>('');
@@ -89,6 +90,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
       setPasteText('');
       setPasteFeedback(null);
       setCurNotes('');
+      setErrorMessage(null);
       setDateAdded(new Date().toISOString().split('T')[0]);
     }
   }, [isOpen, gymId, areaId, gymAreas]);
@@ -282,6 +284,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
       return;
     }
     setIsSubmitting(true);
+    setErrorMessage(null);
     try {
       await onBulkAdd({
         gymId,
@@ -299,7 +302,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
       onClose();
     } catch (err: any) {
       console.error('Failed to bulk add boulders:', err);
-      alert(err?.message || 'Failed to bulk add climbs. Please try again.');
+      setErrorMessage(err?.message || 'Failed to bulk add climbs to database. Please check your connection.');
     } finally {
       setIsSubmitting(false);
     }
@@ -362,6 +365,16 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
             </button>
           </div>
         </div>
+
+        {errorMessage && (
+          <div className="p-3.5 rounded-2xl bg-rose-950/70 border border-rose-500/40 text-xs text-rose-200 flex items-start gap-2.5 animate-in fade-in duration-200">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+            <div className="flex flex-col gap-1">
+              <span className="font-bold text-white">Database Sync Blocked</span>
+              <span className="leading-relaxed text-[11px] text-rose-300">{errorMessage}</span>
+            </div>
+          </div>
+        )}
 
         {/* Configuration Row: Area Selector, Date & Wall Reset Option */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-slate-950/60 border border-slate-800 rounded-2xl">
