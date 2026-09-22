@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Gym, GymArea, Profile, Boulder } from '../types';
 import { ClimberAvatar } from './ClimberAvatar';
-import { Zap, ChevronDown, Plus, Archive, Layers, Trophy, MoreHorizontal, Check, Eye, ShieldCheck, Clock } from 'lucide-react';
+import { Zap, ChevronDown, Plus, Archive, Layers, Trophy, MoreHorizontal, Check, Eye, ShieldCheck, Clock, Lightbulb } from 'lucide-react';
 import { WhamLogo, WhamBadge } from './WhamLogo';
 import { getAreaResetInfo } from '../lib/resetStatus';
 
@@ -22,6 +22,8 @@ interface HeaderProps {
   onOpenBulkAdd?: () => void;
   onOpenAreaReset: () => void;
   onOpenBackups?: () => void;
+  onOpenIdeas?: () => void;
+  openIdeasCount?: number;
   showArchived: boolean;
   onToggleShowArchived: () => void;
   isDemoMode: boolean;
@@ -44,6 +46,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenBulkAdd,
   onOpenAreaReset,
   onOpenBackups,
+  onOpenIdeas,
+  openIdeasCount = 0,
   showArchived,
   onToggleShowArchived,
   isDemoMode
@@ -272,6 +276,27 @@ export const Header: React.FC<HeaderProps> = ({
                     </span>
                     {showArchived && <Check className="w-3.5 h-3.5 text-purple-400" />}
                   </button>
+
+                  {onOpenIdeas && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMoreMenuOpen(false);
+                        onOpenIdeas();
+                      }}
+                      className="flex items-center justify-between w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:bg-slate-800 transition-colors"
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <Lightbulb className="w-4 h-4 text-amber-400" />
+                        <span>Ideas & Requests</span>
+                      </span>
+                      {openIdeasCount > 0 && (
+                        <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-amber-500/20 text-amber-300 font-bold">
+                          {openIdeasCount}
+                        </span>
+                      )}
+                    </button>
+                  )}
 
                   {onOpenBackups && (
                     <button

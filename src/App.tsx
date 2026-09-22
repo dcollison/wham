@@ -57,6 +57,7 @@ export function App() {
     boulders,
     attempts,
     comments,
+    featureRequests,
     hideSent,
     setHideSent,
     showArchived,
@@ -83,7 +84,7 @@ export function App() {
   const [statsInitialTab, setStatsInitialTab] = useState<
     'overview' | 'leaderboard' | 'comparison' | 'timeline' | 'pyramid' | 'circuits'
   >('overview');
-  const [settingsInitialTab, setSettingsInitialTab] = useState<'crew' | 'backups' | 'storage'>('crew');
+  const [settingsInitialTab, setSettingsInitialTab] = useState<'crew' | 'backups' | 'storage' | 'ideas'>('crew');
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -95,6 +96,9 @@ export function App() {
         setCurrentTab('stats');
       } else if (hash.includes('beta') || hash.includes('feed') || hash.includes('sends') || hash.includes('activity')) {
         setCurrentTab('beta');
+      } else if (hash.includes('ideas') || hash.includes('features') || hash.includes('roadmap') || hash.includes('requests')) {
+        setSettingsInitialTab('ideas');
+        setCurrentTab('settings');
       } else if (hash.includes('backup') || hash.includes('restore')) {
         setSettingsInitialTab('backups');
         setCurrentTab('settings');
@@ -366,6 +370,11 @@ export function App() {
           setSettingsInitialTab('backups');
           setIsSettingsOpen(true);
         }}
+        onOpenIdeas={() => {
+          setSettingsInitialTab('ideas');
+          setIsSettingsOpen(true);
+        }}
+        openIdeasCount={featureRequests.filter((r) => r.status !== 'shipped').length}
         showArchived={showArchived}
         onToggleShowArchived={() => setShowArchived((prev) => !prev)}
         isDemoMode={isDemoMode}

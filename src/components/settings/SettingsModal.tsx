@@ -5,7 +5,8 @@ import {
   X,
   Check,
   ShieldCheck,
-  HardDrive
+  HardDrive,
+  Lightbulb
 } from 'lucide-react';
 import { useGym } from '../../context/GymContext';
 import {
@@ -17,6 +18,8 @@ import {
 import { PhotoStorageManager } from './PhotoStorageManager';
 import { CrewSettingsTab } from './CrewSettingsTab';
 import { BackupsSettingsTab } from './BackupsSettingsTab';
+import { RoadmapTab } from './RoadmapTab';
+import { FeatureRequestModal } from './FeatureRequestModal';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -31,7 +34,7 @@ interface SettingsModalProps {
   onAddClimber: (name: string, avatarUrl?: string, accentColor?: string, avatarIcon?: string) => Promise<Profile>;
   onRemoveClimber?: (profileId: string) => Promise<void>;
   onLockApp?: () => void;
-  initialTab?: 'crew' | 'backups' | 'storage';
+  initialTab?: 'crew' | 'backups' | 'storage' | 'ideas';
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -56,6 +59,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     attempts,
     comments,
     propsMap,
+    featureRequests,
+    submitFeatureRequest,
+    updateFeatureStatus,
+    toggleFeatureUpvote,
+    deleteFeatureRequest,
     restoreBackupData,
     createManualSnapshot,
     restoreSnapshotById,
@@ -64,7 +72,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [snapshots, setSnapshots] = useState<LocalSnapshotMeta[]>([]);
-  const [activeTab, setActiveTab] = useState<'crew' | 'backups' | 'storage'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'crew' | 'backups' | 'storage' | 'ideas'>(initialTab);
+  const [isFeatureModalOpen, setIsFeatureModalOpen] = useState<boolean>(false);
   const [selectedClimberId, setSelectedClimberId] = useState<string>(
     currentUser?.id || climbers[0]?.id || ''
   );
@@ -211,42 +220,59 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-950/80 rounded-xl border border-slate-800">
+        <div className="grid grid-cols-4 gap-1 p-1 bg-slate-950/80 rounded-xl border border-slate-800">
           <button
             type="button"
             onClick={() => setActiveTab('crew')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center justify-center gap-1.5 py-2 px-1.5 rounded-lg text-xs font-bold transition-all ${
               activeTab === 'crew'
                 ? 'bg-slate-800 text-white shadow-sm ring-1 ring-slate-700'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Users className="w-3.5 h-3.5" />
-            <span>Crew & Profiles</span>
+            <Users className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Crew</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('ideas')}
+            className={`flex items-center justify-center gap-1.5 py-2 px-1.5 rounded-lg text-xs font-bold transition-all relative ${
+              activeTab === 'ideas'
+                ? 'bg-slate-800 text-white shadow-sm ring-1 ring-slate-700'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Lightbulb className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span className="truncate">Ideas</span>
+            {featureRequests.filter((r) => r.status !== 'shipped').length > 0 && (
+              <span className="hidden sm:inline text-[9px] px-1.5 py-0.2 rounded-full font-mono bg-amber-500/20 text-amber-300 font-bold">
+                {featureRequests.filter((r) => r.status !== 'shipped').length}
+              </span>
+            )}
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('backups')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center justify-center gap-1.5 py-2 px-1.5 rounded-lg text-xs font-bold transition-all ${
               activeTab === 'backups'
                 ? 'bg-slate-800 text-white shadow-sm ring-1 ring-slate-700'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Backups</span>
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span className="truncate">Backups</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('storage')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center justify-center gap-1.5 py-2 px-1.5 rounded-lg text-xs font-bold transition-all ${
               activeTab === 'storage'
                 ? 'bg-slate-800 text-white shadow-sm ring-1 ring-slate-700'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <HardDrive className="w-3.5 h-3.5 text-amber-400" />
-            <span>Storage</span>
+            <HardDrive className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span className="truncate">Storage</span>
           </button>
         </div>
 
@@ -283,7 +309,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           />
         )}
 
-        {/* TAB 2: BACKUPS & SAFETY NET */}
+        {/* TAB 2: IDEAS & ROADMAP */}
+        {activeTab === 'ideas' && (
+          <RoadmapTab
+            featureRequests={featureRequests}
+            climbers={climbers}
+            currentUser={currentUser}
+            activeColor={activeColor}
+            onOpenSubmitModal={() => setIsFeatureModalOpen(true)}
+            onUpdateStatus={updateFeatureStatus}
+            onToggleUpvote={toggleFeatureUpvote}
+            onDeleteRequest={deleteFeatureRequest}
+            onShowSuccess={showSuccess}
+          />
+        )}
+
+        {/* TAB 3: BACKUPS & SAFETY NET */}
         {activeTab === 'backups' && (
           <BackupsSettingsTab
             boulders={boulders}
@@ -297,13 +338,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           />
         )}
 
-        {/* TAB 3: PHOTO STORAGE MANAGER */}
+        {/* TAB 4: PHOTO STORAGE MANAGER */}
         {activeTab === 'storage' && (
           <div className="flex flex-col gap-3 animate-in fade-in duration-150">
             <PhotoStorageManager boulders={boulders} activeColor={activeColor} />
           </div>
         )}
       </div>
+
+      <FeatureRequestModal
+        isOpen={isFeatureModalOpen}
+        onClose={() => setIsFeatureModalOpen(false)}
+        currentUser={currentUser}
+        climbers={climbers}
+        onSubmit={async (params) => {
+          await submitFeatureRequest(params);
+          showSuccess('Feature idea posted!');
+        }}
+      />
     </div>
   );
 };

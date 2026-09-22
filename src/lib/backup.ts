@@ -1,4 +1,4 @@
-import { Boulder, Attempt, Comment, Profile, Gym, GymArea } from '../types';
+import { Boulder, Attempt, Comment, Profile, Gym, GymArea, FeatureRequest } from '../types';
 
 export interface WhamBackupData {
   version: 1;
@@ -10,6 +10,7 @@ export interface WhamBackupData {
   attempts: Attempt[];
   comments: Comment[];
   profiles: Profile[];
+  featureRequests?: FeatureRequest[];
   climberCustomizations?: Record<string, any>;
   sendsProps?: Record<string, string[]>;
 }
@@ -46,6 +47,7 @@ export function createBackupPayload(params: {
   attempts: Attempt[];
   comments: Comment[];
   profiles: Profile[];
+  featureRequests?: FeatureRequest[];
   propsMap?: Record<string, string[]>;
 }): WhamBackupData {
   let climberCustomizations: Record<string, any> = {};
@@ -66,6 +68,7 @@ export function createBackupPayload(params: {
     attempts: params.attempts,
     comments: params.comments,
     profiles: params.profiles,
+    featureRequests: params.featureRequests || [],
     climberCustomizations,
     sendsProps: params.propsMap || {}
   };
@@ -120,6 +123,7 @@ export function validateAndParseBackup(jsonStr: string): {
     const profiles: Profile[] = Array.isArray(parsed.profiles) ? parsed.profiles : [];
     const gyms: Gym[] = Array.isArray(parsed.gyms) ? parsed.gyms : [];
     const areas: GymArea[] = Array.isArray(parsed.areas) ? parsed.areas : [];
+    const featureRequests: FeatureRequest[] = Array.isArray(parsed.featureRequests) ? parsed.featureRequests : [];
 
     const data: WhamBackupData = {
       version: 1,
@@ -131,6 +135,7 @@ export function validateAndParseBackup(jsonStr: string): {
       attempts,
       comments,
       profiles,
+      featureRequests,
       climberCustomizations: parsed.climberCustomizations || {},
       sendsProps: parsed.sendsProps || {}
     };

@@ -89,6 +89,18 @@ CREATE TABLE IF NOT EXISTS public.send_props (
     CONSTRAINT unique_attempt_user_prop UNIQUE (attempt_id, user_id)
 );
 
+-- 1.8 Feature Requests table (Crew feature suggestions & roadmap)
+CREATE TABLE IF NOT EXISTS public.feature_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    description TEXT,
+    category TEXT NOT NULL DEFAULT 'feature',
+    status TEXT NOT NULL DEFAULT 'backlog',
+    upvotes TEXT[] DEFAULT '{}',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
 -- =========================================================
 -- 2. INDEXES
 -- =========================================================
@@ -100,6 +112,8 @@ CREATE INDEX IF NOT EXISTS idx_attempts_user ON public.attempts(user_id);
 CREATE INDEX IF NOT EXISTS idx_comments_boulder ON public.comments(boulder_id);
 CREATE INDEX IF NOT EXISTS idx_send_props_attempt ON public.send_props(attempt_id);
 CREATE INDEX IF NOT EXISTS idx_send_props_user ON public.send_props(user_id);
+CREATE INDEX IF NOT EXISTS idx_feature_requests_user ON public.feature_requests(user_id);
+CREATE INDEX IF NOT EXISTS idx_feature_requests_status ON public.feature_requests(status);
 
 -- =========================================================
 -- 3. AUTOMATIC PROFILE CREATION TRIGGER
@@ -146,6 +160,8 @@ ALTER TABLE public.attempts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.send_props ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.send_props REPLICA IDENTITY FULL;
+ALTER TABLE public.feature_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.feature_requests REPLICA IDENTITY FULL;
 
 -- 4.1 Profiles policies
 CREATE POLICY "Public can read all profiles"
@@ -284,6 +300,28 @@ CREATE POLICY "Public can delete props"
     TO public
     USING (true);
 
+-- 4.8 Feature requests policies
+CREATE POLICY "Public can view feature requests"
+    ON public.feature_requests FOR SELECT
+    TO public
+    USING (true);
+
+CREATE POLICY "Public can insert feature requests"
+    ON public.feature_requests FOR INSERT
+    TO public
+    WITH CHECK (true);
+
+CREATE POLICY "Public can update feature requests"
+    ON public.feature_requests FOR UPDATE
+    TO public
+    USING (true)
+    WITH CHECK (true);
+
+CREATE POLICY "Public can delete feature requests"
+    ON public.feature_requests FOR DELETE
+    TO public
+    USING (true);
+
 -- Ensure gym_areas image_url column exists for wall panorama photos
 ALTER TABLE public.gym_areas ADD COLUMN IF NOT EXISTS image_url TEXT;
 
@@ -337,3 +375,5 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.attempts;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.comments;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.gym_areas;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.send_props;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.feature_requests;
+

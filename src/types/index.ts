@@ -302,3 +302,18 @@ export const CLIMBER_ICONS: ClimberIconOption[] = [
   { id: 'anchor', name: 'Core' },
   { id: 'eye', name: 'Reader' }
 ];
+
+export type FeatureCategory = 'feature' | 'quality_of_life' | 'ui' | 'bug';
+export type FeatureStatus = 'backlog' | 'planned' | 'in_progress' | 'shipped';
+
+export interface FeatureRequest {
+  id: string;
+  user_id: string;
+  title: string;
+  description?: string | null;
+  category: FeatureCategory;
+  status: FeatureStatus;
+  upvotes: string[]; // List of profile IDs
+  created_at: string;
+}
+

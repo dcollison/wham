@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useEffect, useState, useMemo, useRef } from 'react';
 import { supabase, isSupabaseConfigured, isDemoRequested, uploadBoulderPhoto, uploadAreaPhoto, deleteStoragePhotos } from '../lib/supabase';
-import { Boulder, Attempt, Comment, Gym, GymArea, Grade, AttemptStatus, BulkAddBoulderItem, BulkAddBouldersParams } from '../types';
+import { Boulder, Attempt, Comment, Gym, GymArea, Grade, AttemptStatus, BulkAddBoulderItem, BulkAddBouldersParams, FeatureRequest, FeatureCategory, FeatureStatus } from '../types';
 import {
   INITIAL_GYMS,
   INITIAL_AREAS,
   INITIAL_BOULDERS,
   INITIAL_ATTEMPTS,
-  INITIAL_COMMENTS
+  INITIAL_COMMENTS,
+  INITIAL_FEATURE_REQUESTS
 } from '../lib/mockData';
 import { useAuth } from './AuthContext';
 import confetti from 'canvas-confetti';
@@ -72,6 +73,11 @@ interface GymContextType {
   getBoulderComments: (boulderId: string) => Comment[];
   getUserAttemptOnBoulder: (boulderId: string, userId?: string) => Attempt | undefined;
   orderedActiveBouldersInCurrentArea: Boulder[];
+  featureRequests: FeatureRequest[];
+  submitFeatureRequest: (params: { userId: string; title: string; description?: string; category: FeatureCategory }) => Promise<FeatureRequest>;
+  updateFeatureStatus: (requestId: string, status: FeatureStatus) => Promise<void>;
+  toggleFeatureUpvote: (requestId: string, userId: string) => Promise<void>;
+  deleteFeatureRequest: (requestId: string) => Promise<void>;
   restoreBackupData: (backup: WhamBackupData) => Promise<{ success: boolean; message: string; counts: any }>;
   createManualSnapshot: (reason?: string) => void;
   restoreSnapshotById: (snapshotId: string) => Promise<boolean>;
@@ -182,6 +188,21 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
 
+  const [featureRequests, setFeatureRequests] = useState<FeatureRequest[]>(() => {
+    const cached = localStorage.getItem('wham_feature_requests');
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      } catch {
+        // Fallback
+      }
+    }
+    return INITIAL_FEATURE_REQUESTS;
+  });
+
   const channelRef = useRef<any>(null);
 
   const [loading, setLoading] = useState<boolean>(true);
@@ -256,13 +277,14 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       try {
         setLoading(true);
-        const [gymsRes, areasRes, bouldersRes, attemptsRes, commentsRes, propsRes] = await Promise.all([
+        const [gymsRes, areasRes, bouldersRes, attemptsRes, commentsRes, propsRes, featureRequestsRes] = await Promise.all([
           supabase.from('gyms').select('*').order('name'),
           supabase.from('gym_areas').select('*').order('sort_order'),
           supabase.from('boulders').select('*').order('position_order'),
           supabase.from('attempts').select('*, profile:profiles(*)'),
           supabase.from('comments').select('*, profile:profiles(*)').order('created_at', { ascending: true }),
-          supabase.from('send_props').select('attempt_id, user_id')
+          supabase.from('send_props').select('attempt_id, user_id'),
+          supabase.from('feature_requests').select('*').order('created_at', { ascending: false })
         ]);
 
         if (!isMounted) return;
@@ -284,6 +306,12 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (bouldersRes.data && bouldersRes.data.length > 0) setBoulders(bouldersRes.data);
         if (attemptsRes.data && attemptsRes.data.length > 0) setAttempts(attemptsRes.data);
         if (commentsRes.data && commentsRes.data.length > 0) setComments(commentsRes.data);
+        if (featureRequestsRes?.data && Array.isArray(featureRequestsRes.data) && featureRequestsRes.data.length > 0) {
+          setFeatureRequests(featureRequestsRes.data);
+          try {
+            localStorage.setItem('wham_feature_requests', JSON.stringify(featureRequestsRes.data));
+          } catch (e) {}
+        }
 
         if (!propsRes.error && Array.isArray(propsRes.data)) {
           const remoteMap: Record<string, string[]> = {};
@@ -438,6 +466,34 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               });
             } else if (payload.eventType === 'DELETE') {
               setComments(prev => prev.filter(c => c.id !== payload.old.id));
+            }
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'feature_requests' }, (payload) => {
+            if (payload.eventType === 'INSERT') {
+              const newReq = payload.new as FeatureRequest;
+              if (!newReq?.id) return;
+              setFeatureRequests((prev) => {
+                if (prev.some((r) => r.id === newReq.id)) return prev;
+                const next = [newReq, ...prev];
+                try { localStorage.setItem('wham_feature_requests', JSON.stringify(next)); } catch (e) {}
+                return next;
+              });
+            } else if (payload.eventType === 'UPDATE') {
+              const updated = payload.new as FeatureRequest;
+              if (!updated?.id) return;
+              setFeatureRequests((prev) => {
+                const next = prev.map((r) => (r.id === updated.id ? { ...r, ...updated } : r));
+                try { localStorage.setItem('wham_feature_requests', JSON.stringify(next)); } catch (e) {}
+                return next;
+              });
+            } else if (payload.eventType === 'DELETE') {
+              const oldReq = payload.old as FeatureRequest;
+              if (!oldReq?.id) return;
+              setFeatureRequests((prev) => {
+                const next = prev.filter((r) => r.id !== oldReq.id);
+                try { localStorage.setItem('wham_feature_requests', JSON.stringify(next)); } catch (e) {}
+                return next;
+              });
             }
           })
           .subscribe((status) => {
@@ -1298,6 +1354,153 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [loading, boulders.length]);
 
+  const submitFeatureRequest = async (params: {
+    userId: string;
+    title: string;
+    description?: string;
+    category: FeatureCategory;
+  }): Promise<FeatureRequest> => {
+    const newReq: FeatureRequest = {
+      id: `req-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      user_id: params.userId,
+      title: params.title.trim(),
+      description: params.description?.trim() || null,
+      category: params.category,
+      status: 'backlog',
+      upvotes: [params.userId],
+      created_at: new Date().toISOString()
+    };
+
+    setFeatureRequests((prev) => {
+      const next = [newReq, ...prev];
+      try {
+        localStorage.setItem('wham_feature_requests', JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+
+    if (isSupabaseConfigured && supabase && !isDemoMode && !isDemoRequested()) {
+      try {
+        const { data, error } = await supabase
+          .from('feature_requests')
+          .insert({
+            user_id: params.userId,
+            title: params.title.trim(),
+            description: params.description?.trim() || null,
+            category: params.category,
+            status: 'backlog',
+            upvotes: [params.userId]
+          })
+          .select()
+          .single();
+
+        if (!error && data) {
+          setFeatureRequests((prev) => {
+            const next = prev.map((r) => (r.id === newReq.id ? data : r));
+            try {
+              localStorage.setItem('wham_feature_requests', JSON.stringify(next));
+            } catch (e) {}
+            return next;
+          });
+          return data;
+        }
+      } catch (err) {
+        console.warn('Could not sync feature request to Supabase, preserved locally:', err);
+      }
+    }
+
+    return newReq;
+  };
+
+  const updateFeatureStatus = async (requestId: string, status: FeatureStatus): Promise<void> => {
+    setFeatureRequests((prev) => {
+      const next = prev.map((r) => (r.id === requestId ? { ...r, status } : r));
+      try {
+        localStorage.setItem('wham_feature_requests', JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+
+    if (status === 'shipped') {
+      confetti({
+        particleCount: 60,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+    }
+
+    if (isSupabaseConfigured && supabase && !isDemoMode && !isDemoRequested()) {
+      try {
+        const { error } = await supabase
+          .from('feature_requests')
+          .update({ status })
+          .eq('id', requestId);
+        if (error) {
+          console.warn('Failed to update feature status in Supabase:', error.message);
+        }
+      } catch (err) {
+        console.warn('Supabase updateFeatureStatus error:', err);
+      }
+    }
+  };
+
+  const toggleFeatureUpvote = async (requestId: string, userId: string): Promise<void> => {
+    let finalUpvotes: string[] = [];
+    setFeatureRequests((prev) => {
+      const target = prev.find((r) => r.id === requestId);
+      if (!target) return prev;
+      const currentUpvotes = Array.isArray(target.upvotes) ? target.upvotes : [];
+      const hasVoted = currentUpvotes.includes(userId);
+      finalUpvotes = hasVoted
+        ? currentUpvotes.filter((id) => id !== userId)
+        : [...currentUpvotes, userId];
+
+      const next = prev.map((r) => (r.id === requestId ? { ...r, upvotes: finalUpvotes } : r));
+      try {
+        localStorage.setItem('wham_feature_requests', JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+
+    if (isSupabaseConfigured && supabase && !isDemoMode && !isDemoRequested()) {
+      try {
+        const { error } = await supabase
+          .from('feature_requests')
+          .update({ upvotes: finalUpvotes })
+          .eq('id', requestId);
+        if (error) {
+          console.warn('Failed to sync upvote in Supabase:', error.message);
+        }
+      } catch (err) {
+        console.warn('Supabase toggleFeatureUpvote error:', err);
+      }
+    }
+  };
+
+  const deleteFeatureRequest = async (requestId: string): Promise<void> => {
+    setFeatureRequests((prev) => {
+      const next = prev.filter((r) => r.id !== requestId);
+      try {
+        localStorage.setItem('wham_feature_requests', JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+
+    if (isSupabaseConfigured && supabase && !isDemoMode && !isDemoRequested()) {
+      try {
+        const { error } = await supabase
+          .from('feature_requests')
+          .delete()
+          .eq('id', requestId);
+        if (error) {
+          console.warn('Failed to delete feature request in Supabase:', error.message);
+        }
+      } catch (err) {
+        console.warn('Supabase deleteFeatureRequest error:', err);
+      }
+    }
+  };
+
   const restoreBackupData = async (
     backup: WhamBackupData
   ): Promise<{ success: boolean; message: string; counts: any }> => {
@@ -1367,16 +1570,31 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             });
             await supabase.from('comments').upsert(cleanComments, { onConflict: 'id' });
           }
+          if (backup.featureRequests && backup.featureRequests.length > 0) {
+            setFeatureRequests(backup.featureRequests);
+            try {
+              localStorage.setItem('wham_feature_requests', JSON.stringify(backup.featureRequests));
+            } catch (e) {}
+            await supabase.from('feature_requests').upsert(backup.featureRequests, { onConflict: 'id' });
+          }
         } catch (supabaseErr) {
           console.warn('Supabase restore sync note:', supabaseErr);
         }
+      }
+
+      if (backup.featureRequests && backup.featureRequests.length > 0) {
+        setFeatureRequests(backup.featureRequests);
+        try {
+          localStorage.setItem('wham_feature_requests', JSON.stringify(backup.featureRequests));
+        } catch (e) {}
       }
 
       const counts = {
         boulders: backup.boulders?.length ?? 0,
         attempts: backup.attempts?.length ?? 0,
         comments: backup.comments?.length ?? 0,
-        profiles: backup.profiles?.length ?? 0
+        profiles: backup.profiles?.length ?? 0,
+        featureRequests: backup.featureRequests?.length ?? 0
       };
 
       return {
@@ -1402,6 +1620,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       attempts,
       comments,
       profiles: climbers,
+      featureRequests,
       propsMap
     });
     saveLocalSnapshot(payload, reason);
@@ -1453,6 +1672,11 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         getBoulderComments,
         getUserAttemptOnBoulder,
         orderedActiveBouldersInCurrentArea,
+        featureRequests,
+        submitFeatureRequest,
+        updateFeatureStatus,
+        toggleFeatureUpvote,
+        deleteFeatureRequest,
         restoreBackupData,
         createManualSnapshot,
         restoreSnapshotById,

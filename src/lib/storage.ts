@@ -14,7 +14,8 @@ export const STORAGE_KEYS = {
   PASSCODE_UNLOCKED: 'wham_passcode_unlocked',
   SHOW_ACCOLADES: 'wham_show_accolades',
   SNAPSHOTS_META: 'wham_snapshots_meta',
-  LAST_VIEWED_FEED: 'wham_last_viewed_feed_time'
+  LAST_VIEWED_FEED: 'wham_last_viewed_feed_time',
+  FEATURE_REQUESTS: 'wham_feature_requests'
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS] | string;

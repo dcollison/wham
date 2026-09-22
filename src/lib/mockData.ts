@@ -1,4 +1,4 @@
-import { Boulder, Attempt, Comment, Profile, Gym, GymArea } from '../types';
+import { Boulder, Attempt, Comment, Profile, Gym, GymArea, FeatureRequest } from '../types';
 
 export const INITIAL_PROFILES: Profile[] = [
   {
@@ -3828,4 +3828,37 @@ export const INITIAL_ATTEMPTS: Attempt[] = [
 ];
 
 export const INITIAL_COMMENTS: Comment[] = [];
+
+export const INITIAL_FEATURE_REQUESTS: FeatureRequest[] = [
+  {
+    id: 'req-001',
+    user_id: 'a0000000-0000-0000-0000-000000000001', // Alex
+    title: 'Rest timer countdown on boulder card',
+    description: 'A 2-minute countdown timer button right on the card after logging an attempt so we actually rest between tries.',
+    category: 'quality_of_life',
+    status: 'planned',
+    upvotes: ['a0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000002'],
+    created_at: '2026-09-18T14:30:00Z'
+  },
+  {
+    id: 'req-002',
+    user_id: 'a0000000-0000-0000-0000-000000000003', // Taiye
+    title: 'Hold circuit completion milestones & celebration',
+    description: 'Display a special gold badge or fire effect in the stats when a climber sends 100% of an entire hold color circuit across the gym.',
+    category: 'feature',
+    status: 'backlog',
+    upvotes: ['a0000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000004'],
+    created_at: '2026-09-19T10:15:00Z'
+  },
+  {
+    id: 'req-003',
+    user_id: 'a0000000-0000-0000-0000-000000000004', // Euan
+    title: 'Show archived climbs toggle in header menu',
+    description: 'Allow toggling archived climbs on and off without losing your place on the wall.',
+    category: 'ui',
+    status: 'shipped',
+    upvotes: ['a0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000004'],
+    created_at: '2026-09-12T16:00:00Z'
+  }
+];
 
