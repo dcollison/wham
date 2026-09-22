@@ -78,9 +78,11 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
   const [pasteText, setPasteText] = useState<string>('');
   const [pasteFeedback, setPasteFeedback] = useState<{ success: number; warnings: string[] } | null>(null);
 
-  // Sync selected area on open
+  const prevIsOpenRef = useRef(false);
+
+  // Sync selected area and reset queue ONLY when modal transitions from closed to open
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !prevIsOpenRef.current) {
       if (areaId && gymAreas.some((a) => a.id === areaId)) {
         setSelectedAreaId(areaId);
       } else if (gymAreas.length > 0) {
@@ -93,7 +95,8 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
       setErrorMessage(null);
       setDateAdded(new Date().toISOString().split('T')[0]);
     }
-  }, [isOpen, gymId, areaId, gymAreas]);
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

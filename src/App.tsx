@@ -684,7 +684,7 @@ export function App() {
 
       {/* Add Boulder Modal (with Adjacent Placement) */}
       <AddBoulderModal
-        key={`${currentGym?.id || 'gym'}-${currentArea?.id || 'all'}-${isAddModalOpen ? 'open' : 'closed'}`}
+        key="add-boulder-modal"
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         gymId={currentGym?.id || gyms[0]?.id || ''}
@@ -700,7 +700,7 @@ export function App() {
 
       {/* Bulk Add Boulders Modal (for wall resets or initial gym logging) */}
       <BulkAddBouldersModal
-        key={`bulk-${currentGym?.id || 'gym'}-${currentArea?.id || 'all'}-${isBulkAddOpen ? 'open' : 'closed'}`}
+        key="bulk-add-boulders-modal"
         isOpen={isBulkAddOpen}
         onClose={() => setIsBulkAddOpen(false)}
         gymId={currentGym?.id || gyms[0]?.id || ''}

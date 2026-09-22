@@ -226,12 +226,12 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const gymAreas = areas.filter(a => a.gym_id === currentGym.id).sort((a, b) => a.sort_order - b.sort_order);
       const savedAreaId = localStorage.getItem(`wham_active_area_${currentGym.id}`);
       if (savedAreaId === 'all') {
-        setCurrentAreaState(null);
+        setCurrentAreaState(prev => (prev === null ? prev : null));
       } else if (savedAreaId) {
         const area = gymAreas.find(a => a.id === savedAreaId) || null;
-        setCurrentAreaState(area);
+        setCurrentAreaState(prev => (prev?.id === area?.id && prev?.name === area?.name && prev?.image_url === area?.image_url ? prev : area));
       } else if (currentArea && currentArea.gym_id !== currentGym.id) {
-        setCurrentAreaState(null);
+        setCurrentAreaState(prev => (prev === null ? prev : null));
       }
     }
   }, [currentGym, areas, currentArea]);
@@ -594,16 +594,32 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ]);
 
         if (!bouldersRes.error && bouldersRes.data && bouldersRes.data.length > 0) {
-          setBoulders(bouldersRes.data);
-          try {
-            localStorage.setItem('wham_boulders', JSON.stringify(bouldersRes.data));
-          } catch (e) {}
+          setBoulders(prev => {
+            if (
+              prev.length === bouldersRes.data.length &&
+              prev.every((b, idx) => b.id === bouldersRes.data[idx].id && b.is_archived === bouldersRes.data[idx].is_archived && b.position_order === bouldersRes.data[idx].position_order)
+            ) {
+              return prev;
+            }
+            try {
+              localStorage.setItem('wham_boulders', JSON.stringify(bouldersRes.data));
+            } catch (e) {}
+            return bouldersRes.data;
+          });
         }
         if (!areasRes.error && areasRes.data && areasRes.data.length > 0) {
-          setAreas(areasRes.data);
-          try {
-            localStorage.setItem('wham_areas', JSON.stringify(areasRes.data));
-          } catch (e) {}
+          setAreas(prev => {
+            if (
+              prev.length === areasRes.data.length &&
+              prev.every((a, idx) => a.id === areasRes.data[idx].id && a.name === areasRes.data[idx].name && a.image_url === areasRes.data[idx].image_url)
+            ) {
+              return prev;
+            }
+            try {
+              localStorage.setItem('wham_areas', JSON.stringify(areasRes.data));
+            } catch (e) {}
+            return areasRes.data;
+          });
         }
         if (!attRes.error && attRes.data && attRes.data.length > 0) {
           setAttempts(attRes.data);

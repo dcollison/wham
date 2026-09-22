@@ -59,10 +59,11 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const prevIsOpenRef = useRef(false);
 
-  // Sync selected area and reset form when modal opens or active gym/area changes
+  // Sync selected area and reset form ONLY when modal transitions from closed to open
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !prevIsOpenRef.current) {
       if (areaId && gymAreas.some(a => a.id === areaId)) {
         setSelectedAreaId(areaId);
       } else if (gymAreas.length > 0) {
@@ -75,7 +76,8 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
       setCompressionResult(null);
       setErrorMessage(null);
     }
-  }, [isOpen, gymId, areaId, gymAreas, defaultInsertAfterId]);
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
