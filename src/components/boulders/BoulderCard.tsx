@@ -42,26 +42,26 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
   }
 
   let statusBadge = (
-    <span className="text-xs font-medium text-slate-400 bg-slate-800/90 hover:bg-slate-750 px-2.5 py-1 rounded-full border border-slate-700/80 transition-colors">
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 bg-slate-800/90 hover:bg-slate-750 px-2.5 py-1 rounded-full border border-slate-700/80 transition-colors shrink-0 whitespace-nowrap">
       Untried
     </span>
   );
 
   if (userAttempt?.status === 'flashed') {
     statusBadge = (
-      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 rounded-full border border-amber-500/30 transition-colors">
+      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 rounded-full border border-amber-500/30 transition-colors shrink-0 whitespace-nowrap">
         <Zap className="w-3.5 h-3.5 fill-amber-400" /> Flash
       </span>
     );
   } else if (userAttempt?.status === 'sent') {
     statusBadge = (
-      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1 rounded-full border border-emerald-500/30 transition-colors">
+      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1 rounded-full border border-emerald-500/30 transition-colors shrink-0 whitespace-nowrap">
         <Check className="w-3.5 h-3.5 stroke-[3]" /> Sent (<span className="tabular-nums">{userAttempt.attempt_count}t</span>)
       </span>
     );
   } else if (userAttempt?.status === 'attempted') {
     statusBadge = (
-      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 px-2.5 py-1 rounded-full border border-blue-500/30 transition-colors">
+      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 px-2.5 py-1 rounded-full border border-blue-500/30 transition-colors shrink-0 whitespace-nowrap">
         <Clock className="w-3.5 h-3.5" /> Project (<span className="tabular-nums">{userAttempt.attempt_count}t</span>)
       </span>
     );
@@ -72,7 +72,7 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
   return (
     <div
       onClick={() => onQuickLog(boulder)}
-      className={`group relative bg-slate-900/90 hover:bg-slate-850 border rounded-2xl p-4 sm:p-5 transition-all cursor-pointer flex flex-col gap-3.5 overflow-hidden surface-elevated ${borderShadowClass}`}
+      className={`group relative bg-slate-900/90 hover:bg-slate-850 border rounded-2xl p-4 sm:p-5 transition-all cursor-pointer flex flex-col gap-3 overflow-hidden surface-elevated ${borderShadowClass}`}
       style={{
         background: cardStyle.gradientBackground
       }}
@@ -85,29 +85,15 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
         }}
       />
       {/* Top row: Order #, Hold Color & Grade, Current User Status */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center justify-between gap-2.5">
+        <div className="flex items-center gap-2 min-w-0">
           <span className="font-mono text-xs font-bold text-slate-300 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700/60 shrink-0 tabular-nums">
             #{boulder.display_order ?? Math.round(boulder.position_order)}
           </span>
           <HoldBadge color={boulder.hold_colour} grade={boulder.grade} size="md" />
-          {areaName && (
-            <span className="text-xs font-medium text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700/50 truncate max-w-[150px]">
-              {areaName}
-            </span>
-          )}
-          {resetInfo.isDueForReset && (
-            <span
-              className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold text-amber-400/90 bg-amber-400/10 border border-amber-400/25 px-2 py-0.5 rounded-md shrink-0 select-none"
-              title={`Set ${resetInfo.weeksOld} weeks ago (${boulder.date_added}) – this climb is due for a reset`}
-            >
-              <Clock className="w-2.5 h-2.5 text-amber-400 shrink-0" />
-              <span>Reset soon ({resetInfo.weeksOld}w)</span>
-            </span>
-          )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {/* User Status Badge / Quick Log Trigger */}
           <button
             type="button"
@@ -115,7 +101,7 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
               e.stopPropagation();
               onQuickLog(boulder);
             }}
-            className="transition-transform active:scale-95 focus:outline-none"
+            className="transition-transform active:scale-95 focus:outline-none shrink-0"
             title="Log attempt or update status"
           >
             {statusBadge}
@@ -123,13 +109,36 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
         </div>
       </div>
 
+      {/* Tier 2: Metadata Sub-line (Area Name & Reset Status) */}
+      {(areaName || resetInfo.isDueForReset) && (
+        <div className="flex items-center gap-2 text-xs text-slate-400 font-medium -mt-1 pl-0.5">
+          {areaName && (
+            <span className="text-slate-400 truncate max-w-[180px]">
+              {areaName}
+            </span>
+          )}
+          {areaName && resetInfo.isDueForReset && (
+            <span className="text-slate-600 font-bold">•</span>
+          )}
+          {resetInfo.isDueForReset && (
+            <span
+              className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold text-amber-400/90 bg-amber-400/10 border border-amber-400/25 px-2 py-0.5 rounded-md shrink-0 select-none"
+              title={`Set ${resetInfo.weeksOld} weeks ago (${boulder.date_added}) – this climb is due for a reset`}
+            >
+              <Clock className="w-2.5 h-2.5 text-amber-400 shrink-0" />
+              <span>Reset soon ({resetInfo.weeksOld}w)</span>
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Middle row: Clockwise Sequence Indicators & Photo Thumbnail Preview */}
       {(boulder.adjacent_prev || boulder.adjacent_next || boulder.image_url) && (
         <div className="flex items-center justify-between gap-3">
           {/* Adjacent Indicators (Clockwise Sequence) */}
-          <div className="flex items-center gap-2 text-xs text-slate-300 font-mono flex-wrap">
+          <div className="flex items-center gap-2 text-xs text-slate-300 font-mono flex-wrap min-w-0 flex-1">
             {boulder.adjacent_prev && (
-              <span className="inline-flex items-center gap-1.5 text-slate-300 truncate max-w-[150px]">
+              <span className="inline-flex items-center gap-1.5 text-slate-300 truncate max-w-[140px] sm:max-w-[180px]">
                 <span className="text-slate-500">←</span>
                 <HoldSwatch color={boulder.adjacent_prev.hold_colour} size="sm" />
                 <span className="text-slate-200 font-semibold">{boulder.adjacent_prev.hold_colour} {boulder.adjacent_prev.grade}</span>
@@ -139,7 +148,7 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
               <span className="text-slate-600">•</span>
             )}
             {boulder.adjacent_next && (
-              <span className="inline-flex items-center gap-1.5 text-slate-300 truncate max-w-[150px]">
+              <span className="inline-flex items-center gap-1.5 text-slate-300 truncate max-w-[140px] sm:max-w-[180px]">
                 <HoldSwatch color={boulder.adjacent_next.hold_colour} size="sm" />
                 <span className="text-slate-200 font-semibold">{boulder.adjacent_next.hold_colour} {boulder.adjacent_next.grade}</span>
                 <span className="text-slate-500">→</span>
@@ -168,16 +177,18 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
       )}
 
       {/* Bottom row: Climber chips & quick actions */}
-      <div className="flex items-center justify-between border-t border-slate-800/80 pt-2.5 mt-0.5">
-        <ClimberStatusPills
-          climbers={climbers}
-          attempts={attempts}
-          currentUserId={currentUserId}
-          size="sm"
-          onClimberClick={(climberId) => onQuickLog(boulder, climberId)}
-        />
+      <div className="flex items-center justify-between border-t border-slate-800/80 pt-2.5 mt-0.5 gap-2">
+        <div className="min-w-0 flex-1">
+          <ClimberStatusPills
+            climbers={climbers}
+            attempts={attempts}
+            currentUserId={currentUserId}
+            size="sm"
+            onClimberClick={(climberId) => onQuickLog(boulder, climberId)}
+          />
+        </div>
 
-        <div className="flex items-center gap-1 text-slate-400">
+        <div className="flex items-center gap-1 text-slate-400 shrink-0">
           {boulder.notes && (
             <button
               type="button"
@@ -185,7 +196,7 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
                 e.stopPropagation();
                 onOpenDetails(boulder);
               }}
-              className="p-1 rounded-md text-slate-400 hover:text-amber-300 hover:bg-slate-800 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-amber-300 hover:bg-slate-800 transition-colors"
               title="Has Beta Notes – Click to view details"
             >
               <FileText className="w-3.5 h-3.5" />
@@ -199,7 +210,7 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
                 e.stopPropagation();
                 onOpenDetails(boulder);
               }}
-              className="flex items-center gap-1 text-xs text-slate-300 hover:text-white font-mono font-medium px-1.5 py-0.5 rounded hover:bg-slate-800 transition-colors"
+              className="flex items-center gap-1 text-xs text-slate-300 hover:text-white font-mono font-medium px-1.5 py-1 rounded-lg hover:bg-slate-800 transition-colors"
               title="Crew Comments"
             >
               <MessageSquare className="w-3.5 h-3.5" />
@@ -213,10 +224,10 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
               e.stopPropagation();
               onOpenDetails(boulder);
             }}
-            className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-750 px-2 py-1 rounded-lg border border-slate-750 active-press transition-all shadow-xs"
+            className="inline-flex items-center justify-center h-7 px-2 sm:px-2.5 text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-750 rounded-lg border border-slate-750 active-press transition-all shadow-xs gap-0.5 shrink-0"
             title="View Beta Notes, Photos & Comments"
           >
-            <span>Details</span>
+            <span className="hidden sm:inline text-[11px] font-semibold">Details</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>

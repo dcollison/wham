@@ -416,17 +416,17 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                         {/* Send Status Badge */}
                         <div className="shrink-0">
                           {isFlash ? (
-                            <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-300 bg-amber-500/15 border border-amber-500/40 px-2.5 py-1 rounded-full shadow-sm">
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-300 bg-amber-500/15 border border-amber-500/40 px-2.5 py-1 rounded-full shadow-sm whitespace-nowrap">
                               <Zap className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                               Flash (<span className="tabular-nums">1 try</span>)
                             </span>
                           ) : isSent ? (
-                            <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/40 px-2.5 py-1 rounded-full shadow-sm">
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/40 px-2.5 py-1 rounded-full shadow-sm whitespace-nowrap">
                               <Check className="w-3.5 h-3.5 stroke-[3] text-emerald-400" />
                               Sent (<span className="tabular-nums">{attempt.attempt_count}t</span>)
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-300 bg-blue-500/15 border border-blue-500/30 px-2.5 py-1 rounded-full shadow-sm">
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-300 bg-blue-500/15 border border-blue-500/30 px-2.5 py-1 rounded-full shadow-sm whitespace-nowrap">
                               <Clock className="w-3.5 h-3.5 text-blue-400" />
                               Project (<span className="tabular-nums">{attempt.attempt_count}t</span>)
                             </span>

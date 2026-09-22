@@ -25,7 +25,7 @@ export const HoldBadge: React.FC<HoldBadgeProps> = ({
 
   return (
     <div
-      className={`inline-flex items-center font-bold rounded-xl border ${sizeClasses[size]} shadow-sm transition-all`}
+      className={`inline-flex items-center font-bold rounded-xl border ${sizeClasses[size]} shadow-sm transition-all shrink-0 whitespace-nowrap`}
       style={{
         background: cardStyle.badgeBackground,
         borderColor: cardStyle.badgeBorderColor,

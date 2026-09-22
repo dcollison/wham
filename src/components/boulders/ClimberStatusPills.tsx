@@ -63,7 +63,7 @@ export const ClimberStatusPills: React.FC<ClimberStatusPillsProps> = ({
             }}
             title={`${climber.display_name}: ${statusText}${isClickable ? ' (Click to log)' : ''}`}
             style={isCurrent ? { boxShadow: `0 0 0 1.5px ${climber.accent_color || '#3B82F6'}` } : undefined}
-            className={`inline-flex items-center gap-1 rounded-md border leading-tight whitespace-nowrap transition-all ${
+            className={`inline-flex items-center gap-1 rounded-md border leading-tight whitespace-nowrap shrink-0 transition-all ${
               size === 'md' ? 'px-2 py-1 text-xs' : 'px-1.5 py-0.5 text-[11px]'
             } ${badgeBg} ${
               isClickable ? 'cursor-pointer hover:brightness-125 hover:border-slate-500 active:scale-95' : ''
