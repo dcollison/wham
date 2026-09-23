@@ -86,16 +86,14 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
   const [isLightboxOpen, setIsLightboxOpen] = useState<boolean>(false);
   const [dragOffset, setDragOffset] = useState<number>(0);
   const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [isMoveOpen, setIsMoveOpen] = useState<boolean>(false);
-  const [selectedTargetAreaId, setSelectedTargetAreaId] = useState<string>('');
-  const [restoreOnMove, setRestoreOnMove] = useState<boolean>(true);
-  const [isMoving, setIsMoving] = useState<boolean>(false);
   const [moveSuccessMessage, setMoveSuccessMessage] = useState<string | null>(null);
 
   // Edit Climb state
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [editHoldColour, setEditHoldColour] = useState<string>('');
   const [editGrade, setEditGrade] = useState<Grade>('VB');
+  const [editAreaId, setEditAreaId] = useState<string>('');
+  const [editRestoreOnMove, setEditRestoreOnMove] = useState<boolean>(true);
   const [editNotes, setEditNotes] = useState<string>('');
   const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
   const [editError, setEditError] = useState<string | null>(null);
@@ -191,13 +189,12 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
 
   useEffect(() => {
     if (boulder) {
-      setSelectedTargetAreaId(boulder.area_id);
-      setRestoreOnMove(boulder.is_archived);
+      setEditAreaId(boulder.area_id);
+      setEditRestoreOnMove(boulder.is_archived);
       setEditHoldColour(boulder.hold_colour);
       setEditGrade(boulder.grade);
       setEditNotes(boulder.notes || '');
     }
-    setIsMoveOpen(false);
     setIsEditing(false);
     setIsConfirmingDelete(false);
     setEditError(null);
@@ -206,20 +203,42 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
 
   useEffect(() => {
     if (boulder && !isEditing) {
+      setEditAreaId(boulder.area_id);
+      setEditRestoreOnMove(boulder.is_archived);
       setEditHoldColour(boulder.hold_colour);
       setEditGrade(boulder.grade);
       setEditNotes(boulder.notes || '');
     }
-  }, [boulder?.hold_colour, boulder?.grade, boulder?.notes, isEditing]);
+  }, [boulder?.area_id, boulder?.is_archived, boulder?.hold_colour, boulder?.grade, boulder?.notes, isEditing]);
+
+  const availableGymAreas = useMemo(() => {
+    if (!boulder) return [];
+    return allAreas
+      .filter(a => a.gym_id === boulder.gym_id || a.gym_id === matchedArea?.gym_id)
+      .sort((a, b) => a.sort_order - b.sort_order);
+  }, [allAreas, boulder?.gym_id, matchedArea?.gym_id]);
 
   const handleSaveEdit = async () => {
     if (!boulder) return;
     const updateFn = onUpdateBoulder || contextUpdateBoulder;
+    const moveFn = onMoveBoulder || contextMoveBoulder;
     if (!updateFn) return;
 
     setIsSavingEdit(true);
     setEditError(null);
     try {
+      const areaChanged = editAreaId && editAreaId !== boulder.area_id;
+      if (areaChanged && moveFn) {
+        await moveFn(boulder.id, editAreaId, editRestoreOnMove);
+        const targetArea = allAreas.find(a => a.id === editAreaId);
+        setMoveSuccessMessage(
+          `Moved to ${targetArea?.name || 'target sector'}${editRestoreOnMove && boulder.is_archived ? ' & restored to active wall' : ''}!`
+        );
+        setTimeout(() => {
+          setMoveSuccessMessage(null);
+        }, 3500);
+      }
+
       await updateFn(boulder.id, {
         holdColour: editHoldColour,
         grade: editGrade,
@@ -247,36 +266,6 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
       console.error('Failed to delete boulder:', err);
       alert('Failed to delete climb: ' + (err?.message || 'Unknown error'));
       setIsDeleting(false);
-    }
-  };
-
-  const availableGymAreas = useMemo(() => {
-    if (!boulder) return [];
-    return allAreas
-      .filter(a => a.gym_id === boulder.gym_id || a.gym_id === matchedArea?.gym_id)
-      .sort((a, b) => a.sort_order - b.sort_order);
-  }, [allAreas, boulder?.gym_id, matchedArea?.gym_id]);
-
-  const handleConfirmMove = async () => {
-    if (!boulder || !selectedTargetAreaId) return;
-    const moveFn = onMoveBoulder || contextMoveBoulder;
-    if (!moveFn) return;
-
-    setIsMoving(true);
-    try {
-      await moveFn(boulder.id, selectedTargetAreaId, restoreOnMove);
-      const targetArea = allAreas.find(a => a.id === selectedTargetAreaId);
-      setMoveSuccessMessage(
-        `Moved to ${targetArea?.name || 'target area'}${restoreOnMove && boulder.is_archived ? ' & restored to active wall' : ''}!`
-      );
-      setIsMoveOpen(false);
-      setTimeout(() => {
-        setMoveSuccessMessage(null);
-      }, 3500);
-    } catch (err) {
-      console.error('Failed to move boulder:', err);
-    } finally {
-      setIsMoving(false);
     }
   };
 
@@ -534,6 +523,48 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                 </div>
               </div>
 
+              {/* Sector / Wall Area Dropdown */}
+              {availableGymAreas.length > 0 && (
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-amber-400" />
+                      Sector / Wall Area
+                    </label>
+                    {editAreaId !== boulder.area_id && (
+                      <span className="text-[11px] font-semibold text-amber-400 flex items-center gap-1">
+                        <ArrowRightLeft className="w-3 h-3" />
+                        Will move on save
+                      </span>
+                    )}
+                  </div>
+                  <select
+                    value={editAreaId}
+                    onChange={(e) => setEditAreaId(e.target.value)}
+                    className="bg-slate-950 border border-slate-700 text-slate-100 text-xs rounded-xl p-2.5 font-medium outline-none focus:border-amber-400 cursor-pointer"
+                  >
+                    {availableGymAreas.map(a => (
+                      <option key={a.id} value={a.id}>
+                        {a.name} {a.id === boulder.area_id ? '(Current Sector)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {boulder.is_archived && editAreaId !== boulder.area_id && (
+                    <label className="flex items-center gap-2 cursor-pointer pt-0.5 select-none">
+                      <input
+                        type="checkbox"
+                        checked={editRestoreOnMove}
+                        onChange={(e) => setEditRestoreOnMove(e.target.checked)}
+                        className="w-3.5 h-3.5 rounded bg-slate-950 border-slate-700 text-amber-400 focus:ring-0"
+                      />
+                      <span className="text-xs text-slate-300 font-medium">
+                        Restore climb to active wall in target sector
+                      </span>
+                    </label>
+                  )}
+                </div>
+              )}
+
               {/* Notes / Beta Input */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
@@ -570,6 +601,8 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                       setIsEditing(false);
                       setEditHoldColour(boulder.hold_colour);
                       setEditGrade(boulder.grade);
+                      setEditAreaId(boulder.area_id);
+                      setEditRestoreOnMove(boulder.is_archived);
                       setEditNotes(boulder.notes || '');
                     }}
                     className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
@@ -590,7 +623,15 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
               </div>
             </div>
           )}
-          {/* Archived Climb Banner with Quick Restore & Move Sector options */}
+
+          {moveSuccessMessage && (
+            <div className="p-3 rounded-xl bg-emerald-950/70 border border-emerald-700/60 text-emerald-200 text-xs font-medium flex items-center gap-2 shadow animate-in fade-in duration-150">
+              <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>{moveSuccessMessage}</span>
+            </div>
+          )}
+
+          {/* Archived Climb Banner with Quick Restore & Edit options */}
           {boulder.is_archived && (
             <div className="bg-rose-950/40 border border-rose-800/60 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner">
               <div className="flex items-center gap-2.5 min-w-0">
@@ -600,7 +641,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                 <div>
                   <p className="text-xs font-bold text-rose-200">This climb is archived</p>
                   <p className="text-[11px] text-rose-300/80 leading-tight">
-                    Reset from <span className="font-semibold text-rose-100">{resolvedAreaName}</span>. Move it if it belonged to another sector!
+                    Reset from <span className="font-semibold text-rose-100">{resolvedAreaName}</span>. Move it to another sector via Edit Climb!
                   </p>
                 </div>
               </div>
@@ -615,11 +656,14 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIsMoveOpen(true)}
+                  onClick={() => {
+                    setIsEditing(true);
+                    setIsConfirmingDelete(false);
+                  }}
                   className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow active-press transition-all flex items-center gap-1.5"
                 >
-                  <ArrowRightLeft className="w-3.5 h-3.5" />
-                  <span>Move Sector</span>
+                  <Pencil className="w-3.5 h-3.5" />
+                  <span>Edit / Move</span>
                 </button>
               </div>
             </div>
@@ -711,7 +755,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                     setIsConfirmingDelete(false);
                   }}
                   className="text-[11px] font-semibold text-amber-400 hover:text-amber-300 flex items-center gap-1 px-2 py-0.5 rounded-md hover:bg-slate-800 transition-colors"
-                  title="Edit hold colour, grade, or notes"
+                  title="Edit hold colour, grade, sector, or notes"
                 >
                   <Pencil className="w-3 h-3" />
                   <span>Edit Climb</span>
@@ -720,102 +764,21 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
             </div>
             <div className="bg-slate-800/40 rounded-xl p-3 border border-slate-800 space-y-2.5 text-xs">
               {/* Sector / Wall Area row */}
-              <div className="flex flex-col gap-2 pb-2 border-b border-slate-800/80 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-400 font-medium flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    Sector / Wall:
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800/80 text-xs">
+                <span className="text-slate-400 font-medium flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  Sector / Wall:
+                </span>
+                <div className="flex items-center gap-1.5 font-semibold text-slate-200">
+                  <span className="bg-slate-800 px-2 py-0.5 rounded-md border border-slate-700/60 text-slate-100 font-mono text-[11px]">
+                    {resolvedAreaName || 'General Wall'}
                   </span>
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1.5 font-semibold text-slate-200">
-                      <span className="bg-slate-800 px-2 py-0.5 rounded-md border border-slate-700/60 text-slate-100 font-mono text-[11px]">
-                        {resolvedAreaName || 'General Wall'}
-                      </span>
-                      {resolvedGymName && (
-                        <span className="text-[11px] text-slate-400 font-normal">
-                          • {resolvedGymName}
-                        </span>
-                      )}
-                    </div>
-                    {availableGymAreas.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => setIsMoveOpen(prev => !prev)}
-                        className="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-amber-400 hover:text-amber-300 border border-slate-700/80 text-[11px] font-bold active-press transition-colors flex items-center gap-1"
-                        title="Move climb to another sector"
-                      >
-                        <ArrowRightLeft className="w-3 h-3" />
-                        <span>{isMoveOpen ? 'Cancel' : 'Move'}</span>
-                      </button>
-                    )}
-                  </div>
+                  {resolvedGymName && (
+                    <span className="text-[11px] text-slate-400 font-normal">
+                      • {resolvedGymName}
+                    </span>
+                  )}
                 </div>
-
-                {/* Inline Move Sector Panel */}
-                {isMoveOpen && (
-                  <div className="mt-1 p-3 rounded-xl bg-slate-900 border border-amber-400/40 flex flex-col gap-2.5 animate-in fade-in zoom-in-95 duration-150">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                        <ArrowRightLeft className="w-3.5 h-3.5 text-amber-400" />
-                        Move to Different Sector
-                      </span>
-                    </div>
-
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[11px] font-medium text-slate-400">Target Wall Area:</label>
-                      <select
-                        value={selectedTargetAreaId}
-                        onChange={(e) => setSelectedTargetAreaId(e.target.value)}
-                        className="bg-slate-950 border border-slate-700 text-slate-100 text-xs rounded-xl p-2.5 font-medium outline-none focus:border-amber-400 cursor-pointer"
-                      >
-                        {availableGymAreas.map(a => (
-                          <option key={a.id} value={a.id} disabled={a.id === boulder.area_id}>
-                            {a.name} {a.id === boulder.area_id ? '(Current Sector)' : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {boulder.is_archived && (
-                      <label className="flex items-center gap-2 cursor-pointer pt-0.5 select-none">
-                        <input
-                          type="checkbox"
-                          checked={restoreOnMove}
-                          onChange={(e) => setRestoreOnMove(e.target.checked)}
-                          className="w-3.5 h-3.5 rounded bg-slate-950 border-slate-700 text-amber-400 focus:ring-0"
-                        />
-                        <span className="text-xs text-slate-200 font-medium">
-                          Restore climb to active wall in target sector
-                        </span>
-                      </label>
-                    )}
-
-                    <div className="flex items-center justify-end gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => setIsMoveOpen(false)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        disabled={!selectedTargetAreaId || selectedTargetAreaId === boulder.area_id || isMoving}
-                        onClick={handleConfirmMove}
-                        className="px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow active-press disabled:opacity-40 disabled:pointer-events-none transition-all"
-                      >
-                        {isMoving ? 'Moving...' : 'Confirm Move'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {moveSuccessMessage && (
-                  <div className="p-2 rounded-lg bg-emerald-950/60 border border-emerald-800/60 text-emerald-300 text-xs font-medium flex items-center gap-2 animate-in fade-in duration-150">
-                    <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span>{moveSuccessMessage}</span>
-                  </div>
-                )}
               </div>
 
               {boulder.notes && (
