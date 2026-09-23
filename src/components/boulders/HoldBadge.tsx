@@ -5,6 +5,8 @@ import { HoldSwatch } from './HoldSwatch';
 interface HoldBadgeProps {
   color: string;
   grade?: Grade;
+  isComp?: boolean;
+  compNumber?: number;
   size?: 'sm' | 'md' | 'lg';
   showGrade?: boolean;
 }
@@ -12,6 +14,8 @@ interface HoldBadgeProps {
 export const HoldBadge: React.FC<HoldBadgeProps> = ({
   color,
   grade,
+  isComp = false,
+  compNumber,
   size = 'md',
   showGrade = true
 }) => {
@@ -22,6 +26,8 @@ export const HoldBadge: React.FC<HoldBadgeProps> = ({
     md: 'text-sm px-3 py-1 gap-2',
     lg: 'text-base px-3.5 py-1.5 gap-2.5'
   };
+
+  const isNumberedComp = isComp || compNumber !== undefined;
 
   return (
     <div
@@ -40,14 +46,23 @@ export const HoldBadge: React.FC<HoldBadgeProps> = ({
         {color}
       </span>
 
-      {/* High-Contrast Grade Pill */}
-      {showGrade && grade && (
-        <>
-          <span className="text-slate-500 text-[10px]">•</span>
-          <span className="font-mono font-black tracking-tight text-white bg-slate-950/80 px-1.5 py-0.5 rounded-md border border-slate-700/80 text-[11px] leading-tight shadow-inner">
-            {grade}
-          </span>
-        </>
+      {/* High-Contrast Grade / Number Pill */}
+      {showGrade && (
+        isNumberedComp ? (
+          <>
+            <span className="text-slate-500 text-[10px]">•</span>
+            <span className="font-mono font-black tracking-tight text-amber-300 bg-amber-950/80 px-1.5 py-0.5 rounded-md border border-amber-500/60 text-[11px] leading-tight shadow-inner">
+              #{compNumber ?? '?'}
+            </span>
+          </>
+        ) : grade ? (
+          <>
+            <span className="text-slate-500 text-[10px]">•</span>
+            <span className="font-mono font-black tracking-tight text-white bg-slate-950/80 px-1.5 py-0.5 rounded-md border border-slate-700/80 text-[11px] leading-tight shadow-inner">
+              {grade}
+            </span>
+          </>
+        ) : null
       )}
     </div>
   );

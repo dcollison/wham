@@ -67,35 +67,6 @@ const CATEGORY_MAP: Record<
   }
 };
 
-const STATUS_CONFIG: Record<
-  FeatureStatus,
-  { label: string; bg: string; text: string; border: string }
-> = {
-  backlog: {
-    label: 'Backlog',
-    bg: 'bg-slate-800',
-    text: 'text-slate-400',
-    border: 'border-slate-700'
-  },
-  planned: {
-    label: 'Planned',
-    bg: 'bg-blue-500/15',
-    text: 'text-blue-400',
-    border: 'border-blue-500/30'
-  },
-  in_progress: {
-    label: 'In Progress',
-    bg: 'bg-amber-500/15',
-    text: 'text-amber-400',
-    border: 'border-amber-500/30'
-  },
-  shipped: {
-    label: 'Shipped',
-    bg: 'bg-emerald-500/15',
-    text: 'text-emerald-400',
-    border: 'border-emerald-500/30'
-  }
-};
 
 export const RoadmapTab: React.FC<RoadmapTabProps> = ({
   featureRequests,
@@ -109,16 +80,20 @@ export const RoadmapTab: React.FC<RoadmapTabProps> = ({
   onShowSuccess,
   onShowError
 }) => {
-  const [selectedStatus, setSelectedStatus] = useState<FeatureStatus | 'all'>('all');
+  const [filter, setFilter] = useState<'open' | 'done' | 'all'>('open');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const openCount = featureRequests.filter((r) => r.status !== 'shipped').length;
+  const doneCount = featureRequests.filter((r) => r.status === 'shipped').length;
 
   // Filter requests
   const filteredRequests = featureRequests.filter((req) => {
-    if (selectedStatus === 'all') return true;
-    return req.status === selectedStatus;
+    if (filter === 'open') return req.status !== 'shipped';
+    if (filter === 'done') return req.status === 'shipped';
+    return true;
   });
 
-  // Sort: Shipped at bottom, higher upvotes at top, newer at top
+  // Sort: open items first (if in 'all' view), then higher upvotes, then newer
   const sortedRequests = [...filteredRequests].sort((a, b) => {
     if (a.status === 'shipped' && b.status !== 'shipped') return 1;
     if (b.status === 'shipped' && a.status !== 'shipped') return -1;
@@ -126,11 +101,6 @@ export const RoadmapTab: React.FC<RoadmapTabProps> = ({
     if (votesDiff !== 0) return votesDiff;
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
-
-  const getStatusCount = (status: FeatureStatus | 'all') => {
-    if (status === 'all') return featureRequests.length;
-    return featureRequests.filter((r) => r.status === status).length;
-  };
 
   const handleCopyAIPrompt = (req: FeatureRequest) => {
     const requester = climbers.find((c) => c.id === req.user_id)?.display_name || 'Crew member';
@@ -140,7 +110,7 @@ export const RoadmapTab: React.FC<RoadmapTabProps> = ({
 - Title: ${req.title}
 - Category: ${catLabel}
 - Proposed by: ${requester}
-- Current Status: ${req.status}
+- Status: ${req.status === 'shipped' ? 'Done' : 'Open'}
 - Details: ${req.description || 'N/A'}`;
 
     navigator.clipboard.writeText(promptText);
@@ -193,27 +163,21 @@ export const RoadmapTab: React.FC<RoadmapTabProps> = ({
         </button>
       </div>
 
-      {/* Filter Tabs */}
+      {/* Filter Tabs: Open, Done, All */}
       <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-        {(['all', 'backlog', 'planned', 'in_progress', 'shipped'] as const).map((status) => {
-          const isSelected = selectedStatus === status;
-          const count = getStatusCount(status);
-          const label =
-            status === 'all'
-              ? 'All'
-              : status === 'backlog'
-              ? 'Backlog'
-              : status === 'planned'
-              ? 'Planned'
-              : status === 'in_progress'
-              ? 'In Progress'
-              : 'Shipped';
-
+        {(
+          [
+            { key: 'open', label: 'Open', count: openCount },
+            { key: 'done', label: 'Done', count: doneCount },
+            { key: 'all', label: 'All', count: featureRequests.length }
+          ] as const
+        ).map(({ key, label, count }) => {
+          const isSelected = filter === key;
           return (
             <button
-              key={status}
+              key={key}
               type="button"
-              onClick={() => setSelectedStatus(status)}
+              onClick={() => setFilter(key)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all active-press flex items-center gap-1.5 border ${
                 isSelected
                   ? 'bg-slate-800 border-slate-700 text-white shadow-sm ring-1 ring-slate-600'
@@ -239,25 +203,29 @@ export const RoadmapTab: React.FC<RoadmapTabProps> = ({
           <div className="p-8 rounded-2xl bg-slate-950/40 border border-dashed border-slate-800 text-center flex flex-col items-center gap-2">
             <Lightbulb className="w-8 h-8 text-slate-600" />
             <p className="text-xs text-slate-400 font-medium">
-              {selectedStatus === 'all'
-                ? 'No feature requests yet. Got an idea to make Wham faster?'
-                : `No requests currently marked as "${selectedStatus}".`}
+              {filter === 'open'
+                ? 'All caught up! No open ideas right now.'
+                : filter === 'done'
+                ? 'No completed ideas yet.'
+                : 'No feature requests yet. Got an idea to make Wham faster?'}
             </p>
-            <button
-              type="button"
-              onClick={onOpenSubmitModal}
-              className="text-xs font-bold hover:underline transition-colors mt-1"
-              style={{ color: activeColor }}
-            >
-              + Suggest the first idea
-            </button>
+            {filter !== 'done' && (
+              <button
+                type="button"
+                onClick={onOpenSubmitModal}
+                className="text-xs font-bold hover:underline transition-colors mt-1"
+                style={{ color: activeColor }}
+              >
+                + Suggest an idea
+              </button>
+            )}
           </div>
         ) : (
           sortedRequests.map((req) => {
             const requester = climbers.find((c) => c.id === req.user_id);
             const cat = CATEGORY_MAP[req.category] || CATEGORY_MAP.feature;
             const CatIcon = cat.icon;
-            const statusStyle = STATUS_CONFIG[req.status] || STATUS_CONFIG.backlog;
+            const isDone = req.status === 'shipped';
             const hasVoted = currentUser ? req.upvotes?.includes(currentUser.id) : false;
             const upvoteCount = req.upvotes?.length || 0;
             const isCopied = copiedId === req.id;
@@ -265,9 +233,13 @@ export const RoadmapTab: React.FC<RoadmapTabProps> = ({
             return (
               <div
                 key={req.id}
-                className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800/90 hover:border-slate-700/80 transition-all flex flex-col gap-3 group"
+                className={`p-4 rounded-2xl border transition-all flex flex-col gap-3 group ${
+                  isDone
+                    ? 'bg-slate-950/40 border-slate-800/60 opacity-80 hover:opacity-100'
+                    : 'bg-slate-950/70 border-slate-800/90 hover:border-slate-700/80'
+                }`}
               >
-                {/* Card Top: Submitter + Category Badge + Date */}
+                {/* Card Top: Submitter + Category Badge + Date + Done Tick Button */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <ClimberAvatar profile={requester} size="sm" />
@@ -286,22 +258,47 @@ export const RoadmapTab: React.FC<RoadmapTabProps> = ({
                       <CatIcon className="w-3 h-3" />
                       <span>{cat.label}</span>
                     </span>
+
+                    {/* Tick button for done */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onUpdateStatus(req.id, isDone ? 'backlog' : 'shipped');
+                        onShowSuccess(isDone ? 'Marked as open' : 'Marked as done!');
+                      }}
+                      className={`w-7 h-7 rounded-xl border flex items-center justify-center transition-all active-press ${
+                        isDone
+                          ? 'bg-emerald-500 border-emerald-400 text-slate-950 shadow-sm shadow-emerald-500/20'
+                          : 'border-slate-700 bg-slate-900 text-slate-600 hover:border-emerald-500 hover:text-emerald-400'
+                      }`}
+                      title={isDone ? 'Click to uncheck (mark open)' : 'Click to mark as done'}
+                    >
+                      <Check className={`w-4 h-4 stroke-[3] transition-opacity ${isDone ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'}`} />
+                    </button>
                   </div>
                 </div>
 
                 {/* Card Body: Title + Description */}
                 <div>
-                  <h4 className="text-sm font-bold text-white font-heading tracking-tight leading-snug">
+                  <h4
+                    className={`text-sm font-bold font-heading tracking-tight leading-snug transition-colors ${
+                      isDone ? 'line-through text-slate-400' : 'text-white'
+                    }`}
+                  >
                     {req.title}
                   </h4>
                   {req.description && (
-                    <p className="text-xs text-slate-400 mt-1 leading-relaxed whitespace-pre-wrap">
+                    <p
+                      className={`text-xs mt-1 leading-relaxed whitespace-pre-wrap ${
+                        isDone ? 'text-slate-500' : 'text-slate-400'
+                      }`}
+                    >
                       {req.description}
                     </p>
                   )}
                 </div>
 
-                {/* Card Bottom: Upvotes + Status Dropdown + AI Prompt Copy + Delete */}
+                {/* Card Bottom: Upvotes + AI Prompt Copy + Delete */}
                 <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-850">
                   {/* Upvote Button */}
                   <button
@@ -323,29 +320,11 @@ export const RoadmapTab: React.FC<RoadmapTabProps> = ({
                   </button>
 
                   <div className="flex items-center gap-1.5">
-                    {/* Status Dropdown */}
-                    <div className="relative">
-                      <select
-                        value={req.status}
-                        onChange={(e) => onUpdateStatus(req.id, e.target.value as FeatureStatus)}
-                        className={`appearance-none text-[11px] font-bold rounded-xl py-1 pl-2.5 pr-6 border outline-none cursor-pointer transition-colors ${statusStyle.bg} ${statusStyle.border} ${statusStyle.text}`}
-                        title="Change development status"
-                      >
-                        <option value="backlog">Backlog</option>
-                        <option value="planned">Planned</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="shipped">Shipped</option>
-                      </select>
-                      <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[8px] opacity-60">
-                        ▼
-                      </span>
-                    </div>
-
                     {/* Copy AI Prompt Button */}
                     <button
                       type="button"
                       onClick={() => handleCopyAIPrompt(req)}
-                      className={`flex items-center gap-1 px-2 py-1 rounded-xl text-[11px] font-bold border transition-colors active-press ${
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-colors active-press ${
                         isCopied
                           ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
                           : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-850'

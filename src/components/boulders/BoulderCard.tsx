@@ -87,10 +87,22 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
       {/* Top row: Order #, Hold Color & Grade, Current User Status */}
       <div className="flex items-center justify-between gap-2.5">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="font-mono text-xs font-bold text-slate-300 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700/60 shrink-0 tabular-nums">
-            #{boulder.display_order ?? Math.round(boulder.position_order)}
+          <span
+            className={`font-mono text-xs font-bold px-2.5 py-1 rounded-lg border shrink-0 tabular-nums ${
+              boulder.is_comp
+                ? 'text-amber-300 bg-amber-500/10 border-amber-500/30'
+                : 'text-slate-300 bg-slate-800 border-slate-700/60'
+            }`}
+          >
+            #{boulder.comp_number ?? boulder.display_order ?? Math.round(boulder.position_order)}
           </span>
-          <HoldBadge color={boulder.hold_colour} grade={boulder.grade} size="md" />
+          <HoldBadge
+            color={boulder.hold_colour}
+            grade={boulder.grade}
+            isComp={boulder.is_comp}
+            compNumber={boulder.comp_number}
+            size="md"
+          />
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
@@ -141,7 +153,12 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
               <span className="inline-flex items-center gap-1.5 text-slate-300 truncate max-w-[140px] sm:max-w-[180px]">
                 <span className="text-slate-500">←</span>
                 <HoldSwatch color={boulder.adjacent_prev.hold_colour} size="sm" />
-                <span className="text-slate-200 font-semibold">{boulder.adjacent_prev.hold_colour} {boulder.adjacent_prev.grade}</span>
+                <span className="text-slate-200 font-semibold">
+                  {boulder.adjacent_prev.hold_colour}{' '}
+                  {boulder.adjacent_prev.is_comp || boulder.adjacent_prev.comp_number
+                    ? `#${boulder.adjacent_prev.comp_number}`
+                    : boulder.adjacent_prev.grade}
+                </span>
               </span>
             )}
             {boulder.adjacent_prev && boulder.adjacent_next && (
@@ -150,7 +167,12 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
             {boulder.adjacent_next && (
               <span className="inline-flex items-center gap-1.5 text-slate-300 truncate max-w-[140px] sm:max-w-[180px]">
                 <HoldSwatch color={boulder.adjacent_next.hold_colour} size="sm" />
-                <span className="text-slate-200 font-semibold">{boulder.adjacent_next.hold_colour} {boulder.adjacent_next.grade}</span>
+                <span className="text-slate-200 font-semibold">
+                  {boulder.adjacent_next.hold_colour}{' '}
+                  {boulder.adjacent_next.is_comp || boulder.adjacent_next.comp_number
+                    ? `#${boulder.adjacent_next.comp_number}`
+                    : boulder.adjacent_next.grade}
+                </span>
                 <span className="text-slate-500">→</span>
               </span>
             )}

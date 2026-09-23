@@ -38,6 +38,8 @@ interface AddBoulderParams {
   imageDataUrl?: string | null;
   positionOrder?: number;
   insertAfterBoulderId?: string | null; // For adjacent insertion
+  isComp?: boolean;
+  compNumber?: number;
 }
 
 interface GymContextType {
@@ -47,6 +49,7 @@ interface GymContextType {
   areas: GymArea[];
   currentArea: GymArea | null;
   setCurrentArea: (area: GymArea | null) => void;
+  toggleAreaCompWall: (areaId: string, isCompWall: boolean) => Promise<void>;
   boulders: Boulder[];
   attempts: Attempt[];
   comments: Comment[];
@@ -62,7 +65,7 @@ interface GymContextType {
   addBoulder: (params: AddBoulderParams) => Promise<Boulder>;
   bulkAddBoulders: (params: BulkAddBouldersParams) => Promise<Boulder[]>;
   archiveBoulder: (boulderId: string, archive?: boolean) => Promise<void>;
-  updateBoulder: (boulderId: string, updates: { holdColour?: string; grade?: Grade; notes?: string | null }) => Promise<void>;
+  updateBoulder: (boulderId: string, updates: { holdColour?: string; grade?: Grade; notes?: string | null; isComp?: boolean; compNumber?: number }) => Promise<void>;
   deleteBoulder: (boulderId: string) => Promise<void>;
   moveBoulder: (boulderId: string, targetAreaId: string, unarchive?: boolean) => Promise<void>;
   archiveAreaBoulders: (areaId: string) => Promise<void>;
@@ -749,12 +752,17 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const areaMap = new Map(areas.map(a => [a.id, a]));
 
-    // Sort: If all areas are displayed, sort by area sort_order first, then position_order
+    // Sort: If all areas are displayed, sort by area sort_order first, then position_order (or comp_number if comp wall)
     filtered.sort((a, b) => {
       if (!currentArea && a.area_id !== b.area_id) {
         const sortA = areaMap.get(a.area_id)?.sort_order ?? 0;
         const sortB = areaMap.get(b.area_id)?.sort_order ?? 0;
         return sortA - sortB;
+      }
+      const isAComp = a.is_comp || areaMap.get(a.area_id)?.is_comp_wall;
+      const isBComp = b.is_comp || areaMap.get(b.area_id)?.is_comp_wall;
+      if (isAComp && isBComp && a.comp_number !== undefined && b.comp_number !== undefined) {
+        return a.comp_number - b.comp_number;
       }
       return a.position_order - b.position_order;
     });
@@ -778,8 +786,22 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return {
         ...boulder,
         display_order: currentAreaCount,
-        adjacent_prev: prevBoulder ? { hold_colour: prevBoulder.hold_colour, grade: prevBoulder.grade } : null,
-        adjacent_next: nextBoulder ? { hold_colour: nextBoulder.hold_colour, grade: nextBoulder.grade } : null
+        adjacent_prev: prevBoulder
+          ? {
+              hold_colour: prevBoulder.hold_colour,
+              grade: prevBoulder.grade,
+              is_comp: prevBoulder.is_comp,
+              comp_number: prevBoulder.comp_number
+            }
+          : null,
+        adjacent_next: nextBoulder
+          ? {
+              hold_colour: nextBoulder.hold_colour,
+              grade: nextBoulder.grade,
+              is_comp: nextBoulder.is_comp,
+              comp_number: nextBoulder.comp_number
+            }
+          : null
       };
     });
   }, [boulders, currentGym, currentArea, areas, showArchived]);
@@ -884,7 +906,9 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     notes,
     imageFile,
     imageDataUrl,
-    insertAfterBoulderId
+    insertAfterBoulderId,
+    isComp,
+    compNumber
   }: AddBoulderParams): Promise<Boulder> => {
     const areaBoulders = boulders
       .filter(b => b.gym_id === gymId && b.area_id === areaId && !b.is_archived)
@@ -924,6 +948,11 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ? currentUser.id
       : null;
 
+    const targetArea = areas.find(a => a.id === areaId);
+    const isCompClimb = Boolean(isComp || targetArea?.is_comp_wall);
+    const maxCompNum = areaBoulders.reduce((max, b) => Math.max(max, b.comp_number || 0), 0);
+    const resolvedCompNumber = isCompClimb ? (compNumber ?? (maxCompNum + 1)) : undefined;
+
     const newBoulder: Boulder = {
       id: tempBoulderId,
       gym_id: gymId,
@@ -935,6 +964,8 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       image_url: finalImageUrl,
       date_added: new Date().toISOString().split('T')[0],
       is_archived: false,
+      is_comp: isCompClimb,
+      comp_number: resolvedCompNumber,
       created_by: effectiveCreatedBy,
       created_at: new Date().toISOString()
     };
@@ -955,6 +986,8 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             image_url: finalImageUrl,
             date_added: newBoulder.date_added,
             is_archived: false,
+            is_comp: isCompClimb,
+            comp_number: resolvedCompNumber,
             created_by: effectiveCreatedBy
           })
           .select()
@@ -999,7 +1032,8 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     areaId,
     boulders: newItems,
     archiveExistingAreaBoulders = false,
-    dateAdded
+    dateAdded,
+    isCompWall
   }: BulkAddBouldersParams): Promise<Boulder[]> => {
     if (!newItems || newItems.length === 0) return [];
 
@@ -1007,6 +1041,11 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const effectiveCreatedBy = currentUser?.id && climbersRef.current.some(c => c.id === currentUser.id)
       ? currentUser.id
       : null;
+
+    const targetArea = areas.find(a => a.id === areaId);
+    if (isCompWall && !targetArea?.is_comp_wall) {
+      toggleAreaCompWall(areaId, true);
+    }
 
     // If archiveExistingAreaBoulders is true, archive current active boulders in this area
     if (archiveExistingAreaBoulders) {
@@ -1048,6 +1087,9 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         finalImageUrl = item.imageDataUrl;
       }
 
+      const isCompClimb = Boolean(isCompWall || item.isComp || targetArea?.is_comp_wall);
+      const resolvedCompNum = isCompClimb ? (item.compNumber ?? (i + 1)) : undefined;
+
       preparedBoulders.push({
         id: tempId,
         gym_id: gymId,
@@ -1059,6 +1101,8 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         image_url: finalImageUrl,
         date_added: effectiveDate,
         is_archived: false,
+        is_comp: isCompClimb,
+        comp_number: resolvedCompNum,
         created_by: effectiveCreatedBy,
         created_at: new Date().toISOString()
       });
@@ -1093,6 +1137,8 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           image_url: b.image_url,
           date_added: b.date_added,
           is_archived: false,
+          is_comp: b.is_comp,
+          comp_number: b.comp_number,
           created_by: effectiveCreatedBy
         }));
 
@@ -1153,7 +1199,13 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Update climb hold colour, grade, and notes
   const updateBoulder = async (
     boulderId: string,
-    updates: { holdColour?: string; grade?: Grade; notes?: string | null }
+    updates: {
+      holdColour?: string;
+      grade?: Grade;
+      notes?: string | null;
+      isComp?: boolean;
+      compNumber?: number;
+    }
   ) => {
     setBoulders(prev => {
       const updated = prev.map(b => {
@@ -1162,7 +1214,9 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ...b,
             ...(updates.holdColour !== undefined ? { hold_colour: updates.holdColour } : {}),
             ...(updates.grade !== undefined ? { grade: updates.grade } : {}),
-            ...(updates.notes !== undefined ? { notes: updates.notes } : {})
+            ...(updates.notes !== undefined ? { notes: updates.notes } : {}),
+            ...(updates.isComp !== undefined ? { is_comp: updates.isComp } : {}),
+            ...(updates.compNumber !== undefined ? { comp_number: updates.compNumber } : {})
           };
         }
         return b;
@@ -1179,6 +1233,8 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (updates.holdColour !== undefined) payload.hold_colour = updates.holdColour;
         if (updates.grade !== undefined) payload.grade = updates.grade;
         if (updates.notes !== undefined) payload.notes = updates.notes;
+        if (updates.isComp !== undefined) payload.is_comp = updates.isComp;
+        if (updates.compNumber !== undefined) payload.comp_number = updates.compNumber;
 
         const { error } = await supabase
           .from('boulders')
@@ -1433,6 +1489,37 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       } catch (err) {
         console.warn('Failed to remove area photo in Supabase:', err);
+      }
+    }
+  };
+
+  // Toggle an area as a designated Comp Wall (numbered climbs #1 - #N)
+  const toggleAreaCompWall = async (areaId: string, isCompWall: boolean): Promise<void> => {
+    setAreas((prev) => {
+      const updated = prev.map((a) => (a.id === areaId ? { ...a, is_comp_wall: isCompWall } : a));
+      try {
+        localStorage.setItem('wham_areas', JSON.stringify(updated));
+      } catch (e) {
+        console.warn('Failed to persist areas to localStorage:', e);
+      }
+      return updated;
+    });
+
+    if (currentArea?.id === areaId) {
+      setCurrentAreaState((prev) => (prev ? { ...prev, is_comp_wall: isCompWall } : null));
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { error } = await supabase
+          .from('gym_areas')
+          .update({ is_comp_wall: isCompWall })
+          .eq('id', areaId);
+        if (error) {
+          console.error('Failed to update area comp wall in Supabase:', error);
+        }
+      } catch (err) {
+        console.error('Failed to update area comp wall in Supabase:', err);
       }
     }
   };
@@ -2020,6 +2107,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         areas,
         currentArea,
         setCurrentArea,
+        toggleAreaCompWall,
         boulders,
         attempts,
         comments,

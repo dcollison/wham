@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS public.gym_areas (
     name TEXT NOT NULL,
     sort_order INT NOT NULL DEFAULT 0,
     image_url TEXT,
+    is_comp_wall BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
@@ -55,6 +56,8 @@ CREATE TABLE IF NOT EXISTS public.boulders (
     image_url TEXT,
     date_added DATE NOT NULL DEFAULT CURRENT_DATE,
     is_archived BOOLEAN NOT NULL DEFAULT false,
+    is_comp BOOLEAN NOT NULL DEFAULT false,
+    comp_number INT,
     created_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     CONSTRAINT valid_grade CHECK (grade IN ('VB', 'V0', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9', 'V10+'))

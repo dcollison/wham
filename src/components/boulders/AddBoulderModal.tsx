@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Boulder, Grade, GRADES, HOLD_COLORS, GymArea, getHoldSwatchStyle } from '../../types';
 import { compressImage, CompressionResult } from '../../lib/imageCompressor';
 import { HoldSwatch } from './HoldSwatch';
-import { X, Camera, Upload, Plus, AlertCircle, ArrowDown, Layers } from 'lucide-react';
+import { X, Camera, Upload, Plus, AlertCircle, ArrowDown, Layers, Trophy } from 'lucide-react';
 
 interface AddBoulderModalProps {
   isOpen: boolean;
@@ -24,6 +24,8 @@ interface AddBoulderModalProps {
     imageFile?: File | null;
     imageDataUrl?: string | null;
     insertAfterBoulderId?: string | null;
+    isComp?: boolean;
+    compNumber?: number;
   }) => Promise<void>;
 }
 
@@ -52,6 +54,8 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
   });
   const [holdColour, setHoldColour] = useState<string>('Yellow');
   const [grade, setGrade] = useState<Grade>('V2');
+  const [isComp, setIsComp] = useState<boolean>(false);
+  const [compNumber, setCompNumber] = useState<number>(1);
   const [notes, setNotes] = useState<string>('');
   const [insertAfterId, setInsertAfterId] = useState<string>(defaultInsertAfterId || '');
   const [compressionResult, setCompressionResult] = useState<CompressionResult | null>(null);
@@ -64,13 +68,16 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
   // Sync selected area and reset form ONLY when modal transitions from closed to open
   useEffect(() => {
     if (isOpen && !prevIsOpenRef.current) {
-      if (areaId && gymAreas.some(a => a.id === areaId)) {
-        setSelectedAreaId(areaId);
-      } else if (gymAreas.length > 0) {
-        setSelectedAreaId(gymAreas[0].id);
-      } else {
-        setSelectedAreaId('');
-      }
+      const activeId = (areaId && gymAreas.some(a => a.id === areaId)) ? areaId : (gymAreas[0]?.id || '');
+      setSelectedAreaId(activeId);
+      const activeArea = gymAreas.find(a => a.id === activeId);
+      const isCompMode = Boolean(activeArea?.is_comp_wall);
+      setIsComp(isCompMode);
+
+      const existingInArea = existingBoulders.filter(b => b.gym_id === gymId && b.area_id === activeId && !b.is_archived);
+      const maxComp = Math.max(0, ...existingInArea.map(b => b.comp_number || 0));
+      setCompNumber(maxComp + 1);
+
       setInsertAfterId(defaultInsertAfterId || '');
       setNotes('');
       setCompressionResult(null);
@@ -121,7 +128,9 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
         gymId,
         areaId: effectiveAreaId,
         holdColour,
-        grade,
+        grade: isComp ? 'VB' : grade,
+        isComp,
+        compNumber: isComp ? compNumber : undefined,
         notes: notes.trim() || undefined,
         imageFile: compressionResult?.file || null,
         imageDataUrl: compressionResult?.dataUrl || null,
@@ -243,32 +252,81 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
             </div>
           </div>
 
-          {/* Grade Picker */}
-          <div className="flex flex-col gap-2">
-            <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-              Grade: <span className="font-mono text-sm font-black" style={{ color: activeColor }}>{grade}</span>
-            </label>
-            <div className="flex gap-1.5 overflow-x-auto pb-1.5 scrollbar-thin">
-              {GRADES.map((g) => {
-                const isSelected = grade === g;
-                return (
-                  <button
-                    key={g}
-                    type="button"
-                    onClick={() => setGrade(g)}
-                    style={isSelected ? { backgroundColor: activeColor, color: '#000000' } : undefined}
-                    className={`px-3 py-2 rounded-xl font-mono text-xs font-bold shrink-0 transition-all active-press ${
-                      isSelected
-                        ? 'shadow-md font-black scale-105'
-                        : 'bg-slate-800 border border-slate-700/60 text-slate-300 hover:bg-slate-750'
-                    }`}
-                  >
-                    {g}
-                  </button>
-                );
-              })}
+          {/* Mode Switcher / Comp Wall indicator */}
+          <div className="flex items-center justify-between p-3 rounded-xl bg-slate-800/40 border border-slate-700/60">
+            <div className="flex items-center gap-2">
+              <Trophy className={`w-4 h-4 ${isComp ? 'text-amber-400' : 'text-slate-400'}`} />
+              <div>
+                <span className="text-xs font-bold text-slate-200 block">
+                  {isComp ? 'Numbered Comp Problem' : 'Standard V-Graded Problem'}
+                </span>
+                <span className="text-[11px] text-slate-400">
+                  {isComp ? 'Scored with 10 / 7 / 4 points • No V-grade' : 'Standard circuit climb with career stats'}
+                </span>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={() => setIsComp((prev) => !prev)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold font-mono transition-all ${
+                isComp
+                  ? 'bg-amber-400 text-black shadow'
+                  : 'bg-slate-700 text-slate-300 hover:text-white'
+              }`}
+            >
+              {isComp ? 'Comp # Mode' : 'Switch to Comp #'}
+            </button>
           </div>
+
+          {/* Grade Picker OR Comp Problem Number Input */}
+          {isComp ? (
+            <div className="flex flex-col gap-2 bg-amber-500/10 border border-amber-500/30 rounded-xl p-3.5 animate-in fade-in">
+              <label className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center justify-between">
+                <span>Comp Problem Number:</span>
+                <span className="font-mono text-sm font-black text-amber-400">#{compNumber}</span>
+              </label>
+              <div className="flex items-center gap-3">
+                <span className="font-mono text-xl font-bold text-amber-400">#</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="200"
+                  value={compNumber || ''}
+                  onChange={(e) => setCompNumber(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                  className="w-28 bg-slate-900 border border-amber-500/50 text-amber-200 font-mono font-bold text-lg rounded-xl py-2 px-3 outline-none focus:border-amber-400"
+                />
+                <span className="text-xs text-slate-400">
+                  Next sequential problem on the comp wall
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                Grade: <span className="font-mono text-sm font-black" style={{ color: activeColor }}>{grade}</span>
+              </label>
+              <div className="flex gap-1.5 overflow-x-auto pb-1.5 scrollbar-thin">
+                {GRADES.map((g) => {
+                  const isSelected = grade === g;
+                  return (
+                    <button
+                      key={g}
+                      type="button"
+                      onClick={() => setGrade(g)}
+                      style={isSelected ? { backgroundColor: activeColor, color: '#000000' } : undefined}
+                      className={`px-3 py-2 rounded-xl font-mono text-xs font-bold shrink-0 transition-all active-press ${
+                        isSelected
+                          ? 'shadow-md font-black scale-105'
+                          : 'bg-slate-800 border border-slate-700/60 text-slate-300 hover:bg-slate-750'
+                      }`}
+                    >
+                      {g}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* "Insert Boulder Adjacent" Clockwise Order Selector */}
           <div className="flex flex-col gap-1.5 bg-slate-800/40 p-3.5 rounded-xl border border-slate-700/60">

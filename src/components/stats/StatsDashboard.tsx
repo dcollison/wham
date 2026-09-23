@@ -104,11 +104,13 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
     }
   }, [currentUserId]);
 
-  // Filter boulders by selected gym
+  const areaMap = useMemo(() => new Map(areas.map((a) => [a.id, a])), [areas]);
+
+  // Filter boulders by selected gym, strictly excluding ungraded comp wall boulders
   const filteredBoulders = useMemo(() => {
-    if (selectedGymId === 'all') return boulders;
-    return boulders.filter((b) => b.gym_id === selectedGymId);
-  }, [boulders, selectedGymId]);
+    const list = selectedGymId === 'all' ? boulders : boulders.filter((b) => b.gym_id === selectedGymId);
+    return list.filter((b) => !b.is_comp && !areaMap.get(b.area_id)?.is_comp_wall);
+  }, [boulders, selectedGymId, areaMap]);
 
   const boulderIdSet = useMemo(() => new Set(filteredBoulders.map((b) => b.id)), [filteredBoulders]);
 

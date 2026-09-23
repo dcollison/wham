@@ -26,6 +26,7 @@ interface HeaderProps {
   openIdeasCount?: number;
   showArchived: boolean;
   onToggleShowArchived: () => void;
+  onToggleAreaCompWall?: (areaId: string, isCompWall: boolean) => Promise<void>;
   isDemoMode: boolean;
 }
 
@@ -50,6 +51,7 @@ export const Header: React.FC<HeaderProps> = ({
   openIdeasCount = 0,
   showArchived,
   onToggleShowArchived,
+  onToggleAreaCompWall,
   isDemoMode
 }) => {
   const activeColor = currentUser?.accent_color || '#3B82F6';
@@ -200,6 +202,16 @@ export const Header: React.FC<HeaderProps> = ({
                   }
                 >
                   <span>{area.name}</span>
+                  {area.is_comp_wall && (
+                    <span
+                      className={`inline-flex items-center shrink-0 ${
+                        isSelected ? 'text-black' : 'text-amber-400'
+                      }`}
+                      title={`${area.name} (Comp Wall • Numbered climbs)`}
+                    >
+                      <Trophy className="w-3 h-3 stroke-[2.5]" />
+                    </span>
+                  )}
                   {areaReset.isDueForReset && (
                     <span
                       className={`inline-flex items-center shrink-0 ${
@@ -276,6 +288,32 @@ export const Header: React.FC<HeaderProps> = ({
                     </span>
                     {showArchived && <Check className="w-3.5 h-3.5 text-purple-400" />}
                   </button>
+
+                  {currentArea && onToggleAreaCompWall && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMoreMenuOpen(false);
+                        onToggleAreaCompWall(currentArea.id, !currentArea.is_comp_wall);
+                      }}
+                      className="flex items-center justify-between w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:bg-slate-800 transition-colors"
+                      title="Toggle between standard V-graded climbs and numbered comp wall problem tracking"
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <Trophy className={`w-4 h-4 ${currentArea.is_comp_wall ? 'text-amber-400' : 'text-slate-400'}`} />
+                        <span>Comp Wall Mode</span>
+                      </span>
+                      {currentArea.is_comp_wall ? (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+                          ON
+                        </span>
+                      ) : (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-slate-800 text-slate-400">
+                          OFF
+                        </span>
+                      )}
+                    </button>
+                  )}
 
                   {onOpenIdeas && (
                     <button

@@ -63,6 +63,7 @@ export interface GymArea {
   name: string;
   sort_order: number;
   image_url?: string | null;
+  is_comp_wall?: boolean;
   created_at?: string;
 }
 
@@ -79,10 +80,13 @@ export interface Boulder {
   is_archived: boolean;
   created_by?: string | null;
   created_at?: string;
+  // Comp problem fields (numbered climbs #1 - #N on comp walls)
+  is_comp?: boolean;
+  comp_number?: number;
   // Computed / joined fields for convenient UI usage
   display_order?: number;
-  adjacent_prev?: { hold_colour: string; grade: Grade } | null;
-  adjacent_next?: { hold_colour: string; grade: Grade } | null;
+  adjacent_prev?: { hold_colour: string; grade: Grade; is_comp?: boolean; comp_number?: number } | null;
+  adjacent_next?: { hold_colour: string; grade: Grade; is_comp?: boolean; comp_number?: number } | null;
 }
 
 export interface BulkAddBoulderItem {
@@ -92,6 +96,8 @@ export interface BulkAddBoulderItem {
   notes?: string;
   imageFile?: File | null;
   imageDataUrl?: string | null;
+  isComp?: boolean;
+  compNumber?: number;
 }
 
 export interface BulkAddBouldersParams {
@@ -100,6 +106,24 @@ export interface BulkAddBouldersParams {
   boulders: BulkAddBoulderItem[];
   archiveExistingAreaBoulders?: boolean;
   dateAdded?: string;
+  isCompWall?: boolean;
+}
+
+export interface CompWallScorecardItem {
+  boulder: Boulder;
+  compNumber: number;
+  userAttempts: Record<string, { status: AttemptStatus; attemptCount: number; points: number }>;
+}
+
+export interface CompWallStanding {
+  climber: Profile;
+  rank: number;
+  totalPoints: number;
+  topsCount: number;
+  flashesCount: number;
+  attemptsOnTops: number;
+  highestTopNumber: number | null;
+  completedBoulders: Array<{ boulderId: string; compNumber: number; points: number; isFlash: boolean; attempts: number }>;
 }
 
 export interface Attempt {

@@ -183,7 +183,7 @@ export function computeGymCompLeaderboard(
   let attemptsToScore: Attempt[] = [];
 
   const gymBoulders = boulders.filter(
-    (b) => gymId === 'all' || b.gym_id === gymId
+    (b) => (gymId === 'all' || b.gym_id === gymId) && !b.is_comp
   );
   const gymBoulderMap = new Map<string, Boulder>();
   gymBoulders.forEach((b) => gymBoulderMap.set(b.id, b));

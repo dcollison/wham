@@ -12,6 +12,7 @@ import { AreaResetModal } from './components/boulders/AreaResetModal';
 import { StatsDashboard } from './components/stats/StatsDashboard';
 import { CompLeaderboardModal } from './components/leaderboard/CompLeaderboardModal';
 import { GymCompBanner } from './components/boulders/GymCompBanner';
+import { CompWallBanner } from './components/boulders/CompWallBanner';
 import { CrewFeedView } from './components/feed/CrewFeedView';
 import { SettingsModal } from './components/settings/SettingsModal';
 import { AreaPhotoBanner } from './components/boulders/AreaPhotoBanner';
@@ -75,6 +76,7 @@ export function App() {
     removeAreaPhoto,
     addComment,
     deleteComment,
+    toggleAreaCompWall,
     orderedActiveBouldersInCurrentArea,
     loading
   } = useGym();
@@ -379,6 +381,7 @@ export function App() {
         openIdeasCount={featureRequests.filter((r) => r.status !== 'shipped').length}
         showArchived={showArchived}
         onToggleShowArchived={() => setShowArchived((prev) => !prev)}
+        onToggleAreaCompWall={toggleAreaCompWall}
         isDemoMode={isDemoMode}
       />
 
@@ -427,6 +430,19 @@ export function App() {
                 onRemovePhoto={async () => {
                   if (currentArea) await removeAreaPhoto(currentArea.id);
                 }}
+              />
+            )}
+
+            {/* Comp Wall Mini Comp Banner (Active when current sector is designated a Comp Wall) */}
+            {currentArea?.is_comp_wall && orderedActiveBouldersInCurrentArea.length > 0 && (
+              <CompWallBanner
+                area={currentArea}
+                compBoulders={orderedActiveBouldersInCurrentArea}
+                attempts={attempts}
+                climbers={climbers}
+                currentUserId={currentUser?.id}
+                onQuickLog={(b, targetUserId) => handleOpenQuickLog(b, targetUserId)}
+                onOpenDetails={(b) => setDetailBoulder(b)}
               />
             )}
 

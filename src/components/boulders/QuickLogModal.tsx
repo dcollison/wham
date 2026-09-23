@@ -20,7 +20,8 @@ import {
   ChevronLeft,
   ChevronRight,
   MapPin,
-  FileText
+  FileText,
+  Trophy
 } from 'lucide-react';
 import { useGym } from '../../context/GymContext';
 
@@ -280,9 +281,21 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
         <div className="flex items-center justify-between border-b border-slate-800 pb-2.5 gap-2">
           {/* Left: Hold color badge + Climb number */}
           <div className="flex items-center gap-2 min-w-0">
-            <HoldBadge color={boulder.hold_colour} grade={boulder.grade} size="md" />
-            <span className="font-mono text-xs text-slate-400 font-bold shrink-0 tabular-nums">
-              #{boulder.display_order ?? Math.round(boulder.position_order)}
+            <HoldBadge
+              color={boulder.hold_colour}
+              grade={boulder.grade}
+              isComp={boulder.is_comp}
+              compNumber={boulder.comp_number}
+              size="md"
+            />
+            <span
+              className={`font-mono text-xs font-bold shrink-0 tabular-nums px-2 py-0.5 rounded ${
+                boulder.is_comp
+                  ? 'text-amber-300 bg-amber-500/10 border border-amber-500/30'
+                  : 'text-slate-400 bg-slate-800'
+              }`}
+            >
+              #{boulder.comp_number ?? boulder.display_order ?? Math.round(boulder.position_order)}
             </span>
           </div>
 
@@ -541,6 +554,22 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
               </button>
             ))}
           </div>
+
+          {/* Comp points or status pill preview */}
+          {boulder.is_comp && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono font-bold mt-1 animate-in fade-in">
+              <Trophy className="w-3.5 h-3.5" />
+              <span>
+                {computedStatus === 'flashed'
+                  ? '⚡ Flashed: +10 Comp Points'
+                  : computedStatus === 'sent'
+                  ? attemptCount === 2
+                    ? '✅ 2nd Try Send: +7 Comp Points'
+                    : `✅ Send (${attemptCount} tries): +4 Comp Points`
+                  : '⏳ Project: 0 Comp Points'}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Session Date Selector */}

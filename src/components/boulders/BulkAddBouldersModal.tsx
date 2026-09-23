@@ -17,7 +17,8 @@ import {
   AlertCircle,
   Copy,
   Calendar,
-  RotateCcw
+  RotateCcw,
+  Trophy
 } from 'lucide-react';
 
 interface DraftBoulder extends BulkAddBoulderItem {
@@ -62,6 +63,8 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
   const [archiveExisting, setArchiveExisting] = useState<boolean>(false);
   const [dateAdded, setDateAdded] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [activeTab, setActiveTab] = useState<'visual' | 'paste'>('visual');
+  const [isCompClimbs, setIsCompClimbs] = useState<boolean>(false);
+  const [compGenerateCount, setCompGenerateCount] = useState<number>(30);
 
   // Visual fast logger inputs
   const [curHoldColour, setCurHoldColour] = useState<string>('Yellow');
@@ -92,11 +95,11 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
   // Sync selected area and reset queue ONLY when modal transitions from closed to open
   useEffect(() => {
     if (isOpen && !prevIsOpenRef.current) {
-      if (areaId && gymAreas.some((a) => a.id === areaId)) {
-        setSelectedAreaId(areaId);
-      } else if (gymAreas.length > 0) {
-        setSelectedAreaId(gymAreas[0].id);
-      }
+      const activeId = (areaId && gymAreas.some((a) => a.id === areaId)) ? areaId : (gymAreas[0]?.id || '');
+      setSelectedAreaId(activeId);
+      const activeArea = gymAreas.find((a) => a.id === activeId);
+      setIsCompClimbs(Boolean(activeArea?.is_comp_wall));
+
       setDraftQueue([]);
       setPasteText('');
       setPasteFeedback(null);
@@ -126,14 +129,36 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
 
   // Add a single climb to draft queue
   const handleAddDraft = (hold: string = curHoldColour, gr: Grade = curGrade, notes: string = curNotes) => {
+    const startNum = archiveExisting ? 1 : existingActiveInArea.length + 1;
+    const nextCompNumber = startNum + draftQueue.length;
     const newItem: DraftBoulder = {
       id: `draft-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       holdColour: hold,
-      grade: gr,
+      grade: isCompClimbs ? 'VB' : gr,
+      isComp: isCompClimbs,
+      compNumber: isCompClimbs ? nextCompNumber : undefined,
       notes: notes.trim() || undefined
     };
     setDraftQueue((prev) => [...prev, newItem]);
     setCurNotes('');
+  };
+
+  // Quick generator for comp wall climbs (#1 to #N)
+  const handleGenerateCompClimbs = (count: number = compGenerateCount) => {
+    const colors = Object.keys(HOLD_COLORS);
+    const startNum = archiveExisting ? 1 : existingActiveInArea.length + 1;
+    const newItems: DraftBoulder[] = [];
+    for (let i = 0; i < count; i++) {
+      const color = colors[i % colors.length];
+      newItems.push({
+        id: `draft-comp-${Date.now()}-${i}-${Math.random().toString(36).substring(2, 5)}`,
+        holdColour: color,
+        grade: 'VB',
+        isComp: true,
+        compNumber: startNum + i
+      });
+    }
+    setDraftQueue((prev) => [...prev, ...newItems]);
   };
 
   // When autoAddOnGrade is enabled, tapping a grade immediately appends to the queue
@@ -289,16 +314,20 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
     setIsSubmitting(true);
     setErrorMessage(null);
     try {
+      const startNum = archiveExisting ? 1 : existingActiveInArea.length + 1;
       await onBulkAdd({
         gymId,
         areaId: effectiveAreaId,
-        boulders: draftQueue.map(({ holdColour, grade, notes, imageFile, imageDataUrl }) => ({
+        boulders: draftQueue.map(({ holdColour, grade, notes, imageFile, imageDataUrl, isComp: itemIsComp, compNumber }, idx) => ({
           holdColour,
-          grade,
+          grade: isCompClimbs ? 'VB' : grade,
+          isComp: isCompClimbs || itemIsComp,
+          compNumber: isCompClimbs || itemIsComp ? (compNumber ?? startNum + idx) : undefined,
           notes,
           imageFile,
           imageDataUrl
         })),
+        isCompWall: isCompClimbs,
         archiveExistingAreaBoulders: archiveExisting,
         dateAdded
       });
@@ -437,7 +466,73 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
               </div>
             </label>
           </div>
+
+          {/* Comp Wall Toggle Banner */}
+          <div className="sm:col-span-2 pt-2 border-t border-slate-800/80 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <Trophy className={`w-4 h-4 shrink-0 ${isCompClimbs ? 'text-amber-400' : 'text-slate-400'}`} />
+              <div className="min-w-0">
+                <span className="text-xs font-bold text-slate-200 block truncate">
+                  Numbered Comp Wall Climbs (#1–#N)
+                </span>
+                <p className="text-[11px] text-slate-400 truncate">
+                  {isCompClimbs
+                    ? 'Switch from V-grades to numbered comp problems (10 / 7 / 4 festival points).'
+                    : 'Standard V-graded set. Climbs appear in career grade charts.'}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsCompClimbs((prev) => !prev)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold font-mono transition-all shrink-0 ${
+                isCompClimbs
+                  ? 'bg-amber-400 text-black shadow-md'
+                  : 'bg-slate-900 text-slate-300 hover:text-white border border-slate-700'
+              }`}
+            >
+              {isCompClimbs ? 'Comp Mode ON' : 'Comp Mode OFF'}
+            </button>
+          </div>
         </div>
+
+        {/* Quick Comp Generator Bar when Comp mode is ON */}
+        {isCompClimbs && (
+          <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 animate-in fade-in">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+              <div>
+                <span className="text-xs font-bold text-amber-200 block">
+                  Quick Comp Generator
+                </span>
+                <span className="text-[11px] text-amber-300/80">
+                  Pre-generate sequential numbered climbs (#1 to #N) with cycling hold colours
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <div className="flex items-center gap-1 bg-slate-950 border border-slate-700 rounded-xl px-2 py-1">
+                <span className="text-[10px] text-slate-400 font-mono">Count:</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={compGenerateCount}
+                  onChange={(e) => setCompGenerateCount(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                  className="w-12 bg-transparent text-xs font-mono font-bold text-amber-400 outline-none text-center"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => handleGenerateCompClimbs(compGenerateCount)}
+                className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow active-press transition-all flex items-center gap-1.5"
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                <span>Generate #{archiveExisting ? 1 : existingActiveInArea.length + 1}–#{archiveExisting ? compGenerateCount : existingActiveInArea.length + compGenerateCount}</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Entry Tabs: Visual Builder vs Quick Paste */}
         <div className="flex items-center gap-2 border-b border-slate-800 pb-1">
@@ -515,32 +610,51 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                 })}
               </div>
 
-              {/* Grade Selector Pills */}
-              <div className="flex flex-col gap-1.5 pt-1">
-                <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">
-                  Select Grade:
-                </span>
-                <div className="grid grid-cols-6 sm:grid-cols-12 gap-1.5">
-                  {GRADES.map((gr) => {
-                    const isSelected = curGrade === gr;
-                    return (
-                      <button
-                        key={gr}
-                        type="button"
-                        onClick={() => handleSelectGrade(gr)}
-                        style={isSelected ? { backgroundColor: activeColor, color: '#000000' } : undefined}
-                        className={`py-1.5 rounded-lg text-xs font-bold transition-all active-press ${
-                          isSelected
-                            ? 'shadow-md ring-1'
-                            : 'bg-slate-900 border border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white'
-                        }`}
-                      >
-                        {gr}
-                      </button>
-                    );
-                  })}
+              {/* Grade Selector Pills OR Comp Next Climb Info */}
+              {isCompClimbs ? (
+                <div className="flex items-center justify-between pt-1 pb-0.5 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/25">
+                  <div className="flex items-center gap-2">
+                    <Trophy className="w-4 h-4 text-amber-400 shrink-0" />
+                    <div>
+                      <span className="text-xs font-bold text-amber-200">
+                        Next Problem: <strong className="font-mono text-amber-400 text-sm">#{(archiveExisting ? 1 : existingActiveInArea.length + 1) + draftQueue.length}</strong>
+                      </span>
+                      <p className="text-[10px] text-amber-300/80">
+                        Select hold colour above and click Add or press Enter
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    10 / 7 / 4 pts
+                  </span>
                 </div>
-              </div>
+              ) : (
+                <div className="flex flex-col gap-1.5 pt-1">
+                  <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+                    Select Grade:
+                  </span>
+                  <div className="grid grid-cols-6 sm:grid-cols-12 gap-1.5">
+                    {GRADES.map((gr) => {
+                      const isSelected = curGrade === gr;
+                      return (
+                        <button
+                          key={gr}
+                          type="button"
+                          onClick={() => handleSelectGrade(gr)}
+                          style={isSelected ? { backgroundColor: activeColor, color: '#000000' } : undefined}
+                          className={`py-1.5 rounded-lg text-xs font-bold transition-all active-press ${
+                            isSelected
+                              ? 'shadow-md ring-1'
+                              : 'bg-slate-900 border border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white'
+                          }`}
+                        >
+                          {gr}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Optional Notes & "+ Add to Wall" Action */}
               <div className="flex items-center gap-2 pt-1">
@@ -564,7 +678,9 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                   className="px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 active-press transition-colors shadow shrink-0"
                 >
                   <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                  <span>Add #{draftQueue.length + 1}</span>
+                  <span>
+                    Add #{isCompClimbs ? (archiveExisting ? 1 : existingActiveInArea.length + 1) + draftQueue.length : draftQueue.length + 1}
+                  </span>
                 </button>
               </div>
             </div>
@@ -670,21 +786,28 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
             )}
           </div>
 
-          {/* Grade Distribution Pill Summary */}
+          {/* Grade Distribution or Comp Summary */}
           {draftQueue.length > 0 && (
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
-              {GRADES.map((gr) => {
-                const count = gradeBreakdown[gr];
-                if (!count) return null;
-                return (
-                  <span
-                    key={gr}
-                    className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-800 text-slate-200 border border-slate-700"
-                  >
-                    {count}x {gr}
-                  </span>
-                );
-              })}
+              {isCompClimbs ? (
+                <span className="shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1.5">
+                  <Trophy className="w-3 h-3 text-amber-400" />
+                  <span>{draftQueue.length} comp problems • 10 / 7 / 4 festival points</span>
+                </span>
+              ) : (
+                GRADES.map((gr) => {
+                  const count = gradeBreakdown[gr];
+                  if (!count) return null;
+                  return (
+                    <span
+                      key={gr}
+                      className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-800 text-slate-200 border border-slate-700"
+                    >
+                      {count}x {gr}
+                    </span>
+                  );
+                })
+              )}
             </div>
           )}
 
@@ -694,6 +817,8 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
               {draftQueue.map((item, idx) => {
                 const colorConfig = HOLD_COLORS[item.holdColour] || HOLD_COLORS.Yellow;
                 const fileInputId = `bulk-photo-${item.id}`;
+                const startNum = archiveExisting ? 1 : existingActiveInArea.length + 1;
+                const itemCompNumber = item.compNumber ?? (startNum + idx);
 
                 return (
                   <div
@@ -714,9 +839,15 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                           title={item.holdColour}
                         />
                         <span className="text-xs font-semibold text-slate-200">{item.holdColour}</span>
-                        <span className="px-1.5 py-0.5 rounded bg-slate-800 text-white font-mono font-bold text-xs border border-slate-700">
-                          {item.grade}
-                        </span>
+                        {isCompClimbs || item.isComp || item.compNumber ? (
+                          <span className="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 font-mono font-bold text-xs border border-amber-500/50 shadow-inner">
+                            #{itemCompNumber}
+                          </span>
+                        ) : (
+                          <span className="px-1.5 py-0.5 rounded bg-slate-800 text-white font-mono font-bold text-xs border border-slate-700">
+                            {item.grade}
+                          </span>
+                        )}
                       </div>
 
                       {/* Inline Note */}

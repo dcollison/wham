@@ -26,7 +26,8 @@ import {
   ArrowRightLeft,
   Pencil,
   AlertTriangle,
-  AlertCircle
+  AlertCircle,
+  Trophy
 } from 'lucide-react';
 import { useGym } from '../../context/GymContext';
 import { PhotoLightboxModal } from './PhotoLightboxModal';
@@ -47,7 +48,13 @@ interface BoulderDetailModalProps {
   onDeleteComment?: (commentId: string) => Promise<void>;
   onToggleArchive: (boulderId: string, archive: boolean) => Promise<void>;
   onMoveBoulder?: (boulderId: string, targetAreaId: string, unarchive?: boolean) => Promise<void>;
-  onUpdateBoulder?: (boulderId: string, updates: { holdColour?: string; grade?: Grade; notes?: string | null }) => Promise<void>;
+  onUpdateBoulder?: (boulderId: string, updates: {
+    holdColour?: string;
+    grade?: Grade;
+    notes?: string | null;
+    isComp?: boolean;
+    compNumber?: number;
+  }) => Promise<void>;
   onDeleteBoulder?: (boulderId: string) => Promise<void>;
   filteredBoulders?: Boulder[];
   onNavigateBoulder?: (boulder: Boulder) => void;
@@ -95,6 +102,8 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
   const [editAreaId, setEditAreaId] = useState<string>('');
   const [editRestoreOnMove, setEditRestoreOnMove] = useState<boolean>(true);
   const [editNotes, setEditNotes] = useState<string>('');
+  const [editIsComp, setEditIsComp] = useState<boolean>(false);
+  const [editCompNumber, setEditCompNumber] = useState<number>(1);
   const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -194,6 +203,8 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
       setEditHoldColour(boulder.hold_colour);
       setEditGrade(boulder.grade);
       setEditNotes(boulder.notes || '');
+      setEditIsComp(Boolean(boulder.is_comp || matchedArea?.is_comp_wall));
+      setEditCompNumber(boulder.comp_number ?? (boulder.display_order ?? Math.round(boulder.position_order) ?? 1));
     }
     setIsEditing(false);
     setIsConfirmingDelete(false);
@@ -208,8 +219,10 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
       setEditHoldColour(boulder.hold_colour);
       setEditGrade(boulder.grade);
       setEditNotes(boulder.notes || '');
+      setEditIsComp(Boolean(boulder.is_comp || matchedArea?.is_comp_wall));
+      setEditCompNumber(boulder.comp_number ?? (boulder.display_order ?? Math.round(boulder.position_order) ?? 1));
     }
-  }, [boulder?.area_id, boulder?.is_archived, boulder?.hold_colour, boulder?.grade, boulder?.notes, isEditing]);
+  }, [boulder?.area_id, boulder?.is_archived, boulder?.hold_colour, boulder?.grade, boulder?.notes, boulder?.is_comp, boulder?.comp_number, isEditing, matchedArea?.is_comp_wall]);
 
   const availableGymAreas = useMemo(() => {
     if (!boulder) return [];
@@ -242,7 +255,9 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
       await updateFn(boulder.id, {
         holdColour: editHoldColour,
         grade: editGrade,
-        notes: editNotes.trim() || null
+        notes: editNotes.trim() || null,
+        isComp: editIsComp,
+        compNumber: editIsComp ? editCompNumber : undefined
       });
       setIsEditing(false);
     } catch (err: any) {
@@ -312,9 +327,21 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
         {/* Sticky Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-900/95 sticky top-0 z-10 gap-2">
           <div className="flex items-center gap-2 min-w-0 flex-wrap sm:flex-nowrap">
-            <HoldBadge color={isEditing ? editHoldColour : boulder.hold_colour} grade={isEditing ? editGrade : boulder.grade} size="md" />
-            <span className="font-mono text-xs text-slate-400 bg-slate-800 px-2 py-0.5 rounded shrink-0 tabular-nums">
-              #{boulder.display_order ?? Math.round(boulder.position_order)}
+            <HoldBadge
+              color={isEditing ? editHoldColour : boulder.hold_colour}
+              grade={isEditing ? editGrade : boulder.grade}
+              isComp={isEditing ? editIsComp : boulder.is_comp}
+              compNumber={isEditing ? editCompNumber : boulder.comp_number}
+              size="md"
+            />
+            <span
+              className={`font-mono text-xs px-2 py-0.5 rounded shrink-0 tabular-nums ${
+                (isEditing ? editIsComp : boulder.is_comp)
+                  ? 'text-amber-300 bg-amber-500/10 border border-amber-500/30'
+                  : 'text-slate-400 bg-slate-800'
+              }`}
+            >
+              #{(isEditing ? editCompNumber : boulder.comp_number) ?? boulder.display_order ?? Math.round(boulder.position_order)}
             </span>
             {resolvedAreaName && (
               <span
@@ -491,37 +518,88 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                 </div>
               </div>
 
-              {/* Grade Picker */}
-              <div className="flex flex-col gap-1.5">
+              {/* Comp Wall Problem Toggle & Number Picker */}
+              <div className="flex flex-col gap-2 p-3 rounded-xl bg-slate-950 border border-slate-800">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                    Grade
+                  <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Comp Wall Problem (Numbered)</span>
                   </label>
-                  <span className="font-mono text-xs font-black" style={{ color: activeColor }}>
-                    Selected: {editGrade}
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setEditIsComp((prev) => !prev)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold font-mono transition-all ${
+                      editIsComp
+                        ? 'bg-amber-400 text-black shadow'
+                        : 'bg-slate-850 text-slate-400 hover:text-white border border-slate-700'
+                    }`}
+                  >
+                    {editIsComp ? 'Comp Problem ON' : 'Comp Problem OFF'}
+                  </button>
                 </div>
-                <div className="flex gap-1.5 overflow-x-auto pb-1.5 scrollbar-thin">
-                  {GRADES.map((g) => {
-                    const isSelected = editGrade === g;
-                    return (
-                      <button
-                        key={g}
-                        type="button"
-                        onClick={() => setEditGrade(g)}
-                        style={isSelected ? { backgroundColor: activeColor, color: '#000000' } : undefined}
-                        className={`px-3 py-2 rounded-xl font-mono text-xs font-bold shrink-0 transition-all active-press ${
-                          isSelected
-                            ? 'shadow-md'
-                            : 'bg-slate-950 text-slate-300 hover:bg-slate-800 border border-slate-800'
-                        }`}
-                      >
-                        {g}
-                      </button>
-                    );
-                  })}
-                </div>
+
+                {editIsComp ? (
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-800/80">
+                    <div>
+                      <span className="text-xs text-slate-300 font-medium block">
+                        Problem number on wall:
+                      </span>
+                      <span className="text-[11px] text-amber-400/90 font-mono">
+                        Scored with 10 / 7 / 4 festival points
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono text-base font-bold text-amber-400">#</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="200"
+                        value={editCompNumber || ''}
+                        onChange={(e) => setEditCompNumber(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                        className="w-20 bg-slate-900 border border-slate-700 text-slate-100 font-mono font-bold text-center text-sm rounded-xl py-1.5 px-2 outline-none focus:border-amber-400"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-slate-500">
+                    Standard V-graded boulder. Appears in career grade charts.
+                  </p>
+                )}
               </div>
+
+              {/* Grade Picker (Only when not in comp mode) */}
+              {!editIsComp && (
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                      Grade
+                    </label>
+                    <span className="font-mono text-xs font-black" style={{ color: activeColor }}>
+                      Selected: {editGrade}
+                    </span>
+                  </div>
+                  <div className="flex gap-1.5 overflow-x-auto pb-1.5 scrollbar-thin">
+                    {GRADES.map((g) => {
+                      const isSelected = editGrade === g;
+                      return (
+                        <button
+                          key={g}
+                          type="button"
+                          onClick={() => setEditGrade(g)}
+                          style={isSelected ? { backgroundColor: activeColor, color: '#000000' } : undefined}
+                          className={`px-3 py-2 rounded-xl font-mono text-xs font-bold shrink-0 transition-all active-press ${
+                            isSelected
+                              ? 'shadow-md'
+                              : 'bg-slate-950 text-slate-300 hover:bg-slate-800 border border-slate-800'
+                          }`}
+                        >
+                          {g}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Sector / Wall Area Dropdown */}
               {availableGymAreas.length > 0 && (
@@ -695,15 +773,15 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
               <div className="mt-0.5">
                 {userAttempt?.status === 'flashed' ? (
                   <span className="text-xs font-bold text-amber-400 flex items-center gap-1">
-                    <Zap className="w-3.5 h-3.5 fill-current" /> Flashed (1 try)
+                    <Zap className="w-3.5 h-3.5 fill-current" /> Flashed (1 try{boulder.is_comp ? ' • 10 pts' : ''})
                   </span>
                 ) : userAttempt?.status === 'sent' ? (
                   <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
-                    <Check className="w-3.5 h-3.5 stroke-[3]" /> Sent ({userAttempt.attempt_count} tries)
+                    <Check className="w-3.5 h-3.5 stroke-[3]" /> Sent ({userAttempt.attempt_count} {userAttempt.attempt_count === 1 ? 'try' : 'tries'}{boulder.is_comp ? ` • ${userAttempt.attempt_count === 2 ? '7' : '4'} pts` : ''})
                   </span>
                 ) : userAttempt?.status === 'attempted' ? (
                   <span className="text-xs font-bold text-blue-400 flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5" /> Projecting ({userAttempt.attempt_count} tries)
+                    <Clock className="w-3.5 h-3.5" /> Projecting ({userAttempt.attempt_count} {userAttempt.attempt_count === 1 ? 'try' : 'tries'}{boulder.is_comp ? ' • 0 pts' : ''})
                   </span>
                 ) : (
                   <span className="text-xs text-slate-400">Not logged yet</span>
