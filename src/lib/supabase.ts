@@ -134,18 +134,22 @@ export async function uploadAreaPhoto(
       });
 
     if (uploadError) {
-      console.error('Supabase storage upload error for area photo, falling back to data URL:', uploadError.message);
-      return dataUrlFallback;
+      console.error('Supabase storage upload error for area photo:', uploadError.message, uploadError);
+      throw new Error('Failed to upload wall photo to storage. Please try again.');
     }
 
     const { data } = supabase.storage
       .from('boulder-photos')
       .getPublicUrl(filePath);
 
+    if (!data?.publicUrl) {
+      throw new Error('Failed to retrieve public URL for uploaded wall photo');
+    }
+
     return data.publicUrl;
-  } catch (err) {
+  } catch (err: any) {
     console.error('Area photo upload exception:', err);
-    return dataUrlFallback;
+    throw err instanceof Error ? err : new Error(String(err));
   }
 }
 

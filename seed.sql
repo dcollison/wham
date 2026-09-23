@@ -44,6 +44,8 @@ VALUES
     ('b0000000-0000-0000-0000-000000000002', 'Hub')
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
 
+ALTER TABLE public.gym_areas ADD COLUMN IF NOT EXISTS image_url TEXT;
+
 INSERT INTO public.gym_areas (id, gym_id, name, sort_order)
 VALUES
     ('c0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'Slab Wall', 1),

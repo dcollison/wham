@@ -284,7 +284,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setLoading(true);
         const [gymsRes, areasRes, bouldersRes, attemptsRes, commentsRes, propsRes, featureRequestsRes] = await Promise.all([
           supabase.from('gyms').select('*').order('name'),
-          supabase.from('gym_areas').select('*').order('sort_order'),
+          supabase.from('gym_areas').select('*').order('gym_id').order('sort_order').order('id'),
           supabase.from('boulders').select('*').order('position_order'),
           supabase.from('attempts').select('*, profile:profiles(*)'),
           supabase.from('comments').select('*, profile:profiles(*)').order('created_at', { ascending: true }),
@@ -296,16 +296,28 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         if (gymsRes.data && gymsRes.data.length > 0) setGyms(gymsRes.data);
         if (areasRes.data && areasRes.data.length > 0) {
-          setAreas(areasRes.data);
-          try {
-            localStorage.setItem('wham_areas', JSON.stringify(areasRes.data));
-          } catch (e) {
-            console.warn('Failed to cache areas to localStorage:', e);
-          }
+          const hasRemoteImageCol = areasRes.data.some((a: any) => 'image_url' in a);
+          setAreas((prev) => {
+            const merged = areasRes.data.map((remote: GymArea) => {
+              const local = prev.find((p) => p.id === remote.id);
+              if (!hasRemoteImageCol && local?.image_url) {
+                return { ...remote, image_url: local.image_url };
+              }
+              return remote;
+            });
+            try {
+              localStorage.setItem('wham_areas', JSON.stringify(merged));
+            } catch (e) {
+              console.warn('Failed to cache areas to localStorage:', e);
+            }
+            return merged;
+          });
           setCurrentAreaState((prev) => {
             if (!prev) return prev;
             const fresh = areasRes.data.find((a: GymArea) => a.id === prev.id);
-            return fresh || prev;
+            if (!fresh) return prev;
+            const image = hasRemoteImageCol ? fresh.image_url : (prev.image_url || fresh.image_url);
+            return { ...fresh, image_url: image };
           });
         }
         if (bouldersRes.data && bouldersRes.data.length > 0) setBoulders(bouldersRes.data);
@@ -589,7 +601,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         const [bouldersRes, areasRes, attRes, commRes, propsRes] = await Promise.all([
           client.from('boulders').select('*').order('position_order'),
-          client.from('gym_areas').select('*').order('sort_order'),
+          client.from('gym_areas').select('*').order('gym_id').order('sort_order').order('id'),
           client.from('attempts').select('*, profile:profiles(*)'),
           client.from('comments').select('*, profile:profiles(*)'),
           client.from('send_props').select('attempt_id, user_id')
@@ -618,17 +630,45 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           });
         }
         if (!areasRes.error && areasRes.data && areasRes.data.length > 0) {
+          const hasRemoteImageCol = areasRes.data.some((a: any) => 'image_url' in a);
           setAreas(prev => {
-            if (
-              prev.length === areasRes.data.length &&
-              prev.every((a, idx) => a.id === areasRes.data[idx].id && a.name === areasRes.data[idx].name && a.image_url === areasRes.data[idx].image_url)
-            ) {
+            const incoming = areasRes.data.map((remote: GymArea) => {
+              const local = prev.find((p) => p.id === remote.id);
+              if (!hasRemoteImageCol && local?.image_url) {
+                return { ...remote, image_url: local.image_url };
+              }
+              return remote;
+            });
+
+            const hasChanged = incoming.length !== prev.length || incoming.some((remote: GymArea) => {
+              const local = prev.find((p) => p.id === remote.id);
+              if (!local) return true;
+              return local.name !== remote.name ||
+                local.sort_order !== remote.sort_order ||
+                local.gym_id !== remote.gym_id ||
+                local.image_url !== remote.image_url;
+            });
+
+            if (!hasChanged) {
               return prev;
             }
+
             try {
-              localStorage.setItem('wham_areas', JSON.stringify(areasRes.data));
+              localStorage.setItem('wham_areas', JSON.stringify(incoming));
             } catch (e) {}
-            return areasRes.data;
+
+            // If active area was updated remotely (e.g. peer uploaded a photo), sync currentAreaState
+            setCurrentAreaState((prevArea) => {
+              if (!prevArea) return prevArea;
+              const matching = incoming.find((a: GymArea) => a.id === prevArea.id);
+              if (!matching) return prevArea;
+              if (matching.image_url !== prevArea.image_url || matching.name !== prevArea.name) {
+                return { ...prevArea, ...matching };
+              }
+              return prevArea;
+            });
+
+            return incoming;
           });
         }
         if (!attRes.error && attRes.data && attRes.data.length > 0) {
@@ -1292,12 +1332,33 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     imageDataUrl?: string | null
   ): Promise<string | null> => {
     let finalUrl: string | null = null;
-    if (imageFile && imageDataUrl) {
-      finalUrl = await uploadAreaPhoto(imageFile, imageDataUrl, areaId);
+    const targetArea = areas.find((a) => a.id === areaId);
+    const previousUrl = targetArea?.image_url;
+
+    if (imageFile) {
+      finalUrl = await uploadAreaPhoto(imageFile, imageDataUrl || '', areaId);
     } else if (imageDataUrl) {
       finalUrl = imageDataUrl;
     }
 
+    if (!finalUrl) {
+      throw new Error('No wall photo provided for upload');
+    }
+
+    // Persist to Supabase database first when configured so we verify persistence before claiming success
+    if (isSupabaseConfigured && supabase) {
+      const { error: updateErr } = await supabase
+        .from('gym_areas')
+        .update({ image_url: finalUrl })
+        .eq('id', areaId);
+
+      if (updateErr) {
+        console.error('Supabase update area photo error:', updateErr);
+        throw new Error('Failed to save wall photo to the server. Please try again.');
+      }
+    }
+
+    // Persist to local state and localStorage
     setAreas((prev) => {
       const updated = prev.map((a) => (a.id === areaId ? { ...a, image_url: finalUrl } : a));
       try {
@@ -1312,6 +1373,11 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCurrentAreaState((prev) => (prev ? { ...prev, image_url: finalUrl } : null));
     }
 
+    // Clean up previous storage photo if replacing
+    if (previousUrl && previousUrl !== finalUrl && !previousUrl.startsWith('data:')) {
+      deleteStoragePhotos([previousUrl]).catch((e) => console.warn('Old area photo cleanup notice:', e));
+    }
+
     // Broadcast immediately to all active peer sessions
     if (channelRef.current) {
       channelRef.current.send({
@@ -1319,20 +1385,6 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         event: 'area_photo_updated',
         payload: { areaId, imageUrl: finalUrl }
       }).catch((e: any) => console.warn('Broadcast area photo error:', e));
-    }
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { error: updateErr } = await supabase
-          .from('gym_areas')
-          .update({ image_url: finalUrl })
-          .eq('id', areaId);
-        if (updateErr) {
-          console.error('Supabase update area photo error:', updateErr);
-        }
-      } catch (err) {
-        console.warn('Supabase update area photo notice:', err);
-      }
     }
 
     return finalUrl;

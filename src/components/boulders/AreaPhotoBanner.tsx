@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { GymArea } from '../../types';
 import { compressImage } from '../../lib/imageCompressor';
 import { AreaPhotoModal } from './AreaPhotoModal';
-import { Camera, Image as ImageIcon, Maximize2, Trash2, ChevronDown, ChevronUp, Upload, Clock } from 'lucide-react';
+import { Camera, Image as ImageIcon, Maximize2, Trash2, ChevronDown, ChevronUp, Upload, Clock, Loader2 } from 'lucide-react';
 import { ResetAgeInfo } from '../../lib/resetStatus';
 
 interface AreaPhotoBannerProps {
@@ -47,9 +47,9 @@ export const AreaPhotoBanner: React.FC<AreaPhotoBannerProps> = ({
       // Compress with 1600px max width for crisp wide wall panorama
       const compressed = await compressImage(file, 1600, 0.8);
       await onUploadPhoto(compressed.file, compressed.dataUrl);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to compress and upload area photo:', err);
-      alert('Failed to process wall photo. Please try a different image.');
+      alert(err?.message || 'Failed to process wall photo. Please try a different image.');
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -59,7 +59,12 @@ export const AreaPhotoBanner: React.FC<AreaPhotoBannerProps> = ({
   const handleRemove = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (window.confirm(`Remove wall photo for ${currentArea.name}?`)) {
-      await onRemovePhoto();
+      try {
+        await onRemovePhoto();
+      } catch (err: any) {
+        console.error('Failed to remove wall photo:', err);
+        alert(err?.message || 'Failed to remove wall photo.');
+      }
     }
   };
 
@@ -112,7 +117,7 @@ export const AreaPhotoBanner: React.FC<AreaPhotoBannerProps> = ({
                   className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors disabled:opacity-40"
                   title="Change Wall Photo"
                 >
-                  <Camera className="w-3.5 h-3.5" />
+                  {isUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" /> : <Camera className="w-3.5 h-3.5" />}
                 </button>
 
                 <button
@@ -190,7 +195,11 @@ export const AreaPhotoBanner: React.FC<AreaPhotoBannerProps> = ({
               style={{ backgroundColor: activeColor, color: '#000000' }}
               className="py-1.5 px-3 rounded-xl font-bold text-xs flex items-center gap-1.5 active-press transition-colors shrink-0 shadow-sm disabled:opacity-40"
             >
-              <Upload className="w-3.5 h-3.5 stroke-[3]" />
+              {isUploading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Upload className="w-3.5 h-3.5 stroke-[3]" />
+              )}
               <span>{isUploading ? 'Uploading...' : 'Add Wall Photo'}</span>
             </button>
           </div>

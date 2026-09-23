@@ -187,7 +187,7 @@ wham-app/
 2. **`public.gyms`**:
    - `id` (UUID, PK), `name` (TEXT), `location` (TEXT)
 3. **`public.gym_areas`**:
-   - `id` (UUID, PK), `gym_id` (UUID), `name` (TEXT), `sort_order` (INT)
+   - `id` (UUID, PK), `gym_id` (UUID), `name` (TEXT), `sort_order` (INT), `image_url` (TEXT)
 4. **`public.boulders`**:
    - `id` (UUID, PK), `area_id` (UUID), `hold_colour` (TEXT), `grade` (TEXT)
    - `position_order` (DOUBLE PRECISION), `notes` (TEXT), `image_url` (TEXT)
@@ -318,10 +318,51 @@ DROP POLICY IF EXISTS "Authenticated users can insert gym areas" ON public.gym_a
 DROP POLICY IF EXISTS "Authenticated users can update gym areas" ON public.gym_areas;
 DROP POLICY IF EXISTS "Authenticated users can delete gym areas" ON public.gym_areas;
 
+ALTER TABLE public.gym_areas ADD COLUMN IF NOT EXISTS image_url TEXT;
+
 CREATE POLICY "Public can view gym areas" ON public.gym_areas FOR SELECT TO public USING (true);
 CREATE POLICY "Public can insert gym areas" ON public.gym_areas FOR INSERT TO public WITH CHECK (true);
 CREATE POLICY "Public can update gym areas" ON public.gym_areas FOR UPDATE TO public USING (true) WITH CHECK (true);
 CREATE POLICY "Public can delete gym areas" ON public.gym_areas FOR DELETE TO public USING (true);
+
+-- Storage bucket configuration for boulder-photos & wall photos
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'boulder-photos',
+    'boulder-photos',
+    true,
+    5242880,
+    ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+)
+ON CONFLICT (id) DO UPDATE SET
+    public = true,
+    file_size_limit = 5242880,
+    allowed_mime_types = ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
+DROP POLICY IF EXISTS "Public access to boulder-photos" ON storage.objects;
+DROP POLICY IF EXISTS "Public can upload boulder-photos" ON storage.objects;
+DROP POLICY IF EXISTS "Public can update boulder-photos" ON storage.objects;
+DROP POLICY IF EXISTS "Public can delete boulder-photos" ON storage.objects;
+
+CREATE POLICY "Public access to boulder-photos"
+    ON storage.objects FOR SELECT
+    TO public
+    USING (bucket_id = 'boulder-photos');
+
+CREATE POLICY "Public can upload boulder-photos"
+    ON storage.objects FOR INSERT
+    TO public
+    WITH CHECK (bucket_id = 'boulder-photos');
+
+CREATE POLICY "Public can update boulder-photos"
+    ON storage.objects FOR UPDATE
+    TO public
+    USING (bucket_id = 'boulder-photos');
+
+CREATE POLICY "Public can delete boulder-photos"
+    ON storage.objects FOR DELETE
+    TO public
+    USING (bucket_id = 'boulder-photos');
 
 -- Ensure full replica identity for realtime sync
 ALTER TABLE public.boulders REPLICA IDENTITY FULL;
@@ -335,6 +376,14 @@ BEGIN
       AND tablename = 'boulders'
   ) THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.boulders;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+      AND schemaname = 'public' 
+      AND tablename = 'gym_areas'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.gym_areas;
   END IF;
 END $$;
 ```
