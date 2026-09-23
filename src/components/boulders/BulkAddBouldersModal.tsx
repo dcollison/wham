@@ -1015,13 +1015,13 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
           )}
         </div>
 
-        {/* Modal Footer / Save Action */}
+        {/* Modal Footer / Save Action: Larger & More Prominent */}
         <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-800">
           <button
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="py-2.5 px-4 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 active-press transition-colors"
+            className="min-h-[46px] py-3 px-5 rounded-2xl text-xs sm:text-sm font-semibold bg-slate-800 hover:bg-slate-750 text-slate-200 active-press transition-colors"
           >
             Cancel
           </button>
@@ -1031,7 +1031,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
             onClick={handleSaveAll}
             disabled={isSubmitting || draftQueue.length === 0}
             style={{ backgroundColor: activeColor, color: '#000000' }}
-            className="py-2.5 px-5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 active-press transition-all shadow-lg disabled:opacity-40"
+            className="min-h-[48px] py-3.5 px-6 rounded-2xl text-xs sm:text-sm font-heading font-black flex items-center justify-center gap-2 active-press transition-all shadow-xl disabled:opacity-40"
           >
             <Check className="w-4 h-4 stroke-[3]" />
             <span>

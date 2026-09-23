@@ -198,17 +198,17 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (cached) {
       try {
         const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed)) {
-          const cleaned = parsed.filter(
-            (r: FeatureRequest) => !['req-001', 'req-002', 'req-003'].includes(r.id)
-          );
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const cleaned = parsed
+            .map((r: FeatureRequest) => (r.title?.toLowerCase() === 'save and next buttons' ? { ...r, status: 'shipped' as const } : r))
+            .filter((r: FeatureRequest) => !['req-001', 'req-002', 'req-003'].includes(r.id));
           return cleaned;
         }
       } catch {
         // Fallback
       }
     }
-    return [];
+    return INITIAL_FEATURE_REQUESTS;
   });
 
   const channelRef = useRef<any>(null);
@@ -327,12 +327,12 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (attemptsRes.data && attemptsRes.data.length > 0) setAttempts(attemptsRes.data);
         if (commentsRes.data && commentsRes.data.length > 0) setComments(commentsRes.data);
         if (!featureRequestsRes.error && Array.isArray(featureRequestsRes.data)) {
-          const cleanRequests = featureRequestsRes.data.filter(
-            (r: FeatureRequest) => !['req-001', 'req-002', 'req-003'].includes(r.id)
-          );
-          setFeatureRequests(cleanRequests);
+          const cleanRequests = featureRequestsRes.data
+            .map((r: FeatureRequest) => (r.title?.toLowerCase() === 'save and next buttons' ? { ...r, status: 'shipped' as const } : r))
+            .filter((r: FeatureRequest) => !['req-001', 'req-002', 'req-003'].includes(r.id));
+          setFeatureRequests(cleanRequests.length > 0 ? cleanRequests : INITIAL_FEATURE_REQUESTS);
           try {
-            localStorage.setItem('wham_feature_requests', JSON.stringify(cleanRequests));
+            localStorage.setItem('wham_feature_requests', JSON.stringify(cleanRequests.length > 0 ? cleanRequests : INITIAL_FEATURE_REQUESTS));
           } catch (e) {}
         }
 

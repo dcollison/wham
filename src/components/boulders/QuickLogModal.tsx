@@ -258,101 +258,108 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
     >
       <div
-        className="w-full max-w-lg bg-slate-900 border-t sm:border border-slate-700/80 rounded-t-3xl sm:rounded-2xl p-4 sm:p-5 shadow-2xl flex flex-col gap-4 max-h-[92vh] overflow-y-auto sheet-elevated pb-safe overscroll-contain"
+        className="w-full max-w-lg bg-slate-900 border-t sm:border border-slate-700/80 rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[92vh] sheet-elevated overflow-hidden overscroll-contain"
         style={{
           transform: dragOffset > 0 ? `translateY(${dragOffset}px)` : undefined,
           transition: isDragging ? 'none' : 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Mobile pull/drag handle */}
-        <div
-          className="w-full py-2 -mt-2 mb-1 flex items-center justify-center cursor-grab active:cursor-grabbing sm:hidden shrink-0 select-none touch-none"
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onClick={onClose}
-          title="Drag down or tap to dismiss"
-        >
-          <div className="w-12 h-1.5 bg-slate-700 hover:bg-slate-600 rounded-full transition-colors" />
-        </div>
+        {/* Fixed Header Section */}
+        <div className="shrink-0 px-4 sm:px-5 pt-2 pb-2.5 border-b border-slate-800 bg-slate-900">
+          {/* Mobile pull/drag handle */}
+          <div
+            className="w-full py-1.5 mb-1.5 flex items-center justify-center cursor-grab active:cursor-grabbing sm:hidden select-none touch-none"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onClick={onClose}
+            title="Drag down or tap to dismiss"
+          >
+            <div className="w-12 h-1.5 bg-slate-700 hover:bg-slate-600 rounded-full transition-colors" />
+          </div>
 
-        {/* Header with Boulder info & Filter Navigation */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-2.5 gap-2">
-          {/* Left: Hold color badge + Climb number */}
-          <div className="flex items-center gap-2 min-w-0">
-            <HoldBadge
-              color={boulder.hold_colour}
-              grade={boulder.grade}
-              isComp={boulder.is_comp}
-              compNumber={boulder.comp_number}
-              size="md"
-            />
-            <span
-              className={`font-mono text-xs font-bold shrink-0 tabular-nums px-2 py-0.5 rounded ${
-                boulder.is_comp
-                  ? 'text-amber-300 bg-amber-500/10 border border-amber-500/30'
-                  : 'text-slate-400 bg-slate-800'
-              }`}
-            >
-              #{boulder.comp_number ?? boulder.display_order ?? Math.round(boulder.position_order)}
+          {/* Header with Boulder info & Filter Navigation */}
+          <div className="flex items-center justify-between gap-2">
+            {/* Left: Hold color badge + Climb number */}
+            <div className="flex items-center gap-2 min-w-0">
+              <HoldBadge
+                color={boulder.hold_colour}
+                grade={boulder.grade}
+                isComp={boulder.is_comp}
+                compNumber={boulder.comp_number}
+                size="md"
+              />
+              <span
+                className={`font-mono text-xs font-bold shrink-0 tabular-nums px-2 py-0.5 rounded ${
+                  boulder.is_comp
+                    ? 'text-amber-300 bg-amber-500/10 border border-amber-500/30'
+                    : 'text-slate-400 bg-slate-800'
+                }`}
+              >
+                #{boulder.comp_number ?? boulder.display_order ?? Math.round(boulder.position_order)}
+              </span>
+            </div>
+
+            {/* Right: Stepper with adjacent hold swatches + Close button */}
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              {hasFilter && totalFiltered > 1 && (
+                <div className="flex items-center bg-slate-800/90 rounded-2xl border border-slate-700/80 p-1 text-xs shadow-md">
+                  <button
+                    type="button"
+                    onClick={() => prevBoulder && onNavigateBoulder?.(prevBoulder)}
+                    className="px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl hover:bg-slate-700 text-slate-200 hover:text-white transition-colors flex items-center gap-1.5 active-press touch-manipulation font-heading font-bold"
+                    title={`Previous in filter: #${prevBoulder!.display_order ?? Math.round(prevBoulder!.position_order)} ${prevBoulder!.hold_colour} ${prevBoulder!.grade}`}
+                  >
+                    <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                    {prevBoulder && <HoldSwatch color={prevBoulder.hold_colour} size="sm" />}
+                    <span className="hidden sm:inline text-xs">Prev</span>
+                  </button>
+
+                  <span className="font-mono text-xs sm:text-sm text-slate-300 font-bold px-1.5 select-none whitespace-nowrap">
+                    {currentIndex + 1} / {totalFiltered}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => nextBoulder && onNavigateBoulder?.(nextBoulder)}
+                    className="px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl hover:bg-slate-700 text-slate-200 hover:text-white transition-colors flex items-center gap-1.5 active-press touch-manipulation font-heading font-bold"
+                    title={`Next in filter: #${nextBoulder!.display_order ?? Math.round(nextBoulder!.position_order)} ${nextBoulder!.hold_colour} ${nextBoulder!.grade}`}
+                  >
+                    <span className="hidden sm:inline text-xs">Next</span>
+                    {nextBoulder && <HoldSwatch color={nextBoulder.hold_colour} size="sm" />}
+                    <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                  </button>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors active-press touch-manipulation shrink-0"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Sub-bar: Sector Location */}
+          <div className="flex items-center gap-1.5 text-slate-400 font-medium text-xs pt-1.5">
+            <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span className="truncate text-xs text-slate-300">
+              {resolvedAreaName || 'Wall Sector'}
             </span>
           </div>
-
-          {/* Right: Stepper with adjacent hold swatches + Close button */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {hasFilter && totalFiltered > 1 && (
-              <div className="flex items-center bg-slate-800/90 rounded-xl border border-slate-700/80 p-0.5 text-xs shadow-xs">
-                <button
-                  type="button"
-                  onClick={() => prevBoulder && onNavigateBoulder?.(prevBoulder)}
-                  className="px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-lg hover:bg-slate-700 text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 active:scale-95 touch-manipulation"
-                  title={`Previous in filter: #${prevBoulder!.display_order ?? Math.round(prevBoulder!.position_order)} ${prevBoulder!.hold_colour} ${prevBoulder!.grade}`}
-                >
-                  <ChevronLeft className="w-4 h-4 shrink-0" />
-                  {prevBoulder && <HoldSwatch color={prevBoulder.hold_colour} size="sm" />}
-                </button>
-
-                <span className="font-mono text-xs text-slate-300 font-bold px-1 select-none whitespace-nowrap">
-                  {currentIndex + 1} of {totalFiltered}
-                </span>
-
-                <button
-                  type="button"
-                  onClick={() => nextBoulder && onNavigateBoulder?.(nextBoulder)}
-                  className="px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-lg hover:bg-slate-700 text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 active:scale-95 touch-manipulation"
-                  title={`Next in filter: #${nextBoulder!.display_order ?? Math.round(nextBoulder!.position_order)} ${nextBoulder!.hold_colour} ${nextBoulder!.grade}`}
-                >
-                  {nextBoulder && <HoldSwatch color={nextBoulder.hold_colour} size="sm" />}
-                  <ChevronRight className="w-4 h-4 shrink-0" />
-                </button>
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors active:scale-95 touch-manipulation shrink-0"
-              title="Close"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
         </div>
 
-        {/* Sub-bar: Sector Location */}
-        <div className="flex items-center gap-1.5 text-slate-400 font-medium text-xs -mt-1 pb-0.5">
-          <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-          <span className="truncate text-xs text-slate-300">
-            {resolvedAreaName || 'Wall Sector'}
-          </span>
-        </div>
-
-        {/* Climber Selector / Context */}
-        <div className="flex flex-col gap-2 bg-slate-800/40 p-3 rounded-2xl border border-slate-800">
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5" style={{ color: selectedClimberColor }} />
+        {/* Scrollable Modal Content */}
+        <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-3.5 flex flex-col gap-4 scrollbar-thin">
+          {/* Climber Selector / Context */}
+          <div className="flex flex-col gap-2 bg-slate-800/40 p-3 rounded-2xl border border-slate-800">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5" style={{ color: selectedClimberColor }} />
               Log for Climber:
             </span>
             {isLoggingForOther ? (
@@ -638,85 +645,8 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
           )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col gap-2 pt-1">
-          {/* Primary Option: Save & Next Boulder (active when adjacent filtered boulders exist) */}
-          {nextBoulder && nextBoulder.id !== boulder.id && (
-            <button
-              type="button"
-              onClick={handleSaveAndNextBoulder}
-              disabled={saving}
-              style={{ backgroundColor: selectedClimberColor, color: '#000000' }}
-              className="w-full py-3 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-between shadow-lg active-press transition-all group"
-              title={`Save log and advance to next boulder in filter (#${nextBoulder.display_order ?? Math.round(nextBoulder.position_order)} ${nextBoulder.hold_colour} ${nextBoulder.grade})`}
-            >
-              <span className="flex items-center gap-1.5 font-bold">
-                {computedStatus === 'flashed' && <Zap className="w-4 h-4 fill-current shrink-0" />}
-                {computedStatus === 'sent' && <Check className="w-4 h-4 stroke-[3] shrink-0" />}
-                {computedStatus === 'attempted' && <Clock className="w-4 h-4 shrink-0" />}
-                <span>{saving ? 'Saving...' : 'Save & Next Boulder'}</span>
-              </span>
-
-              <div className="flex items-center gap-1.5 bg-black/25 px-2 py-0.5 rounded-lg text-[11px] font-mono font-bold shrink-0">
-                <HoldSwatch color={nextBoulder.hold_colour} size="xs" />
-                <span>#{nextBoulder.display_order ?? Math.round(nextBoulder.position_order)} {nextBoulder.grade}</span>
-                <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-              </div>
-            </button>
-          )}
-
-          {/* Options: Save (stay on current climb) and Save & Close */}
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => handleSaveAttempt(false)}
-              disabled={saving}
-              className={`py-3 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all active-press border ${
-                justSavedName
-                  ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300 shadow-sm'
-                  : 'bg-slate-800/90 hover:bg-slate-750 text-slate-200 border-slate-700/80 hover:border-slate-650'
-              }`}
-              title="Save log and keep modal open to log for another crew member or edit"
-            >
-              {saving ? (
-                <span>Saving...</span>
-              ) : justSavedName ? (
-                <>
-                  <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Saved!</span>
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 text-slate-400 shrink-0" />
-                  <span>Save</span>
-                </>
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleSaveAttempt(true)}
-              disabled={saving}
-              className={`py-3 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-lg transition-all active-press ${
-                !nextBoulder || nextBoulder.id === boulder.id
-                  ? computedStatus === 'flashed'
-                    ? 'bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/20'
-                    : computedStatus === 'sent'
-                    ? 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-emerald-500/20'
-                    : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20'
-                  : 'bg-slate-800 hover:bg-slate-750 text-white border border-slate-700 hover:border-slate-650'
-              }`}
-              title="Save log and close"
-            >
-              {computedStatus === 'flashed' && <Zap className="w-4 h-4 fill-amber-400 text-amber-400 shrink-0" />}
-              {computedStatus === 'sent' && <Check className="w-4 h-4 text-emerald-400 stroke-[3] shrink-0" />}
-              {computedStatus === 'attempted' && <Clock className="w-4 h-4 text-blue-400 shrink-0" />}
-              <span>{saving ? 'Saving...' : 'Save & Close'}</span>
-            </button>
-          </div>
-
-          {/* Secondary Utility Row: Details & Beta, Delete */}
-          <div className="flex items-center justify-between gap-2 pt-0.5">
+          {/* Secondary Utility Row: Details & Beta, Quick Skip to Next, Delete */}
+          <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800/80 mt-1">
             <div className="flex items-center gap-2">
               {onOpenDetails && boulder && (
                 <button
@@ -742,18 +672,148 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
               )}
             </div>
 
-            {selectedAttempt && onDelete && (
+            <div className="flex items-center gap-2">
+              {nextBoulder && nextBoulder.id !== boulder.id && onNavigateBoulder && (
+                <button
+                  type="button"
+                  onClick={() => onNavigateBoulder(nextBoulder)}
+                  className="py-2 px-3 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-750 border border-slate-700 active-press transition-all flex items-center gap-1.5 shadow-xs touch-manipulation"
+                  title={`Skip to next boulder without logging (#${nextBoulder.display_order ?? Math.round(nextBoulder.position_order)} ${nextBoulder.hold_colour} ${nextBoulder.grade})`}
+                >
+                  <span>Skip to Next</span>
+                  <HoldSwatch color={nextBoulder.hold_colour} size="xs" />
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              )}
+
+              {selectedAttempt && onDelete && (
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={saving}
+                  className="p-2 rounded-xl border border-rose-900/40 bg-rose-950/30 text-rose-300 hover:bg-rose-900/50 transition-colors flex items-center justify-center shrink-0 active-press touch-manipulation"
+                  title={`Clear / Delete Log for ${selectedClimber?.display_name}`}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Sticky Action Footer: Larger, Prominent Save & Next Buttons */}
+        <div className="shrink-0 p-3 sm:p-4 bg-slate-900/98 backdrop-blur-md border-t border-slate-800/90 pb-safe flex flex-col gap-2.5 shadow-2xl">
+          {/* Primary Option: Save & Next Boulder (active when adjacent filtered boulders exist) */}
+          {nextBoulder && nextBoulder.id !== boulder.id ? (
+            <>
               <button
                 type="button"
-                onClick={handleDelete}
+                onClick={handleSaveAndNextBoulder}
                 disabled={saving}
-                className="p-2 rounded-xl border border-rose-900/40 bg-rose-950/30 text-rose-300 hover:bg-rose-900/50 transition-colors flex items-center justify-center shrink-0 active:scale-95 touch-manipulation"
-                title={`Clear / Delete Log for ${selectedClimber?.display_name}`}
+                style={{ backgroundColor: selectedClimberColor, color: '#000000' }}
+                className="w-full min-h-[52px] sm:min-h-[56px] py-3.5 sm:py-4 px-4 sm:px-5 rounded-2xl font-heading font-black text-sm sm:text-base flex items-center justify-between shadow-xl active-press hover:brightness-110 transition-all group"
+                title={`Save log and advance to next boulder in filter (#${nextBoulder.display_order ?? Math.round(nextBoulder.position_order)} ${nextBoulder.hold_colour} ${nextBoulder.grade})`}
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <span className="flex items-center gap-2">
+                  {computedStatus === 'flashed' && <Zap className="w-5 h-5 fill-current shrink-0" />}
+                  {computedStatus === 'sent' && <Check className="w-5 h-5 stroke-[3] shrink-0" />}
+                  {computedStatus === 'attempted' && <Clock className="w-5 h-5 stroke-[2.5] shrink-0" />}
+                  <span>{saving ? 'Saving...' : 'Save & Next Boulder'}</span>
+                </span>
+
+                <div className="flex items-center gap-1.5 bg-black/25 px-2.5 py-1 rounded-xl text-xs font-mono font-bold shrink-0 transition-colors">
+                  <HoldSwatch color={nextBoulder.hold_colour} size="xs" />
+                  <span>#{nextBoulder.display_order ?? Math.round(nextBoulder.position_order)} {nextBoulder.grade}</span>
+                  <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                </div>
               </button>
-            )}
-          </div>
+
+              {/* Secondary Options: Save (keep open) and Save & Close */}
+              <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => handleSaveAttempt(false)}
+                  disabled={saving}
+                  className={`min-h-[46px] sm:min-h-[48px] py-3 px-3 rounded-xl font-heading font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all active-press border ${
+                    justSavedName
+                      ? 'bg-emerald-950/50 border-emerald-500/60 text-emerald-300 shadow-sm'
+                      : 'bg-slate-800/90 hover:bg-slate-750 text-slate-200 border-slate-700/80 hover:border-slate-650'
+                  }`}
+                  title="Save log and keep modal open to log for another crew member or edit"
+                >
+                  {saving ? (
+                    <span>Saving...</span>
+                  ) : justSavedName ? (
+                    <>
+                      <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Saved!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Save</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSaveAttempt(true)}
+                  disabled={saving}
+                  className="min-h-[46px] sm:min-h-[48px] py-3 px-3 rounded-xl font-heading font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md transition-all active-press bg-slate-800 hover:bg-slate-750 text-white border border-slate-700 hover:border-slate-650 hover:brightness-105"
+                  title="Save log and close"
+                >
+                  {computedStatus === 'flashed' && <Zap className="w-4 h-4 fill-amber-400 text-amber-400 shrink-0" />}
+                  {computedStatus === 'sent' && <Check className="w-4 h-4 text-emerald-400 stroke-[3] shrink-0" />}
+                  {computedStatus === 'attempted' && <Clock className="w-4 h-4 text-blue-400 shrink-0" />}
+                  <span>{saving ? 'Saving...' : 'Save & Close'}</span>
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => handleSaveAttempt(true)}
+                disabled={saving}
+                className={`w-full min-h-[52px] sm:min-h-[56px] py-3.5 sm:py-4 px-4 sm:px-5 rounded-2xl font-heading font-black text-sm sm:text-base flex items-center justify-center gap-2 shadow-xl transition-all active-press ${
+                  computedStatus === 'flashed'
+                    ? 'bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-amber-500/20'
+                    : computedStatus === 'sent'
+                    ? 'bg-emerald-400 hover:bg-emerald-300 text-slate-950 shadow-emerald-500/20'
+                    : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20'
+                }`}
+                title="Save log and close"
+              >
+                {computedStatus === 'flashed' && <Zap className="w-5 h-5 fill-current shrink-0" />}
+                {computedStatus === 'sent' && <Check className="w-5 h-5 stroke-[3] shrink-0" />}
+                {computedStatus === 'attempted' && <Clock className="w-5 h-5 stroke-[2.5] shrink-0" />}
+                <span>{saving ? 'Saving...' : 'Save & Close'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSaveAttempt(false)}
+                disabled={saving}
+                className="w-full min-h-[42px] py-2.5 px-3 rounded-xl font-heading font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all active-press border bg-slate-800/80 hover:bg-slate-750 text-slate-300 border-slate-700/80"
+                title="Save log and keep modal open to log for another crew member or edit"
+              >
+                {saving ? (
+                  <span>Saving...</span>
+                ) : justSavedName ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>Saved!</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 text-slate-400 shrink-0" />
+                    <span>Save &amp; Keep Open</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

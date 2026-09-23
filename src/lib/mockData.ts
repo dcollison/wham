@@ -3829,5 +3829,16 @@ export const INITIAL_ATTEMPTS: Attempt[] = [
 
 export const INITIAL_COMMENTS: Comment[] = [];
 
-export const INITIAL_FEATURE_REQUESTS: FeatureRequest[] = [];
+export const INITIAL_FEATURE_REQUESTS: FeatureRequest[] = [
+  {
+    id: 'f0000000-0000-0000-0000-000000000001',
+    user_id: 'a0000000-0000-0000-0000-000000000004',
+    title: 'Save and next buttons',
+    description: 'Adjust size and positioning of the save, next buttons etc I feel like they should be larger and more prominent',
+    category: 'ui',
+    status: 'shipped',
+    upvotes: ['a0000000-0000-0000-0000-000000000004'],
+    created_at: '2026-09-20T10:00:00Z'
+  }
+];
 

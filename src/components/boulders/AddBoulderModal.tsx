@@ -431,14 +431,14 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
             />
           </div>
 
-          {/* Submit */}
+          {/* Submit Action: Larger & More Prominent */}
           <button
             type="submit"
             disabled={submitting || compressing}
             style={{ backgroundColor: activeColor, color: '#000000' }}
-            className="w-full mt-2 py-3.5 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg active-press disabled:opacity-50"
+            className="w-full mt-2 min-h-[50px] py-4 px-5 rounded-2xl font-heading font-black text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-xl active-press disabled:opacity-50"
           >
-            <Plus className="w-4 h-4 stroke-[3]" />
+            <Plus className="w-5 h-5 stroke-[3]" />
             <span>{submitting ? 'Adding Boulder...' : 'Add Boulder'}</span>
           </button>
         </form>

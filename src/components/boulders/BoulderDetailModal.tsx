@@ -354,29 +354,33 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
             )}
           </div>
 
-          {/* Filter navigation strip */}
+          {/* Filter navigation strip: Larger, Tactile Stepper */}
           {hasFilter && (
-            <div className="flex items-center gap-1 bg-slate-800/90 px-2 py-1 rounded-xl border border-slate-700/80 text-xs shrink-0">
+            <div className="flex items-center gap-1 bg-slate-800/90 p-1 rounded-2xl border border-slate-700/80 text-xs shadow-md shrink-0">
               <button
                 type="button"
                 onClick={() => prevBoulder && onNavigateBoulder?.(prevBoulder)}
                 disabled={!prevBoulder}
-                className="p-1 rounded-lg hover:bg-slate-700 text-slate-300 disabled:opacity-25 disabled:pointer-events-none transition-colors"
+                className="px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl hover:bg-slate-700 text-slate-200 hover:text-white disabled:opacity-25 disabled:pointer-events-none transition-colors flex items-center gap-1.5 active-press touch-manipulation font-heading font-bold"
                 title={prevBoulder ? `Previous Boulder: #${prevBoulder.display_order ?? Math.round(prevBoulder.position_order)} ${prevBoulder.hold_colour} ${prevBoulder.grade}` : 'First boulder in filter'}
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                {prevBoulder && <HoldSwatch color={prevBoulder.hold_colour} size="sm" />}
+                <span className="hidden sm:inline text-xs">Prev</span>
               </button>
-              <span className="font-mono text-[11px] text-slate-300 font-bold px-1 select-none">
-                {currentIndex + 1} of {totalFiltered}
+              <span className="font-mono text-xs sm:text-sm text-slate-300 font-bold px-1.5 select-none whitespace-nowrap">
+                {currentIndex + 1} / {totalFiltered}
               </span>
               <button
                 type="button"
                 onClick={() => nextBoulder && onNavigateBoulder?.(nextBoulder)}
                 disabled={!nextBoulder}
-                className="p-1 rounded-lg hover:bg-slate-700 text-slate-300 disabled:opacity-25 disabled:pointer-events-none transition-colors"
+                className="px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl hover:bg-slate-700 text-slate-200 hover:text-white disabled:opacity-25 disabled:pointer-events-none transition-colors flex items-center gap-1.5 active-press touch-manipulation font-heading font-bold"
                 title={nextBoulder ? `Next Boulder: #${nextBoulder.display_order ?? Math.round(nextBoulder.position_order)} ${nextBoulder.hold_colour} ${nextBoulder.grade}` : 'Last boulder in filter'}
               >
-                <ChevronRight className="w-4 h-4" />
+                <span className="hidden sm:inline text-xs">Next</span>
+                {nextBoulder && <HoldSwatch color={nextBoulder.hold_colour} size="sm" />}
+                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
               </button>
             </div>
           )}
@@ -683,7 +687,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                       setEditRestoreOnMove(boulder.is_archived);
                       setEditNotes(boulder.notes || '');
                     }}
-                    className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                    className="min-h-[44px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
                   >
                     Cancel
                   </button>
@@ -692,9 +696,9 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                     disabled={isSavingEdit}
                     onClick={handleSaveEdit}
                     style={{ backgroundColor: activeColor, color: '#000000' }}
-                    className="px-4 py-2 rounded-xl font-bold text-xs shadow active-press transition-all flex items-center gap-1.5 disabled:opacity-50"
+                    className="min-h-[44px] px-5 py-2.5 rounded-xl font-heading font-black text-sm shadow-md active-press transition-all flex items-center gap-2 disabled:opacity-50"
                   >
-                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                    <Check className="w-4 h-4 stroke-[3]" />
                     <span>{isSavingEdit ? 'Saving...' : 'Save Changes'}</span>
                   </button>
                 </div>
@@ -766,8 +770,8 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
             </div>
           )}
 
-          {/* Quick Log Action Bar */}
-          <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3 flex items-center justify-between gap-3">
+          {/* Quick Log Action Bar: Prominent and tactile */}
+          <div className="bg-slate-800/70 border border-slate-700/80 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
             <div>
               <p className="text-[11px] uppercase font-bold text-slate-400">Your Status</p>
               <div className="mt-0.5">
@@ -789,7 +793,20 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+              {nextBoulder && nextBoulder.id !== boulder.id && onNavigateBoulder && (
+                <button
+                  type="button"
+                  onClick={() => onNavigateBoulder(nextBoulder)}
+                  className="min-h-[44px] px-3.5 py-2.5 rounded-xl text-xs font-heading font-bold bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 active-press transition-all flex items-center gap-1.5 shadow"
+                  title={`Next in filter: #${nextBoulder.display_order ?? Math.round(nextBoulder.position_order)} ${nextBoulder.hold_colour} ${nextBoulder.grade}`}
+                >
+                  <span>Next Climb</span>
+                  <HoldSwatch color={nextBoulder.hold_colour} size="xs" />
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              )}
+
               {climbers.length > 1 && (
                 <button
                   type="button"
@@ -799,7 +816,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                     const other = climbers.find(c => c.id !== currentUserId) || climbers[0];
                     onQuickLog(boulder, other.id);
                   }}
-                  className="px-2.5 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 active-press transition-all flex items-center gap-1.5 shadow"
+                  className="min-h-[44px] px-3.5 py-2.5 rounded-xl text-xs font-heading font-bold bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700 active-press transition-all flex items-center gap-1.5 shadow"
                   title="Log on behalf of someone in your crew"
                 >
                   <Users className="w-3.5 h-3.5" style={{ color: activeColor }} />
@@ -814,9 +831,9 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                   onQuickLog(boulder, currentUserId);
                 }}
                 style={{ backgroundColor: activeColor, color: '#000000' }}
-                className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold active-press transition-all shadow"
+                className="min-h-[44px] px-5 py-2.5 rounded-xl text-xs sm:text-sm font-heading font-black active-press transition-all shadow-md flex items-center gap-1.5"
               >
-                {userAttempt ? 'Update Log' : 'Quick Log'}
+                <span>{userAttempt ? 'Update Log' : 'Quick Log'}</span>
               </button>
             </div>
           </div>
