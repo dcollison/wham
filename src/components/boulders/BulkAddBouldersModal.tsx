@@ -64,7 +64,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
   const [dateAdded, setDateAdded] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [activeTab, setActiveTab] = useState<'visual' | 'paste'>('visual');
   const [isCompClimbs, setIsCompClimbs] = useState<boolean>(false);
-  const [compGenerateCount, setCompGenerateCount] = useState<number>(30);
+  const [curCompNumber, setCurCompNumber] = useState<number>(1);
 
   // Visual fast logger inputs
   const [curHoldColour, setCurHoldColour] = useState<string>('Yellow');
@@ -101,6 +101,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
       setIsCompClimbs(Boolean(activeArea?.is_comp_wall));
 
       setDraftQueue([]);
+      setCurCompNumber(1);
       setPasteText('');
       setPasteFeedback(null);
       setCurNotes('');
@@ -127,38 +128,34 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
     (b) => b.gym_id === gymId && b.area_id === effectiveAreaId && !b.is_archived
   );
 
-  // Add a single climb to draft queue
-  const handleAddDraft = (hold: string = curHoldColour, gr: Grade = curGrade, notes: string = curNotes) => {
-    const startNum = archiveExisting ? 1 : existingActiveInArea.length + 1;
-    const nextCompNumber = startNum + draftQueue.length;
+  // Add a single climb to draft queue along the wall clockwise
+  const handleAddDraft = (
+    hold: string = curHoldColour,
+    gr: Grade = curGrade,
+    notes: string = curNotes,
+    compNum?: number
+  ) => {
+    const chosenCompNum = compNum !== undefined ? compNum : curCompNumber;
     const newItem: DraftBoulder = {
       id: `draft-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       holdColour: hold,
       grade: isCompClimbs ? 'VB' : gr,
       isComp: isCompClimbs,
-      compNumber: isCompClimbs ? nextCompNumber : undefined,
+      compNumber: isCompClimbs ? chosenCompNum : undefined,
       notes: notes.trim() || undefined
     };
     setDraftQueue((prev) => [...prev, newItem]);
     setCurNotes('');
+    if (isCompClimbs) {
+      setCurCompNumber(chosenCompNum + 1);
+    }
   };
 
-  // Quick generator for comp wall climbs (#1 to #N)
-  const handleGenerateCompClimbs = (count: number = compGenerateCount) => {
-    const colors = Object.keys(HOLD_COLORS);
-    const startNum = archiveExisting ? 1 : existingActiveInArea.length + 1;
-    const newItems: DraftBoulder[] = [];
-    for (let i = 0; i < count; i++) {
-      const color = colors[i % colors.length];
-      newItems.push({
-        id: `draft-comp-${Date.now()}-${i}-${Math.random().toString(36).substring(2, 5)}`,
-        holdColour: color,
-        grade: 'VB',
-        isComp: true,
-        compNumber: startNum + i
-      });
-    }
-    setDraftQueue((prev) => [...prev, ...newItems]);
+  // Update comp problem number on a queued item
+  const handleUpdateCompNumber = (id: string, num: number) => {
+    setDraftQueue((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, compNumber: isNaN(num) ? 1 : Math.max(1, num) } : item))
+    );
   };
 
   // When autoAddOnGrade is enabled, tapping a grade immediately appends to the queue
@@ -246,6 +243,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
 
       let foundColor: string | null = null;
       let foundGrade: Grade | null = null;
+      let foundCompNum: number | null = null;
       const remainingTokens: string[] = [];
 
       for (const token of tokens) {
@@ -273,10 +271,29 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
           }
         }
 
+        // 3. Try matching Comp Number (#1, 1, #12, 12, etc.)
+        if (foundCompNum === null) {
+          const match = cleanToken.match(/^#?(\d+)$/);
+          if (match) {
+            foundCompNum = parseInt(match[1], 10);
+            continue;
+          }
+        }
+
         remainingTokens.push(cleanToken);
       }
 
-      if (foundColor && foundGrade) {
+      if (isCompClimbs && foundColor && (foundCompNum !== null || foundGrade)) {
+        const compNum = foundCompNum !== null ? foundCompNum : (parsedItems.length + 1);
+        parsedItems.push({
+          id: `draft-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 5)}`,
+          holdColour: foundColor,
+          grade: 'VB',
+          isComp: true,
+          compNumber: compNum,
+          notes: remainingTokens.join(' ').trim() || undefined
+        });
+      } else if (!isCompClimbs && foundColor && foundGrade) {
         parsedItems.push({
           id: `draft-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 5)}`,
           holdColour: foundColor,
@@ -284,12 +301,16 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
           notes: remainingTokens.join(' ').trim() || undefined
         });
       } else {
-        warnings.push(`Line ${idx + 1}: "${line}" - ${!foundColor ? 'Missing colour' : ''} ${!foundGrade ? 'Missing grade' : ''}`);
+        warnings.push(`Line ${idx + 1}: "${line}" - ${!foundColor ? 'Missing colour' : ''} ${!foundGrade && foundCompNum === null ? (isCompClimbs ? 'Missing problem number' : 'Missing grade') : ''}`);
       }
     });
 
     if (parsedItems.length > 0) {
       setDraftQueue((prev) => [...prev, ...parsedItems]);
+      if (isCompClimbs) {
+        const lastNum = parsedItems[parsedItems.length - 1].compNumber;
+        if (lastNum) setCurCompNumber(lastNum + 1);
+      }
       setPasteText('');
       setPasteFeedback({
         success: parsedItems.length,
@@ -299,7 +320,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
     } else {
       setPasteFeedback({
         success: 0,
-        warnings: warnings.length > 0 ? warnings : ['No valid climbs detected. Format example: "Yellow V2 dyno"']
+        warnings: warnings.length > 0 ? warnings : ['No valid climbs detected. Format example: "Yellow V2 dyno" or "Yellow #1 dyno"']
       });
     }
   };
@@ -496,44 +517,6 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
           </div>
         </div>
 
-        {/* Quick Comp Generator Bar when Comp mode is ON */}
-        {isCompClimbs && (
-          <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 animate-in fade-in">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-              <div>
-                <span className="text-xs font-bold text-amber-200 block">
-                  Quick Comp Generator
-                </span>
-                <span className="text-[11px] text-amber-300/80">
-                  Pre-generate sequential numbered climbs (#1 to #N) with cycling hold colours
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 self-end sm:self-auto">
-              <div className="flex items-center gap-1 bg-slate-950 border border-slate-700 rounded-xl px-2 py-1">
-                <span className="text-[10px] text-slate-400 font-mono">Count:</span>
-                <input
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={compGenerateCount}
-                  onChange={(e) => setCompGenerateCount(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                  className="w-12 bg-transparent text-xs font-mono font-bold text-amber-400 outline-none text-center"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => handleGenerateCompClimbs(compGenerateCount)}
-                className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow active-press transition-all flex items-center gap-1.5"
-              >
-                <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                <span>Generate #{archiveExisting ? 1 : existingActiveInArea.length + 1}–#{archiveExisting ? compGenerateCount : existingActiveInArea.length + compGenerateCount}</span>
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* Entry Tabs: Visual Builder vs Quick Paste */}
         <div className="flex items-center gap-2 border-b border-slate-800 pb-1">
           <button
@@ -578,10 +561,10 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                     type="checkbox"
                     checked={autoAddOnGrade}
                     onChange={(e) => setAutoAddOnGrade(e.target.checked)}
-                    style={{ accentColor: activeColor }}
+                    style={{ accentColor: isCompClimbs ? '#F59E0B' : activeColor }}
                     className="w-3.5 h-3.5 rounded bg-slate-900 border-slate-700"
                   />
-                  <span>1-Tap Add on Grade</span>
+                  <span>{isCompClimbs ? '1-Tap Add on #' : '1-Tap Add on Grade'}</span>
                 </label>
               </div>
 
@@ -610,23 +593,87 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                 })}
               </div>
 
-              {/* Grade Selector Pills OR Comp Next Climb Info */}
+              {/* Grade Selector Pills OR Comp Problem Number Stepper & Quick Pills */}
               {isCompClimbs ? (
-                <div className="flex items-center justify-between pt-1 pb-0.5 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/25">
-                  <div className="flex items-center gap-2">
-                    <Trophy className="w-4 h-4 text-amber-400 shrink-0" />
-                    <div>
-                      <span className="text-xs font-bold text-amber-200">
-                        Next Problem: <strong className="font-mono text-amber-400 text-sm">#{(archiveExisting ? 1 : existingActiveInArea.length + 1) + draftQueue.length}</strong>
-                      </span>
-                      <p className="text-[10px] text-amber-300/80">
-                        Select hold colour above and click Add or press Enter
-                      </p>
+                <div className="flex flex-col gap-2 pt-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Comp Problem Number:</span>
+                    </span>
+                    <span className="text-[10px] font-mono text-amber-300/80 font-semibold px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">
+                      10 / 7 / 4 points
+                    </span>
+                  </div>
+
+                  {/* Direct Number Input + Stepper & Quick Pills */}
+                  <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+                    {/* Stepper with number input */}
+                    <div className="flex items-center bg-slate-900 border border-amber-500/40 focus-within:border-amber-400 rounded-xl p-1 shadow-sm shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setCurCompNumber((prev) => Math.max(1, prev - 1))}
+                        className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center font-bold text-base active-press transition-colors"
+                        title="Previous problem number"
+                      >
+                        -
+                      </button>
+                      <div className="flex items-center px-2">
+                        <span className="font-mono font-bold text-amber-400 text-sm mr-1">#</span>
+                        <input
+                          type="number"
+                          min="1"
+                          max="200"
+                          value={curCompNumber || ''}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value, 10);
+                            setCurCompNumber(isNaN(val) ? 1 : Math.max(1, val));
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddDraft();
+                            }
+                          }}
+                          className="w-14 bg-transparent text-center font-mono font-black text-amber-300 text-base outline-none"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setCurCompNumber((prev) => prev + 1)}
+                        className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center font-bold text-base active-press transition-colors"
+                        title="Next problem number"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    {/* Quick selection pills (#1 to #30 in a scrollable horizontal strip) */}
+                    <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 flex-1 min-w-0">
+                      {Array.from({ length: 30 }, (_, i) => i + 1).map((num) => {
+                        const isSelected = curCompNumber === num;
+                        return (
+                          <button
+                            key={num}
+                            type="button"
+                            onClick={() => {
+                              setCurCompNumber(num);
+                              if (autoAddOnGrade) {
+                                handleAddDraft(curHoldColour, 'VB', curNotes, num);
+                              }
+                            }}
+                            className={`h-8 min-w-[2.25rem] px-2 rounded-lg font-mono text-xs font-bold transition-all shrink-0 active-press ${
+                              isSelected
+                                ? 'bg-amber-400 text-slate-950 font-black shadow-md ring-1 ring-amber-300'
+                                : 'bg-slate-900 border border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white'
+                            }`}
+                          >
+                            #{num}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                    10 / 7 / 4 pts
-                  </span>
                 </div>
               ) : (
                 <div className="flex flex-col gap-1.5 pt-1">
@@ -674,12 +721,15 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                 <button
                   type="button"
                   onClick={() => handleAddDraft()}
-                  style={{ backgroundColor: activeColor, color: '#000000' }}
+                  style={{
+                    backgroundColor: isCompClimbs ? '#F59E0B' : activeColor,
+                    color: '#000000'
+                  }}
                   className="px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 active-press transition-colors shadow shrink-0"
                 >
                   <Plus className="w-3.5 h-3.5 stroke-[3]" />
                   <span>
-                    Add #{isCompClimbs ? (archiveExisting ? 1 : existingActiveInArea.length + 1) + draftQueue.length : draftQueue.length + 1}
+                    {isCompClimbs ? `Add #${curCompNumber}` : `Add #${draftQueue.length + 1}`}
                   </span>
                 </button>
               </div>
@@ -839,10 +889,19 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                           title={item.holdColour}
                         />
                         <span className="text-xs font-semibold text-slate-200">{item.holdColour}</span>
-                        {isCompClimbs || item.isComp || item.compNumber ? (
-                          <span className="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 font-mono font-bold text-xs border border-amber-500/50 shadow-inner">
-                            #{itemCompNumber}
-                          </span>
+                        {isCompClimbs || item.isComp || item.compNumber !== undefined ? (
+                          <div className="flex items-center gap-0.5 bg-amber-950/80 text-amber-300 rounded border border-amber-500/50 px-1 py-0.5 shadow-inner">
+                            <span className="text-[10px] font-mono font-bold text-amber-400">#</span>
+                            <input
+                              type="number"
+                              min="1"
+                              max="200"
+                              value={item.compNumber ?? (startNum + idx)}
+                              onChange={(e) => handleUpdateCompNumber(item.id, parseInt(e.target.value, 10))}
+                              className="w-8 bg-transparent text-amber-300 font-mono font-bold text-xs text-center outline-none"
+                              title="Edit problem number"
+                            />
+                          </div>
                         ) : (
                           <span className="px-1.5 py-0.5 rounded bg-slate-800 text-white font-mono font-bold text-xs border border-slate-700">
                             {item.grade}
