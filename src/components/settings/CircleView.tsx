@@ -56,6 +56,7 @@ export const CircleView: React.FC<CircleViewProps> = ({
     attempts,
     comments,
     propsMap,
+    reviews,
     featureRequests,
     submitFeatureRequest,
     updateFeatureStatus,
@@ -113,6 +114,7 @@ export const CircleView: React.FC<CircleViewProps> = ({
         attempts,
         comments,
         profiles: climbers,
+        boulderReviews: reviews,
         propsMap
       });
       downloadBackupFile(payload);

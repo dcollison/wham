@@ -3,8 +3,10 @@ import { Boulder, Attempt, Profile, HOLD_COLORS, getHoldCardStyle } from '../../
 import { HoldBadge } from './HoldBadge';
 import { HoldSwatch } from './HoldSwatch';
 import { ClimberStatusPills } from './ClimberStatusPills';
-import { Zap, Check, Clock, MessageSquare, ChevronRight, Image as ImageIcon, FileText } from 'lucide-react';
+import { Zap, Check, Clock, MessageSquare, ChevronRight, Image as ImageIcon, FileText, Sparkles } from 'lucide-react';
 import { getBoulderAgeInfo } from '../../lib/resetStatus';
+import { useGym } from '../../context/GymContext';
+import { calcBoulderReviewSummary, GRADE_OPINION_CONFIG, REVIEW_RATING_CONFIG } from '../../lib/reviews';
 
 interface BoulderCardProps {
   boulder: Boulder;
@@ -27,6 +29,10 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
   onQuickLog,
   onOpenDetails
 }) => {
+  const { reviews } = useGym();
+  const boulderReviews = reviews.filter(r => r.boulder_id === boulder.id);
+  const reviewSummary = calcBoulderReviewSummary(boulderReviews);
+
   const userAttempt = attempts.find(a => a.user_id === currentUserId);
   const cardStyle = getHoldCardStyle(boulder.hold_colour);
   const resetInfo = getBoulderAgeInfo(boulder.date_added);
@@ -121,17 +127,42 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
         </div>
       </div>
 
-      {/* Tier 2: Metadata Sub-line (Area Name & Reset Status) */}
-      {(areaName || resetInfo.isDueForReset) && (
-        <div className="flex items-center gap-2 text-xs text-slate-400 font-medium pl-0.5">
+      {/* Tier 2: Metadata Sub-line (Area Name, Reset Status & Review Consensus) */}
+      {(areaName || resetInfo.isDueForReset || reviewSummary.consensusGrade || reviewSummary.dominantRating) && (
+        <div className="flex items-center gap-2 text-xs text-slate-400 font-medium pl-0.5 flex-wrap">
           {areaName && (
             <span className="text-slate-400 truncate max-w-[180px]">
               {areaName}
             </span>
           )}
-          {areaName && resetInfo.isDueForReset && (
+          {areaName && (resetInfo.isDueForReset || reviewSummary.consensusGrade || reviewSummary.dominantRating) && (
             <span className="text-slate-600 font-bold">•</span>
           )}
+          {reviewSummary.consensusGrade && (() => {
+            const gradeCfg = GRADE_OPINION_CONFIG[reviewSummary.consensusGrade];
+            const GradeIcon = gradeCfg.icon;
+            return (
+              <span
+                className={`inline-flex items-center gap-1 font-mono text-[10px] font-bold px-2 py-0.5 rounded-full select-none border ${gradeCfg.badgeBg} ${gradeCfg.badgeBorder} ${gradeCfg.badgeText}`}
+                title={`${gradeCfg.label} (${reviewSummary.consensusCount}/${reviewSummary.totalGradeOpinions} votes)`}
+              >
+                <GradeIcon className="w-2.5 h-2.5" />
+                <span>{gradeCfg.shortLabel}</span>
+              </span>
+            );
+          })()}
+          {reviewSummary.dominantRating && !reviewSummary.consensusGrade && (() => {
+            const ratingCfg = REVIEW_RATING_CONFIG[reviewSummary.dominantRating];
+            return (
+              <span
+                className={`inline-flex items-center gap-1 font-mono text-[10px] font-bold px-2 py-0.5 rounded-full select-none border ${ratingCfg.badgeBg} ${ratingCfg.badgeBorder} ${ratingCfg.badgeText}`}
+                title={`${reviewSummary.totalRatings} ratings`}
+              >
+                <span>{ratingCfg.kaomoji}</span>
+                <span>{ratingCfg.shortLabel}</span>
+              </span>
+            );
+          })()}
           {resetInfo.isDueForReset && (
             <span
               className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold text-amber-300 bg-amber-400/10 border border-amber-400/25 px-2.5 py-0.5 rounded-full shrink-0 select-none"
@@ -224,6 +255,26 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
               <FileText className="w-3.5 h-3.5" />
             </button>
           )}
+
+          {boulderReviews.length > 0 && (() => {
+            const dominantCfg = reviewSummary.dominantRating ? REVIEW_RATING_CONFIG[reviewSummary.dominantRating] : null;
+            return (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenDetails(boulder);
+                }}
+                className="flex items-center gap-1 text-xs text-slate-300 hover:text-white font-mono font-medium px-2 py-1 rounded-full hover:bg-slate-800/80 transition-colors active-press"
+                title="Crew Reviews"
+              >
+                <span className={`text-[11px] font-bold ${dominantCfg ? dominantCfg.activeText : 'text-slate-400'}`}>
+                  {dominantCfg?.kaomoji || '(•‿•)'}
+                </span>
+                <span className="tabular-nums">{boulderReviews.length}</span>
+              </button>
+            );
+          })()}
 
           {commentCount > 0 && (
             <button

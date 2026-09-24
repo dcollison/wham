@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Boulder, Attempt, Comment, Profile, GymArea, Grade, GRADES, HOLD_COLORS } from '../../types';
+import { Boulder, Attempt, Comment, Profile, GymArea, Grade, GRADES, HOLD_COLORS, ReviewRating, GradeOpinion } from '../../types';
+import { REVIEW_RATING_CONFIG, GRADE_OPINION_CONFIG, REVIEW_RATING_LIST, GRADE_OPINION_LIST, calcBoulderReviewSummary, normalizeRating, normalizeGradeOpinion } from '../../lib/reviews';
 import { HoldBadge } from './HoldBadge';
 import { HoldSwatch } from './HoldSwatch';
 import { ClimberStatusPills } from './ClimberStatusPills';
@@ -27,7 +28,9 @@ import {
   Pencil,
   AlertTriangle,
   AlertCircle,
-  Trophy
+  Trophy,
+  SlidersHorizontal,
+  Scale
 } from 'lucide-react';
 import { useGym } from '../../context/GymContext';
 import { PhotoLightboxModal } from './PhotoLightboxModal';
@@ -86,7 +89,10 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
     gyms: contextGyms,
     moveBoulder: contextMoveBoulder,
     updateBoulder: contextUpdateBoulder,
-    deleteBoulder: contextDeleteBoulder
+    deleteBoulder: contextDeleteBoulder,
+    reviews,
+    saveReview,
+    deleteReview
   } = useGym();
   const [newComment, setNewComment] = useState<string>('');
   const [submittingComment, setSubmittingComment] = useState<boolean>(false);
@@ -124,6 +130,55 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
     touchEndX.current = null;
     touchEndY.current = null;
   }, [isOpen, boulder?.id]);
+
+  // Reviews data & summary for this boulder
+  const boulderReviews = useMemo(() => {
+    if (!boulder) return [];
+    return reviews.filter(r => r.boulder_id === boulder.id);
+  }, [boulder?.id, reviews]);
+
+  const reviewSummary = useMemo(() => {
+    return calcBoulderReviewSummary(boulderReviews);
+  }, [boulderReviews]);
+
+  const userReview = useMemo(() => {
+    if (!currentUserId || !boulder) return undefined;
+    return boulderReviews.find(r => r.user_id === currentUserId);
+  }, [boulderReviews, currentUserId, boulder?.id]);
+
+  const handleToggleRating = async (ratingVal: ReviewRating) => {
+    if (!boulder || !currentUserId) return;
+    const currentRating = normalizeRating(userReview?.rating);
+    const newRating = currentRating === ratingVal ? null : ratingVal;
+    if (newRating === null && !userReview?.grade_opinion && !userReview?.comment) {
+      await deleteReview(boulder.id, currentUserId);
+    } else {
+      await saveReview({
+        boulderId: boulder.id,
+        userId: currentUserId,
+        rating: newRating,
+        gradeOpinion: userReview?.grade_opinion,
+        comment: userReview?.comment
+      });
+    }
+  };
+
+  const handleToggleGradeOpinion = async (gradeVal: GradeOpinion) => {
+    if (!boulder || !currentUserId) return;
+    const currentGrade = normalizeGradeOpinion(userReview?.grade_opinion);
+    const newGrade = currentGrade === gradeVal ? null : gradeVal;
+    if (newGrade === null && !userReview?.rating && !userReview?.comment) {
+      await deleteReview(boulder.id, currentUserId);
+    } else {
+      await saveReview({
+        boulderId: boulder.id,
+        userId: currentUserId,
+        rating: userReview?.rating,
+        gradeOpinion: newGrade,
+        comment: userReview?.comment
+      });
+    }
+  };
 
   // Filter-aware navigation calculations
   const currentIndex = boulder && filteredBoulders ? filteredBoulders.findIndex(b => b.id === boulder.id) : -1;
@@ -924,12 +979,199 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Beta Discussion / Threaded Comments */}
+          {/* Section: Crew Reviews & Consensus */}
+          <div className="flex flex-col gap-2.5">
+            <div className="flex items-center justify-between px-1">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-amber-400" />
+                Crew Reviews ({boulderReviews.length})
+              </h3>
+              {reviewSummary.positivePercentage !== null && (
+                <span className="font-mono text-xs font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 rounded-full">
+                  {reviewSummary.positivePercentage}% Good
+                </span>
+              )}
+            </div>
+
+            <div className="bg-slate-850/50 rounded-3xl p-4 sm:p-5 border border-slate-800 flex flex-col gap-3.5">
+              {/* Consensus Highlights Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {/* Grade Consensus */}
+                <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center gap-3">
+                  {reviewSummary.consensusGrade ? (() => {
+                    const gradeCfg = GRADE_OPINION_CONFIG[reviewSummary.consensusGrade];
+                    const GradeIcon = gradeCfg.icon;
+                    return (
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center border shrink-0 ${gradeCfg.badgeBg} ${gradeCfg.badgeBorder} ${gradeCfg.badgeText}`}>
+                        <GradeIcon className="w-5 h-5" />
+                      </div>
+                    );
+                  })() : (
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center border border-slate-800 bg-slate-800/60 text-slate-500 shrink-0">
+                      <Scale className="w-5 h-5" />
+                    </div>
+                  )}
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                      Grade Consensus
+                    </span>
+                    <span className="text-xs font-bold text-slate-200">
+                      {reviewSummary.consensusGrade ? (
+                        <span className={GRADE_OPINION_CONFIG[reviewSummary.consensusGrade].activeText}>
+                          {GRADE_OPINION_CONFIG[reviewSummary.consensusGrade].label}
+                          <span className="text-slate-400 font-mono text-[11px] font-normal ml-1">
+                            ({reviewSummary.consensusCount}/{reviewSummary.totalGradeOpinions} votes)
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 font-normal">Pending votes</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Quality Breakdown (Good / Okay / Rough) */}
+                <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-around">
+                  {REVIEW_RATING_LIST.map((r) => {
+                    const count = reviewSummary.ratingCounts[r.value];
+                    return (
+                      <div key={r.value} className="flex flex-col items-center gap-0.5">
+                        <span className={`font-mono text-sm font-black select-none ${count > 0 ? r.activeText : 'text-slate-600'}`}>
+                          {r.kaomoji}
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-400">{r.shortLabel}</span>
+                        <span className={`text-xs font-mono font-bold ${count > 0 ? r.activeText : 'text-slate-600'}`}>
+                          {count}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Interactive Quick Vote for current user */}
+              {currentUserId && (
+                <div className="bg-slate-900/70 rounded-2xl p-3.5 border border-slate-800 flex flex-col gap-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-300">
+                      {userReview?.rating || userReview?.grade_opinion ? 'Your Review:' : 'Leave your review:'}
+                    </span>
+                    {(userReview?.rating || userReview?.grade_opinion) && (
+                      <button
+                        type="button"
+                        onClick={() => deleteReview(boulder.id, currentUserId)}
+                        className="text-[10px] text-slate-400 hover:text-rose-400 underline transition-colors"
+                      >
+                        Clear my review
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Quality row: Good, Okay, Rough */}
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {REVIEW_RATING_LIST.map((r) => {
+                      const isSelected = normalizeRating(userReview?.rating) === r.value;
+                      return (
+                        <button
+                          key={r.value}
+                          type="button"
+                          onClick={() => handleToggleRating(r.value)}
+                          className={`py-2 px-2 rounded-xl text-xs font-semibold flex flex-col items-center justify-center gap-0.5 transition-all active-press border ${
+                            isSelected
+                              ? `${r.activeBg} ${r.activeBorder} ${r.activeText} ring-1 ring-white/20 shadow-xs`
+                              : 'bg-slate-800/80 hover:bg-slate-800 border-slate-750 text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          <span className="font-mono text-xs font-black tracking-tight select-none">
+                            {r.kaomoji}
+                          </span>
+                          <span className="text-[10px] font-bold">{r.shortLabel}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Grade feel row: Soft, Fair, Hard */}
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {GRADE_OPINION_LIST.map((g) => {
+                      const isSelected = normalizeGradeOpinion(userReview?.grade_opinion) === g.value;
+                      const Icon = g.icon;
+                      return (
+                        <button
+                          key={g.value}
+                          type="button"
+                          onClick={() => handleToggleGradeOpinion(g.value)}
+                          className={`py-2 px-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all active-press border ${
+                            isSelected
+                              ? `${g.activeBg} ${g.activeBorder} ${g.activeText} ring-1 ring-white/20 shadow-xs`
+                              : 'bg-slate-800/80 hover:bg-slate-800 border-slate-750 text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          <Icon className="w-3.5 h-3.5" />
+                          <span className="text-xs font-bold">{g.shortLabel}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Individual crew review tags */}
+              {boulderReviews.length > 0 && (
+                <div className="flex flex-col gap-2 pt-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Crew Breakdown:
+                  </span>
+                  <div className="space-y-1.5">
+                    {boulderReviews.map((rev) => {
+                      const author = climbers.find(c => c.id === rev.user_id) || rev.profile;
+                      const normR = normalizeRating(rev.rating);
+                      const normG = normalizeGradeOpinion(rev.grade_opinion);
+                      const ratingCfg = normR ? REVIEW_RATING_CONFIG[normR] : null;
+                      const gradeCfg = normG ? GRADE_OPINION_CONFIG[normG] : null;
+                      const GradeIcon = gradeCfg?.icon;
+
+                      return (
+                        <div
+                          key={rev.id}
+                          className="p-2.5 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 text-xs"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <ClimberAvatar profile={author} size="xs" />
+                            <span className="font-bold text-slate-200 truncate">
+                              {author?.display_name || 'Climber'}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                            {ratingCfg && (
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${ratingCfg.badgeBg} ${ratingCfg.badgeBorder} ${ratingCfg.badgeText}`}>
+                                <span className="font-mono font-bold">{ratingCfg.kaomoji}</span>
+                                <span>{ratingCfg.label}</span>
+                              </span>
+                            )}
+                            {gradeCfg && GradeIcon && (
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${gradeCfg.badgeBg} ${gradeCfg.badgeBorder} ${gradeCfg.badgeText}`}>
+                                <GradeIcon className="w-3 h-3" />
+                                <span>{gradeCfg.label}</span>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* General Discussion / Threaded Comments */}
           <div className="flex flex-col gap-2.5">
             <div className="flex items-center justify-between px-1">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                 <MessageSquare className="w-3.5 h-3.5" />
-                Beta & Discussion ({boulderComments.length})
+                Discussion ({boulderComments.length})
               </h3>
             </div>
 
@@ -937,7 +1179,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
             <div className="space-y-2.5">
               {boulderComments.length === 0 ? (
                 <p className="text-xs text-slate-400 italic py-2 px-1">
-                  No beta notes yet. Share a foot placement or crux sequence!
+                  No comments yet. Share your thoughts, beta, or crux advice!
                 </p>
               ) : (
                 boulderComments.map((comment) => {
@@ -1000,7 +1242,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                 type="text"
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Add beta, sequence advice, or hype..."
+                placeholder="Write a comment, beta, or reaction..."
                 className="flex-1 bg-slate-900 border border-slate-700/80 text-slate-100 placeholder:text-slate-500 text-xs rounded-full px-4 py-2.5 outline-none focus:border-slate-500 transition-colors"
               />
               <button

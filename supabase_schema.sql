@@ -104,6 +104,19 @@ CREATE TABLE IF NOT EXISTS public.feature_requests (
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
+-- 1.9 Boulder Reviews table (3-tier reviews & grade consensus opinions)
+CREATE TABLE IF NOT EXISTS public.boulder_reviews (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    boulder_id UUID NOT NULL REFERENCES public.boulders(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    rating TEXT CHECK (rating IN ('good', 'ok', 'rough', 'love', 'like', 'meh', 'dislike')),
+    grade_opinion TEXT CHECK (grade_opinion IN ('soft', 'fair', 'hard', 'sandbagged')),
+    comment TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMPTZ,
+    CONSTRAINT unique_boulder_user_review UNIQUE (boulder_id, user_id)
+);
+
 -- =========================================================
 -- 2. INDEXES
 -- =========================================================
@@ -117,6 +130,8 @@ CREATE INDEX IF NOT EXISTS idx_send_props_attempt ON public.send_props(attempt_i
 CREATE INDEX IF NOT EXISTS idx_send_props_user ON public.send_props(user_id);
 CREATE INDEX IF NOT EXISTS idx_feature_requests_user ON public.feature_requests(user_id);
 CREATE INDEX IF NOT EXISTS idx_feature_requests_status ON public.feature_requests(status);
+CREATE INDEX IF NOT EXISTS idx_boulder_reviews_boulder ON public.boulder_reviews(boulder_id);
+CREATE INDEX IF NOT EXISTS idx_boulder_reviews_user ON public.boulder_reviews(user_id);
 
 -- =========================================================
 -- 3. AUTOMATIC PROFILE CREATION TRIGGER
@@ -165,6 +180,8 @@ ALTER TABLE public.send_props ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.send_props REPLICA IDENTITY FULL;
 ALTER TABLE public.feature_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.feature_requests REPLICA IDENTITY FULL;
+ALTER TABLE public.boulder_reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.boulder_reviews REPLICA IDENTITY FULL;
 
 -- 4.1 Profiles policies
 CREATE POLICY "Public can read all profiles"
@@ -354,6 +371,33 @@ CREATE POLICY "Public can delete feature requests"
     TO public
     USING (true);
 
+-- 4.9 Boulder Reviews policies
+DROP POLICY IF EXISTS "Public can view boulder reviews" ON public.boulder_reviews;
+DROP POLICY IF EXISTS "Public can insert boulder reviews" ON public.boulder_reviews;
+DROP POLICY IF EXISTS "Public can update boulder reviews" ON public.boulder_reviews;
+DROP POLICY IF EXISTS "Public can delete boulder reviews" ON public.boulder_reviews;
+
+CREATE POLICY "Public can view boulder reviews"
+    ON public.boulder_reviews FOR SELECT
+    TO public
+    USING (true);
+
+CREATE POLICY "Public can insert boulder reviews"
+    ON public.boulder_reviews FOR INSERT
+    TO public
+    WITH CHECK (true);
+
+CREATE POLICY "Public can update boulder reviews"
+    ON public.boulder_reviews FOR UPDATE
+    TO public
+    USING (true)
+    WITH CHECK (true);
+
+CREATE POLICY "Public can delete boulder reviews"
+    ON public.boulder_reviews FOR DELETE
+    TO public
+    USING (true);
+
 -- Ensure gym_areas image_url column exists for wall panorama photos
 ALTER TABLE public.gym_areas ADD COLUMN IF NOT EXISTS image_url TEXT;
 
@@ -403,6 +447,7 @@ ALTER TABLE public.profiles REPLICA IDENTITY FULL;
 ALTER TABLE public.gym_areas REPLICA IDENTITY FULL;
 ALTER TABLE public.boulders REPLICA IDENTITY FULL;
 ALTER TABLE public.attempts REPLICA IDENTITY FULL;
+ALTER TABLE public.boulder_reviews REPLICA IDENTITY FULL;
 
 DO $$
 BEGIN
@@ -426,6 +471,9 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'feature_requests') THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.feature_requests;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'boulder_reviews') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.boulder_reviews;
   END IF;
 END $$;
 

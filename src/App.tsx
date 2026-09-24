@@ -77,6 +77,7 @@ export function App() {
     deleteComment,
     toggleAreaCompWall,
     orderedActiveBouldersInCurrentArea,
+    reviews,
     loading
   } = useGym();
 
@@ -624,6 +625,7 @@ export function App() {
             currentUserId={currentUser?.id}
             initialTab={statsInitialTab}
             onSelectBoulder={(b) => setDetailBoulder(b)}
+            reviews={reviews}
           />
         )}
 

@@ -1,4 +1,4 @@
-import { Boulder, Attempt, Comment, Profile, Gym, GymArea, FeatureRequest } from '../types';
+import { Boulder, Attempt, Comment, Profile, Gym, GymArea, FeatureRequest, BoulderReview } from '../types';
 
 export interface WhamBackupData {
   version: 1;
@@ -10,6 +10,7 @@ export interface WhamBackupData {
   attempts: Attempt[];
   comments: Comment[];
   profiles: Profile[];
+  boulderReviews?: BoulderReview[];
   featureRequests?: FeatureRequest[];
   climberCustomizations?: Record<string, any>;
   sendsProps?: Record<string, string[]>;
@@ -23,6 +24,7 @@ export interface BackupSummary {
   climberCount: number;
   gymCount: number;
   areaCount: number;
+  reviewCount?: number;
 }
 
 export interface LocalSnapshotMeta {
@@ -47,6 +49,7 @@ export function createBackupPayload(params: {
   attempts: Attempt[];
   comments: Comment[];
   profiles: Profile[];
+  boulderReviews?: BoulderReview[];
   featureRequests?: FeatureRequest[];
   propsMap?: Record<string, string[]>;
 }): WhamBackupData {
@@ -68,6 +71,7 @@ export function createBackupPayload(params: {
     attempts: params.attempts,
     comments: params.comments,
     profiles: params.profiles,
+    boulderReviews: params.boulderReviews || [],
     featureRequests: params.featureRequests || [],
     climberCustomizations,
     sendsProps: params.propsMap || {}
@@ -123,6 +127,7 @@ export function validateAndParseBackup(jsonStr: string): {
     const profiles: Profile[] = Array.isArray(parsed.profiles) ? parsed.profiles : [];
     const gyms: Gym[] = Array.isArray(parsed.gyms) ? parsed.gyms : [];
     const areas: GymArea[] = Array.isArray(parsed.areas) ? parsed.areas : [];
+    const boulderReviews: BoulderReview[] = Array.isArray(parsed.boulderReviews) ? parsed.boulderReviews : [];
     const featureRequests: FeatureRequest[] = Array.isArray(parsed.featureRequests) ? parsed.featureRequests : [];
 
     const data: WhamBackupData = {
@@ -135,6 +140,7 @@ export function validateAndParseBackup(jsonStr: string): {
       attempts,
       comments,
       profiles,
+      boulderReviews,
       featureRequests,
       climberCustomizations: parsed.climberCustomizations || {},
       sendsProps: parsed.sendsProps || {}
@@ -147,7 +153,8 @@ export function validateAndParseBackup(jsonStr: string): {
       commentCount: comments.length,
       climberCount: profiles.length,
       gymCount: gyms.length,
-      areaCount: areas.length
+      areaCount: areas.length,
+      reviewCount: boulderReviews.length
     };
 
     return { valid: true, data, summary };

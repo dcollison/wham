@@ -145,6 +145,22 @@ export interface Comment {
   profile?: Profile;
 }
 
+export type ReviewRating = 'good' | 'ok' | 'rough';
+export type SmileyRating = ReviewRating; // alias for backwards compatibility
+export type GradeOpinion = 'soft' | 'fair' | 'hard';
+
+export interface BoulderReview {
+  id: string;
+  boulder_id: string;
+  user_id: string;
+  rating?: ReviewRating | null;
+  grade_opinion?: GradeOpinion | null;
+  comment?: string | null;
+  created_at: string;
+  updated_at?: string;
+  profile?: Profile;
+}
+
 export interface HoldColorConfig {
   name: string;
   bgClass: string;

@@ -203,6 +203,12 @@ wham-app/
    - `id` (UUID, PK), `attempt_id` (UUID, FK attempts), `user_id` (UUID, FK profiles)
    - `created_at` (TIMESTAMPTZ)
    - Unique constraint on `(attempt_id, user_id)`
+8. **`public.boulder_reviews`**:
+   - `id` (UUID, PK), `boulder_id` (UUID, FK boulders), `user_id` (UUID, FK profiles)
+   - `rating` (`'good'` | `'ok'` | `'rough'`)
+   - `grade_opinion` (`'soft'` | `'fair'` | `'hard'`)
+   - `comment` (TEXT), `created_at` (TIMESTAMPTZ), `updated_at` (TIMESTAMPTZ)
+   - Unique constraint on `(boulder_id, user_id)`
 
 ### Idempotent Schema Migration
 If provisioning a new Supabase environment or verifying database integrity:
@@ -250,6 +256,35 @@ DROP POLICY IF EXISTS "Public can delete props" ON public.send_props;
 CREATE POLICY "Public can view all props" ON public.send_props FOR SELECT TO public USING (true);
 CREATE POLICY "Public can insert props" ON public.send_props FOR INSERT TO public WITH CHECK (true);
 CREATE POLICY "Public can delete props" ON public.send_props FOR DELETE TO public USING (true);
+
+-- Boulder Reviews table for 3-tier quality reviews and grade consensus
+CREATE TABLE IF NOT EXISTS public.boulder_reviews (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    boulder_id UUID NOT NULL REFERENCES public.boulders(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    rating TEXT CHECK (rating IN ('good', 'ok', 'rough', 'love', 'like', 'meh', 'dislike')),
+    grade_opinion TEXT CHECK (grade_opinion IN ('soft', 'fair', 'hard', 'sandbagged')),
+    comment TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMPTZ,
+    CONSTRAINT unique_boulder_user_review UNIQUE (boulder_id, user_id)
+);
+
+ALTER TABLE public.boulder_reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.boulder_reviews REPLICA IDENTITY FULL;
+
+CREATE INDEX IF NOT EXISTS idx_boulder_reviews_boulder ON public.boulder_reviews(boulder_id);
+CREATE INDEX IF NOT EXISTS idx_boulder_reviews_user ON public.boulder_reviews(user_id);
+
+DROP POLICY IF EXISTS "Public can view boulder reviews" ON public.boulder_reviews;
+DROP POLICY IF EXISTS "Public can insert boulder reviews" ON public.boulder_reviews;
+DROP POLICY IF EXISTS "Public can update boulder reviews" ON public.boulder_reviews;
+DROP POLICY IF EXISTS "Public can delete boulder reviews" ON public.boulder_reviews;
+
+CREATE POLICY "Public can view boulder reviews" ON public.boulder_reviews FOR SELECT TO public USING (true);
+CREATE POLICY "Public can insert boulder reviews" ON public.boulder_reviews FOR INSERT TO public WITH CHECK (true);
+CREATE POLICY "Public can update boulder reviews" ON public.boulder_reviews FOR UPDATE TO public USING (true) WITH CHECK (true);
+CREATE POLICY "Public can delete boulder reviews" ON public.boulder_reviews FOR DELETE TO public USING (true);
 
 -- Drop legacy restrictive authenticated-only policies
 DROP POLICY IF EXISTS "Users can insert their own attempts" ON public.attempts;
@@ -384,6 +419,14 @@ BEGIN
       AND tablename = 'gym_areas'
   ) THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.gym_areas;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+      AND schemaname = 'public' 
+      AND tablename = 'boulder_reviews'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.boulder_reviews;
   END IF;
 END $$;
 ```

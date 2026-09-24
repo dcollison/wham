@@ -1,4 +1,4 @@
-import { Boulder, Attempt, Comment, Profile, Gym, GymArea, FeatureRequest } from '../types';
+import { Boulder, Attempt, Comment, Profile, Gym, GymArea, FeatureRequest, BoulderReview } from '../types';
 
 export const INITIAL_PROFILES: Profile[] = [
   {
@@ -3839,6 +3839,101 @@ export const INITIAL_FEATURE_REQUESTS: FeatureRequest[] = [
     status: 'shipped',
     upvotes: ['a0000000-0000-0000-0000-000000000004'],
     created_at: '2026-09-20T10:00:00Z'
+  },
+  {
+    id: 'f0000000-0000-0000-0000-000000000002',
+    user_id: 'a0000000-0000-0000-0000-000000000002',
+    title: 'Boulder review system',
+    description: 'Smiley face system when a boulder has been attempted. Or maybe a thumbs up and thumbs down system. Maybe also whether the climber thinks the grading was soft/sandbagged. Change the beta discussion to just a general discussion',
+    category: 'feature',
+    status: 'shipped',
+    upvotes: ['a0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000001'],
+    created_at: '2026-09-24T18:00:00Z'
   }
 ];
+
+export const INITIAL_BOULDER_REVIEWS: BoulderReview[] = [
+  {
+    id: 'rev-001',
+    boulder_id: 'd0000000-0000-0000-0000-000000000001',
+    user_id: 'a0000000-0000-0000-0000-000000000002', // Dale
+    rating: 'good',
+    grade_opinion: 'fair',
+    comment: 'Great movement on the slab. Very balanced.',
+    created_at: '2026-09-21T18:30:00Z'
+  },
+  {
+    id: 'rev-002',
+    boulder_id: 'd0000000-0000-0000-0000-000000000001',
+    user_id: 'a0000000-0000-0000-0000-000000000001', // Alex
+    rating: 'good',
+    grade_opinion: 'soft',
+    comment: 'Felt generous for V2 once you find the high left foot.',
+    created_at: '2026-09-22T19:15:00Z'
+  },
+  {
+    id: 'rev-003',
+    boulder_id: 'd0000000-0000-0000-0000-000000000001',
+    user_id: 'a0000000-0000-0000-0000-000000000003', // Taiye
+    rating: 'good',
+    grade_opinion: 'fair',
+    comment: 'Smooth balance problem, holds are super grippy.',
+    created_at: '2026-09-22T20:00:00Z'
+  },
+  {
+    id: 'rev-004',
+    boulder_id: 'd0000000-0000-0000-0000-000000000002',
+    user_id: 'a0000000-0000-0000-0000-000000000004', // Euan
+    rating: 'rough',
+    grade_opinion: 'hard',
+    comment: 'Crux pinch is brutally sharp and feels much harder than listed.',
+    created_at: '2026-09-23T17:45:00Z'
+  },
+  {
+    id: 'rev-005',
+    boulder_id: 'd0000000-0000-0000-0000-000000000002',
+    user_id: 'a0000000-0000-0000-0000-000000000002', // Dale
+    rating: 'ok',
+    grade_opinion: 'hard',
+    comment: 'Tough on the skin, definitely sandbagged.',
+    created_at: '2026-09-23T18:10:00Z'
+  },
+  {
+    id: 'rev-006',
+    boulder_id: 'd0000000-0000-0000-0000-000000000003',
+    user_id: 'a0000000-0000-0000-0000-000000000001', // Alex
+    rating: 'good',
+    grade_opinion: 'soft',
+    comment: 'Super fun warm-up, very gentle on fingers.',
+    created_at: '2026-09-24T12:00:00Z'
+  },
+  {
+    id: 'rev-007',
+    boulder_id: 'd0000000-0000-0000-0000-000000000003',
+    user_id: 'a0000000-0000-0000-0000-000000000003', // Taiye
+    rating: 'good',
+    grade_opinion: 'soft',
+    comment: 'Softest tick on the wall today.',
+    created_at: '2026-09-24T14:30:00Z'
+  },
+  {
+    id: 'rev-008',
+    boulder_id: 'd0000000-0000-0000-0000-000000000004',
+    user_id: 'a0000000-0000-0000-0000-000000000002', // Dale
+    rating: 'ok',
+    grade_opinion: 'hard',
+    comment: 'Spicy compression moves, feels closer to V6.',
+    created_at: '2026-09-24T15:00:00Z'
+  },
+  {
+    id: 'rev-009',
+    boulder_id: 'd0000000-0000-0000-0000-000000000004',
+    user_id: 'a0000000-0000-0000-0000-000000000004', // Euan
+    rating: 'rough',
+    grade_opinion: 'hard',
+    comment: 'Absolute testpiece. Pure pump fest.',
+    created_at: '2026-09-24T16:15:00Z'
+  }
+];
+
 

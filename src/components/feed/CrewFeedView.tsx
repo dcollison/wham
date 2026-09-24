@@ -32,8 +32,9 @@ export const CrewFeedView: React.FC<CrewFeedViewProps> = ({
   onDeleteComment
 }) => {
   // Determine default active sub-tab from hash if present
-  const [activeSubTab, setActiveSubTab] = useState<'sends' | 'beta'>(() => {
-    if (window.location.hash.includes('beta')) return 'beta';
+  const [activeSubTab, setActiveSubTab] = useState<'sends' | 'discussion'>(() => {
+    const h = window.location.hash.toLowerCase();
+    if (h.includes('discussion') || h.includes('beta')) return 'discussion';
     return 'sends';
   });
 
@@ -41,8 +42,8 @@ export const CrewFeedView: React.FC<CrewFeedViewProps> = ({
   useEffect(() => {
     const handleHash = () => {
       const h = window.location.hash.toLowerCase();
-      if (h.includes('beta')) {
-        setActiveSubTab('beta');
+      if (h.includes('discussion') || h.includes('beta')) {
+        setActiveSubTab('discussion');
       } else if (h.includes('sends') || h.includes('feed')) {
         setActiveSubTab('sends');
       }
@@ -88,21 +89,21 @@ export const CrewFeedView: React.FC<CrewFeedViewProps> = ({
         <button
           type="button"
           onClick={() => {
-            setActiveSubTab('beta');
-            window.location.hash = '#/beta';
+            setActiveSubTab('discussion');
+            window.location.hash = '#/discussion';
           }}
-          style={activeSubTab === 'beta' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
+          style={activeSubTab === 'discussion' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
           className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-full text-xs font-bold transition-all active-press ${
-            activeSubTab === 'beta'
+            activeSubTab === 'discussion'
               ? 'shadow-sm'
               : 'text-slate-400 hover:text-white'
           }`}
         >
           <MessageSquare className="w-3.5 h-3.5" />
-          <span>Beta Spray</span>
+          <span>Discussion</span>
           <span
             className={`text-[10px] px-2 py-0.2 rounded-full font-mono font-bold ${
-              activeSubTab === 'beta' ? 'bg-black/20 text-black' : 'bg-slate-800 text-slate-300'
+              activeSubTab === 'discussion' ? 'bg-black/20 text-black' : 'bg-slate-800 text-slate-300'
             }`}
           >
             {comments.length}
@@ -124,8 +125,8 @@ export const CrewFeedView: React.FC<CrewFeedViewProps> = ({
         />
       )}
 
-      {/* Sub-Tab 2: Beta Spray & Discussion Feed */}
-      {activeSubTab === 'beta' && (
+      {/* Sub-Tab 2: General Discussion Feed */}
+      {activeSubTab === 'discussion' && (
         <BetaDiscussionView
           comments={comments}
           boulders={boulders}

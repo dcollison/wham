@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Boulder, Attempt, AttemptStatus, determineAttemptStatus, Profile, GymArea } from '../../types';
+import { Boulder, Attempt, AttemptStatus, determineAttemptStatus, Profile, GymArea, ReviewRating, GradeOpinion } from '../../types';
+import { REVIEW_RATING_LIST, GRADE_OPINION_LIST, normalizeRating, normalizeGradeOpinion } from '../../lib/reviews';
 import { HoldBadge } from './HoldBadge';
 import { HoldSwatch } from './HoldSwatch';
 import { ClimberAvatar } from '../ClimberAvatar';
@@ -21,7 +22,8 @@ import {
   ChevronRight,
   MapPin,
   FileText,
-  Trophy
+  Trophy,
+  SlidersHorizontal
 } from 'lucide-react';
 import { useGym } from '../../context/GymContext';
 
@@ -58,7 +60,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
   areaName,
   areas
 }) => {
-  const { areas: contextAreas, comments } = useGym();
+  const { areas: contextAreas, comments, reviews, saveReview, deleteReview } = useGym();
   const getTodayIsoDate = () => new Date().toISOString().split('T')[0];
 
   // Active target climber for this log
@@ -72,6 +74,10 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
   const [justSavedName, setJustSavedName] = useState<string | null>(null);
+
+  // Review states for this climb
+  const [selectedRating, setSelectedRating] = useState<ReviewRating | null>(null);
+  const [selectedGradeOpinion, setSelectedGradeOpinion] = useState<GradeOpinion | null>(null);
 
   const [dragOffset, setDragOffset] = useState<number>(0);
   const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -150,6 +156,11 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
     ? attempts.find(a => a.boulder_id === boulder.id && a.user_id === selectedClimber.id)
     : undefined;
 
+  // Selected climber's existing review on this boulder
+  const selectedReview = boulder && selectedClimber
+    ? reviews.find(r => r.boulder_id === boulder.id && r.user_id === selectedClimber.id)
+    : undefined;
+
   // Pre-fill state whenever the selected climber or boulder changes
   useEffect(() => {
     if (selectedAttempt) {
@@ -164,6 +175,17 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
     }
     setShowDatePicker(false);
   }, [selectedUserId, selectedAttempt, boulder, isOpen]);
+
+  // Pre-fill review state
+  useEffect(() => {
+    if (selectedReview) {
+      setSelectedRating(normalizeRating(selectedReview.rating));
+      setSelectedGradeOpinion(normalizeGradeOpinion(selectedReview.grade_opinion));
+    } else {
+      setSelectedRating(null);
+      setSelectedGradeOpinion(null);
+    }
+  }, [selectedUserId, selectedReview, boulder?.id, isOpen]);
 
   if (!isOpen || !boulder) return null;
 
@@ -207,6 +229,22 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
         loggedAt: isNaN(dateObj.getTime()) ? new Date().toISOString() : dateObj.toISOString(),
         userId: selectedClimber.id
       });
+
+      // Save/update review if user provided rating or grade feel
+      if (selectedRating !== null || selectedGradeOpinion !== null) {
+        await saveReview({
+          boulderId: boulder.id,
+          userId: selectedClimber.id,
+          rating: selectedRating,
+          gradeOpinion: selectedGradeOpinion
+        });
+      } else {
+        const hadReview = reviews.some(r => r.boulder_id === boulder.id && r.user_id === selectedClimber.id);
+        if (hadReview) {
+          await deleteReview(boulder.id, selectedClimber.id);
+        }
+      }
+
       if (closeAfter) {
         onClose();
       } else {
@@ -231,6 +269,22 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
         loggedAt: isNaN(dateObj.getTime()) ? new Date().toISOString() : dateObj.toISOString(),
         userId: selectedClimber.id
       });
+
+      // Save/update review if user provided rating or grade feel
+      if (selectedRating !== null || selectedGradeOpinion !== null) {
+        await saveReview({
+          boulderId: boulder.id,
+          userId: selectedClimber.id,
+          rating: selectedRating,
+          gradeOpinion: selectedGradeOpinion
+        });
+      } else {
+        const hadReview = reviews.some(r => r.boulder_id === boulder.id && r.user_id === selectedClimber.id);
+        if (hadReview) {
+          await deleteReview(boulder.id, selectedClimber.id);
+        }
+      }
+
       if (onNavigateBoulder) {
         onNavigateBoulder(targetNext);
       }
@@ -245,6 +299,9 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
       setSaving(true);
       try {
         await onDelete(boulder.id, selectedClimber.id);
+        if (reviews.some(r => r.boulder_id === boulder.id && r.user_id === selectedClimber.id)) {
+          await deleteReview(boulder.id, selectedClimber.id);
+        }
         onClose();
       } finally {
         setSaving(false);
@@ -577,6 +634,84 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                 </span>
               </div>
             )}
+          </div>
+
+          {/* Question 3: Rate this climb (Icons/symbols: Good, Okay, Rough & Soft, Fair, Hard) */}
+          <div className="bg-slate-850/60 border border-slate-800/80 rounded-3xl p-5 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                <SlidersHorizontal className="w-4 h-4 text-amber-400" />
+                <span>Climb Review</span>
+                <span className="text-[10px] text-slate-500 font-normal normal-case">(optional)</span>
+              </label>
+              {(selectedRating || selectedGradeOpinion) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedRating(null);
+                    setSelectedGradeOpinion(null);
+                  }}
+                  className="text-[10px] text-slate-400 hover:text-white underline font-semibold transition-colors"
+                >
+                  Clear Review
+                </button>
+              )}
+            </div>
+
+            {/* Quality: Good / Okay / Rough */}
+            <div className="flex flex-col gap-2">
+              <span className="text-[11px] font-semibold text-slate-400">Quality:</span>
+              <div className="grid grid-cols-3 gap-2">
+                {REVIEW_RATING_LIST.map((ratingOpt) => {
+                  const isSelected = selectedRating === ratingOpt.value;
+                  return (
+                    <button
+                      key={ratingOpt.value}
+                      type="button"
+                      onClick={() => setSelectedRating(isSelected ? null : ratingOpt.value)}
+                      className={`flex flex-col items-center justify-center py-2.5 px-2 rounded-2xl border transition-all active-press ${
+                        isSelected
+                          ? `${ratingOpt.activeBg} ${ratingOpt.activeBorder} ring-2 ring-white/20 shadow-sm scale-[1.02]`
+                          : 'bg-slate-800/70 hover:bg-slate-800 border-slate-700/60 text-slate-300'
+                      }`}
+                    >
+                      <span className={`font-mono text-base font-black mb-1 tracking-tight select-none ${isSelected ? ratingOpt.activeText : 'text-slate-300'}`}>
+                        {ratingOpt.kaomoji}
+                      </span>
+                      <span className={`text-[11px] font-bold tracking-tight ${isSelected ? ratingOpt.activeText : 'text-slate-400'}`}>
+                        {ratingOpt.shortLabel}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Grade Consensus: Soft / Fair / Hard */}
+            <div className="flex flex-col gap-2 pt-2 border-t border-slate-800/80">
+              <span className="text-[11px] font-semibold text-slate-400">Grade Consensus:</span>
+              <div className="grid grid-cols-3 gap-2">
+                {GRADE_OPINION_LIST.map((opt) => {
+                  const isSelected = selectedGradeOpinion === opt.value;
+                  const Icon = opt.icon;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setSelectedGradeOpinion(isSelected ? null : opt.value)}
+                      className={`flex items-center justify-center gap-1.5 py-2.5 px-2.5 rounded-2xl border text-xs font-bold transition-all active-press ${
+                        isSelected
+                          ? `${opt.activeBg} ${opt.activeBorder} ${opt.activeText} shadow-sm ring-1 ring-white/20`
+                          : 'bg-slate-800/70 hover:bg-slate-800 border-slate-700/60 text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5 shrink-0" />
+                      <span>{opt.shortLabel}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
           {/* Session Date Selector */}

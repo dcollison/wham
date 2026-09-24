@@ -1,13 +1,14 @@
 import React, { createContext, useContext, useEffect, useState, useMemo, useRef } from 'react';
 import { supabase, isSupabaseConfigured, isDemoRequested, uploadBoulderPhoto, uploadAreaPhoto, deleteStoragePhotos } from '../lib/supabase';
-import { Boulder, Attempt, Comment, Gym, GymArea, Grade, AttemptStatus, BulkAddBoulderItem, BulkAddBouldersParams, FeatureRequest, FeatureCategory, FeatureStatus } from '../types';
+import { Boulder, Attempt, Comment, Gym, GymArea, Grade, AttemptStatus, BulkAddBoulderItem, BulkAddBouldersParams, FeatureRequest, FeatureCategory, FeatureStatus, BoulderReview, SmileyRating, GradeOpinion } from '../types';
 import {
   INITIAL_GYMS,
   INITIAL_AREAS,
   INITIAL_BOULDERS,
   INITIAL_ATTEMPTS,
   INITIAL_COMMENTS,
-  INITIAL_FEATURE_REQUESTS
+  INITIAL_FEATURE_REQUESTS,
+  INITIAL_BOULDER_REVIEWS
 } from '../lib/mockData';
 import { useAuth } from './AuthContext';
 import confetti from 'canvas-confetti';
@@ -77,6 +78,16 @@ interface GymContextType {
   getBoulderAttempts: (boulderId: string) => Attempt[];
   getBoulderComments: (boulderId: string) => Comment[];
   getUserAttemptOnBoulder: (boulderId: string, userId?: string) => Attempt | undefined;
+  reviews: BoulderReview[];
+  saveReview: (params: {
+    boulderId: string;
+    userId: string;
+    rating?: SmileyRating | null;
+    gradeOpinion?: GradeOpinion | null;
+    comment?: string | null;
+  }) => Promise<void>;
+  deleteReview: (boulderId: string, userId: string) => Promise<void>;
+  getBoulderReviews: (boulderId: string) => BoulderReview[];
   orderedActiveBouldersInCurrentArea: Boulder[];
   featureRequests: FeatureRequest[];
   submitFeatureRequest: (params: { userId: string; title: string; description?: string; category: FeatureCategory }) => Promise<FeatureRequest>;
@@ -200,7 +211,13 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
           const cleaned = parsed
-            .map((r: FeatureRequest) => (r.title?.toLowerCase() === 'save and next buttons' ? { ...r, status: 'shipped' as const } : r))
+            .map((r: FeatureRequest) => {
+              const lower = r.title?.toLowerCase() || '';
+              if (lower === 'save and next buttons' || lower === 'boulder review system') {
+                return { ...r, status: 'shipped' as const };
+              }
+              return r;
+            })
             .filter((r: FeatureRequest) => !['req-001', 'req-002', 'req-003'].includes(r.id));
           return cleaned;
         }
@@ -209,6 +226,21 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
     return INITIAL_FEATURE_REQUESTS;
+  });
+
+  const [reviews, setReviews] = useState<BoulderReview[]>(() => {
+    const cached = localStorage.getItem('wham_boulder_reviews');
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      } catch {
+        // Fallback
+      }
+    }
+    return INITIAL_BOULDER_REVIEWS;
   });
 
   const channelRef = useRef<any>(null);
@@ -285,14 +317,15 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       try {
         setLoading(true);
-        const [gymsRes, areasRes, bouldersRes, attemptsRes, commentsRes, propsRes, featureRequestsRes] = await Promise.all([
+        const [gymsRes, areasRes, bouldersRes, attemptsRes, commentsRes, propsRes, featureRequestsRes, reviewsRes] = await Promise.all([
           supabase.from('gyms').select('*').order('name'),
           supabase.from('gym_areas').select('*').order('gym_id').order('sort_order').order('id'),
           supabase.from('boulders').select('*').order('position_order'),
           supabase.from('attempts').select('*, profile:profiles(*)'),
           supabase.from('comments').select('*, profile:profiles(*)').order('created_at', { ascending: true }),
           supabase.from('send_props').select('attempt_id, user_id'),
-          supabase.from('feature_requests').select('*').order('created_at', { ascending: false })
+          supabase.from('feature_requests').select('*').order('created_at', { ascending: false }),
+          supabase.from('boulder_reviews').select('*, profile:profiles(*)').order('created_at', { ascending: false }).then((res) => res, () => ({ data: null, error: true }))
         ]);
 
         if (!isMounted) return;
@@ -326,9 +359,21 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (bouldersRes.data && bouldersRes.data.length > 0) setBoulders(bouldersRes.data);
         if (attemptsRes.data && attemptsRes.data.length > 0) setAttempts(attemptsRes.data);
         if (commentsRes.data && commentsRes.data.length > 0) setComments(commentsRes.data);
+        if (reviewsRes && !reviewsRes.error && Array.isArray(reviewsRes.data)) {
+          setReviews(reviewsRes.data);
+          try {
+            localStorage.setItem('wham_boulder_reviews', JSON.stringify(reviewsRes.data));
+          } catch (e) {}
+        }
         if (!featureRequestsRes.error && Array.isArray(featureRequestsRes.data)) {
           const cleanRequests = featureRequestsRes.data
-            .map((r: FeatureRequest) => (r.title?.toLowerCase() === 'save and next buttons' ? { ...r, status: 'shipped' as const } : r))
+            .map((r: FeatureRequest) => {
+              const lower = r.title?.toLowerCase() || '';
+              if (lower === 'save and next buttons' || lower === 'boulder review system') {
+                return { ...r, status: 'shipped' as const };
+              }
+              return r;
+            })
             .filter((r: FeatureRequest) => !['req-001', 'req-002', 'req-003'].includes(r.id));
           setFeatureRequests(cleanRequests.length > 0 ? cleanRequests : INITIAL_FEATURE_REQUESTS);
           try {
@@ -566,6 +611,46 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               setFeatureRequests((prev) => {
                 const next = prev.filter((r) => r.id !== oldReq.id);
                 try { localStorage.setItem('wham_feature_requests', JSON.stringify(next)); } catch (e) {}
+                return next;
+              });
+            }
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'boulder_reviews' }, (payload) => {
+            if (payload.eventType === 'INSERT') {
+              const incoming = payload.new as BoulderReview;
+              if (!incoming?.id) return;
+              setReviews((prev) => {
+                if (prev.some((r) => r.id === incoming.id)) return prev;
+                const author = climbersRef.current.find((c) => c.id === incoming.user_id);
+                const enriched = { ...incoming, profile: author || incoming.profile };
+                const filtered = prev.filter(
+                  (r) => !(r.boulder_id === incoming.boulder_id && r.user_id === incoming.user_id)
+                );
+                const next = [enriched, ...filtered];
+                try { localStorage.setItem('wham_boulder_reviews', JSON.stringify(next)); } catch (e) {}
+                return next;
+              });
+            } else if (payload.eventType === 'UPDATE') {
+              const incoming = payload.new as BoulderReview;
+              if (!incoming?.id) return;
+              setReviews((prev) => {
+                const author = climbersRef.current.find((c) => c.id === incoming.user_id);
+                const enriched = { ...incoming, profile: author || incoming.profile };
+                const next = prev.map((r) =>
+                  r.id === incoming.id || (r.boulder_id === incoming.boulder_id && r.user_id === incoming.user_id)
+                    ? enriched
+                    : r
+                );
+                try { localStorage.setItem('wham_boulder_reviews', JSON.stringify(next)); } catch (e) {}
+                return next;
+              });
+            } else if (payload.eventType === 'DELETE') {
+              const old = payload.old as { id?: string; boulder_id?: string; user_id?: string };
+              setReviews((prev) => {
+                const next = prev.filter(
+                  (r) => r.id !== old.id && !(old.boulder_id && old.user_id && r.boulder_id === old.boulder_id && r.user_id === old.user_id)
+                );
+                try { localStorage.setItem('wham_boulder_reviews', JSON.stringify(next)); } catch (e) {}
                 return next;
               });
             }
@@ -1658,6 +1743,103 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return attempts.find(a => a.boulder_id === boulderId && a.user_id === targetUserId);
   };
 
+  // Boulder Review Methods (Smiley rating + grade feel/consensus)
+  const saveReview = async (params: {
+    boulderId: string;
+    userId: string;
+    rating?: SmileyRating | null;
+    gradeOpinion?: GradeOpinion | null;
+    comment?: string | null;
+  }) => {
+    const { boulderId, userId, rating, gradeOpinion, comment } = params;
+    const authorProfile = climbersRef.current.find((c) => c.id === userId) || currentUser;
+
+    const existingIndex = reviews.findIndex(
+      (r) => r.boulder_id === boulderId && r.user_id === userId
+    );
+
+    const now = new Date().toISOString();
+    let updatedReviews: BoulderReview[];
+
+    if (existingIndex >= 0) {
+      const existing = reviews[existingIndex];
+      const updated: BoulderReview = {
+        ...existing,
+        rating: rating !== undefined ? rating : existing.rating,
+        grade_opinion: gradeOpinion !== undefined ? gradeOpinion : existing.grade_opinion,
+        comment: comment !== undefined ? comment : existing.comment,
+        updated_at: now,
+        profile: authorProfile || existing.profile
+      };
+      updatedReviews = reviews.map((r, idx) => (idx === existingIndex ? updated : r));
+    } else {
+      const newReview: BoulderReview = {
+        id: `rev-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        boulder_id: boulderId,
+        user_id: userId,
+        rating: rating || null,
+        grade_opinion: gradeOpinion || null,
+        comment: comment || null,
+        created_at: now,
+        updated_at: now,
+        profile: authorProfile || undefined
+      };
+      updatedReviews = [newReview, ...reviews];
+    }
+
+    setReviews(updatedReviews);
+    try {
+      localStorage.setItem('wham_boulder_reviews', JSON.stringify(updatedReviews));
+    } catch (e) {
+      console.warn('Failed to cache boulder reviews to localStorage:', e);
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const payload = {
+          boulder_id: boulderId,
+          user_id: userId,
+          rating: rating || null,
+          grade_opinion: gradeOpinion || null,
+          comment: comment || null,
+          updated_at: now
+        };
+        await supabase
+          .from('boulder_reviews')
+          .upsert(payload, { onConflict: 'boulder_id,user_id' });
+      } catch (err) {
+        console.warn('Supabase boulder_reviews upsert note:', err);
+      }
+    }
+  };
+
+  const deleteReview = async (boulderId: string, userId: string) => {
+    const updatedReviews = reviews.filter(
+      (r) => !(r.boulder_id === boulderId && r.user_id === userId)
+    );
+    setReviews(updatedReviews);
+    try {
+      localStorage.setItem('wham_boulder_reviews', JSON.stringify(updatedReviews));
+    } catch (e) {
+      console.warn('Failed to cache reviews to localStorage:', e);
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase
+          .from('boulder_reviews')
+          .delete()
+          .match({ boulder_id: boulderId, user_id: userId });
+      } catch (err) {
+        console.warn('Supabase boulder_reviews delete note:', err);
+      }
+    }
+  };
+
+  const getBoulderReviews = (boulderId: string): BoulderReview[] => {
+    return reviews.filter((r) => r.boulder_id === boulderId);
+  };
+
   const toggleProp = async (attemptId: string, userId: string) => {
     let willBePropped = false;
     setPropsMap((prev) => {
@@ -1999,6 +2181,10 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setComments(backup.comments);
         localStorage.setItem('wham_comments', JSON.stringify(backup.comments));
       }
+      if (backup.boulderReviews && backup.boulderReviews.length > 0) {
+        setReviews(backup.boulderReviews);
+        localStorage.setItem('wham_boulder_reviews', JSON.stringify(backup.boulderReviews));
+      }
       if (backup.sendsProps && typeof backup.sendsProps === 'object') {
         setPropsMap(backup.sendsProps);
         localStorage.setItem('wham_sends_props', JSON.stringify(backup.sendsProps));
@@ -2031,6 +2217,13 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             });
             await supabase.from('comments').upsert(cleanComments, { onConflict: 'id' });
           }
+          if (backup.boulderReviews && backup.boulderReviews.length > 0) {
+            const cleanReviews = backup.boulderReviews.map((r) => {
+              const { profile, ...rest } = r;
+              return rest;
+            });
+            await supabase.from('boulder_reviews').upsert(cleanReviews, { onConflict: 'boulder_id,user_id' });
+          }
           if (backup.featureRequests && backup.featureRequests.length > 0) {
             setFeatureRequests(backup.featureRequests);
             try {
@@ -2054,6 +2247,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         boulders: backup.boulders?.length ?? 0,
         attempts: backup.attempts?.length ?? 0,
         comments: backup.comments?.length ?? 0,
+        reviews: backup.boulderReviews?.length ?? 0,
         profiles: backup.profiles?.length ?? 0,
         featureRequests: backup.featureRequests?.length ?? 0
       };
@@ -2081,6 +2275,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       attempts,
       comments,
       profiles: climbers,
+      boulderReviews: reviews,
       featureRequests,
       propsMap
     });
@@ -2135,6 +2330,10 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         getBoulderAttempts,
         getBoulderComments,
         getUserAttemptOnBoulder,
+        reviews,
+        saveReview,
+        deleteReview,
+        getBoulderReviews,
         orderedActiveBouldersInCurrentArea,
         featureRequests,
         submitFeatureRequest,

@@ -10,9 +10,11 @@ import {
   HOLD_COLORS,
   CLIMBER_COLORS,
   CLIMBER_ACCENT_PALETTE,
-  getClimberColor
+  getClimberColor,
+  BoulderReview
 } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { useGym } from '../../context/GymContext';
 import { STORAGE_KEYS, getStorageJson, setStorageJson } from '../../lib/storage';
 import {
   computeClimberStats,
@@ -45,6 +47,7 @@ interface StatsDashboardProps {
   currentUserId?: string;
   initialTab?: 'overview' | 'leaderboard' | 'comparison' | 'timeline' | 'pyramid' | 'circuits';
   onSelectBoulder?: (boulder: Boulder) => void;
+  reviews?: BoulderReview[];
 }
 
 export const StatsDashboard: React.FC<StatsDashboardProps> = ({
@@ -55,8 +58,12 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
   areas,
   currentUserId,
   initialTab,
-  onSelectBoulder
+  onSelectBoulder,
+  reviews: propReviews
 }) => {
+  const { reviews: gymReviews } = useGym();
+  const reviews = propReviews || gymReviews || [];
+
   const [activeTab, setActiveTab] = useState<
     'overview' | 'leaderboard' | 'comparison' | 'timeline' | 'pyramid' | 'circuits'
   >(initialTab || 'overview');
@@ -577,6 +584,8 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           activeGymBoulders={activeGymBoulders}
           completionPct={completionPct}
           userSentActiveBouldersCount={userSentActiveBoulders.length}
+          reviews={reviews}
+          onSelectBoulder={onSelectBoulder}
         />
       )}
 
