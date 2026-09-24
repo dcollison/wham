@@ -25,21 +25,21 @@ export const ClimberStatusPills: React.FC<ClimberStatusPillsProps> = ({
         const isCurrent = climber.id === currentUserId;
         const isClickable = Boolean(onClimberClick);
 
-        let badgeBg = 'bg-slate-800/80 border-slate-700/60 text-slate-400';
+        let badgeBg = 'bg-slate-800/70 border-white/[0.06] text-slate-400';
         let icon = <Minus className="w-2.5 h-2.5 opacity-40 shrink-0" />;
         let label = climber.display_name;
         let detail = '';
 
         if (attempt?.status === 'flashed') {
-          badgeBg = 'bg-amber-500/20 border-amber-500/60 text-amber-300 font-bold';
+          badgeBg = 'bg-amber-500/15 border-amber-500/40 text-amber-300 font-bold';
           icon = <Zap className="w-2.5 h-2.5 text-amber-400 fill-amber-400 shrink-0" />;
           detail = 'F';
         } else if (attempt?.status === 'sent') {
-          badgeBg = 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300 font-semibold';
+          badgeBg = 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 font-semibold';
           icon = <Check className="w-2.5 h-2.5 text-emerald-400 stroke-[3] shrink-0" />;
           detail = `S${attempt.attempt_count}`;
         } else if (attempt?.status === 'attempted') {
-          badgeBg = 'bg-blue-500/20 border-blue-500/50 text-blue-300 font-medium';
+          badgeBg = 'bg-blue-500/15 border-blue-500/40 text-blue-300 font-medium';
           icon = <Clock className="w-2.5 h-2.5 text-blue-400 shrink-0" />;
           detail = `P${attempt.attempt_count}`;
         }
@@ -62,11 +62,11 @@ export const ClimberStatusPills: React.FC<ClimberStatusPillsProps> = ({
               }
             }}
             title={`${climber.display_name}: ${statusText}${isClickable ? ' (Click to log)' : ''}`}
-            style={isCurrent ? { boxShadow: `0 0 0 1.5px ${climber.accent_color || '#3B82F6'}` } : undefined}
-            className={`inline-flex items-center gap-1 rounded-md border leading-tight whitespace-nowrap shrink-0 transition-all ${
-              size === 'md' ? 'px-2 py-1 text-xs' : 'px-1.5 py-0.5 text-[11px]'
+            style={isCurrent ? { boxShadow: `0 0 0 1.5px ${climber.accent_color || '#E59846'}` } : undefined}
+            className={`inline-flex items-center gap-1.5 rounded-full border leading-tight whitespace-nowrap shrink-0 transition-all ${
+              size === 'md' ? 'px-3 py-1 text-xs' : 'px-2.5 py-1 text-[11px]'
             } ${badgeBg} ${
-              isClickable ? 'cursor-pointer hover:brightness-125 hover:border-slate-500 active:scale-95' : ''
+              isClickable ? 'cursor-pointer hover:brightness-110 active-press' : ''
             }`}
           >
             {size === 'md' && <ClimberAvatar profile={climber} size="xs" />}

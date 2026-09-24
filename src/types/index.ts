@@ -255,18 +255,18 @@ export interface ClimberColorConfig {
 }
 
 export const CLIMBER_ACCENT_PALETTE: ClimberColorConfig[] = [
-  { name: 'Amber', bg: 'bg-amber-400/90', text: 'text-amber-300', hex: '#E2A336', border: 'border-amber-400/80', ring: 'ring-amber-400/80', badgeBg: 'bg-amber-400/15' },
-  { name: 'Orange', bg: 'bg-orange-400', text: 'text-orange-300', hex: '#E07638', border: 'border-orange-400/80', ring: 'ring-orange-400/80', badgeBg: 'bg-orange-400/15' },
-  { name: 'Cyan', bg: 'bg-cyan-400', text: 'text-cyan-300', hex: '#2BB3C7', border: 'border-cyan-400/80', ring: 'ring-cyan-400/80', badgeBg: 'bg-cyan-400/15' },
-  { name: 'Purple', bg: 'bg-purple-400', text: 'text-purple-300', hex: '#8B6BD6', border: 'border-purple-400/80', ring: 'ring-purple-400/80', badgeBg: 'bg-purple-400/15' },
-  { name: 'Rose', bg: 'bg-rose-400', text: 'text-rose-300', hex: '#D85470', border: 'border-rose-400/80', ring: 'ring-rose-400/80', badgeBg: 'bg-rose-400/15' },
-  { name: 'Emerald', bg: 'bg-emerald-400', text: 'text-emerald-300', hex: '#32A378', border: 'border-emerald-400/80', ring: 'ring-emerald-400/80', badgeBg: 'bg-emerald-400/15' },
-  { name: 'Blue', bg: 'bg-blue-400', text: 'text-blue-300', hex: '#4682D7', border: 'border-blue-400/80', ring: 'ring-blue-400/80', badgeBg: 'bg-blue-400/15' },
-  { name: 'Lime', bg: 'bg-lime-400', text: 'text-lime-300', hex: '#7CA832', border: 'border-lime-400/80', ring: 'ring-lime-400/80', badgeBg: 'bg-lime-400/15' },
-  { name: 'Pink', bg: 'bg-pink-400', text: 'text-pink-300', hex: '#D45C8E', border: 'border-pink-400/80', ring: 'ring-pink-400/80', badgeBg: 'bg-pink-400/15' },
-  { name: 'Indigo', bg: 'bg-indigo-400', text: 'text-indigo-300', hex: '#686BD6', border: 'border-indigo-400/80', ring: 'ring-indigo-400/80', badgeBg: 'bg-indigo-400/15' },
-  { name: 'Teal', bg: 'bg-teal-400', text: 'text-teal-300', hex: '#2AA698', border: 'border-teal-400/80', ring: 'ring-teal-400/80', badgeBg: 'bg-teal-400/15' },
-  { name: 'Red', bg: 'bg-red-400', text: 'text-red-300', hex: '#D85454', border: 'border-red-400/80', ring: 'ring-red-400/80', badgeBg: 'bg-red-400/15' }
+  { name: 'Terracotta', bg: 'bg-amber-500/90', text: 'text-amber-300', hex: '#E58C56', border: 'border-amber-500/60', ring: 'ring-amber-500/70', badgeBg: 'bg-amber-500/15' },
+  { name: 'Warm Amber', bg: 'bg-amber-400', text: 'text-amber-300', hex: '#EAA838', border: 'border-amber-400/60', ring: 'ring-amber-400/70', badgeBg: 'bg-amber-400/15' },
+  { name: 'Sage Olive', bg: 'bg-emerald-500', text: 'text-emerald-300', hex: '#82A77D', border: 'border-emerald-500/60', ring: 'ring-emerald-500/70', badgeBg: 'bg-emerald-500/15' },
+  { name: 'Mineral Sky', bg: 'bg-cyan-500', text: 'text-cyan-300', hex: '#529DBB', border: 'border-cyan-500/60', ring: 'ring-cyan-500/70', badgeBg: 'bg-cyan-500/15' },
+  { name: 'Lilac', bg: 'bg-purple-400', text: 'text-purple-300', hex: '#9D85D6', border: 'border-purple-400/60', ring: 'ring-purple-400/70', badgeBg: 'bg-purple-400/15' },
+  { name: 'Dusty Rose', bg: 'bg-rose-400', text: 'text-rose-300', hex: '#D97086', border: 'border-rose-400/60', ring: 'ring-rose-400/70', badgeBg: 'bg-rose-400/15' },
+  { name: 'Emerald', bg: 'bg-emerald-400', text: 'text-emerald-300', hex: '#429C7A', border: 'border-emerald-400/60', ring: 'ring-emerald-400/70', badgeBg: 'bg-emerald-400/15' },
+  { name: 'Electric Lime', bg: 'bg-lime-400', text: 'text-lime-300', hex: '#88B832', border: 'border-lime-400/60', ring: 'ring-lime-400/70', badgeBg: 'bg-lime-400/15' },
+  { name: 'Coral Clay', bg: 'bg-orange-400', text: 'text-orange-300', hex: '#E27B66', border: 'border-orange-400/60', ring: 'ring-orange-400/70', badgeBg: 'bg-orange-400/15' },
+  { name: 'Warm Sand', bg: 'bg-amber-300', text: 'text-amber-200', hex: '#D4B282', border: 'border-amber-300/60', ring: 'ring-amber-300/70', badgeBg: 'bg-amber-300/15' },
+  { name: 'Deep Dusk', bg: 'bg-indigo-400', text: 'text-indigo-300', hex: '#6D79C7', border: 'border-indigo-400/60', ring: 'ring-indigo-400/70', badgeBg: 'bg-indigo-400/15' },
+  { name: 'Berry Plum', bg: 'bg-pink-500', text: 'text-pink-300', hex: '#C25E9B', border: 'border-pink-500/60', ring: 'ring-pink-500/70', badgeBg: 'bg-pink-500/15' }
 ];
 
 export const CLIMBER_COLORS = CLIMBER_ACCENT_PALETTE;

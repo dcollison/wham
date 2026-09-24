@@ -58,9 +58,9 @@ export const CrewFeedView: React.FC<CrewFeedViewProps> = ({
   const activeColor = activeClimber?.accent_color || '#3B82F6';
 
   return (
-    <div className="flex flex-col gap-4 animate-in fade-in duration-200">
+    <div className="flex flex-col gap-6 animate-in fade-in duration-200">
       {/* Top Segmented Sub-Tab Switcher */}
-      <div className="flex items-center justify-center p-1 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm max-w-sm mx-auto w-full">
+      <div className="flex items-center justify-center p-1 rounded-full bg-surface border border-slate-800/80 shadow-sm max-w-sm mx-auto w-full">
         <button
           type="button"
           onClick={() => {
@@ -68,7 +68,7 @@ export const CrewFeedView: React.FC<CrewFeedViewProps> = ({
             window.location.hash = '#/sends';
           }}
           style={activeSubTab === 'sends' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all active-press ${
+          className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-full text-xs font-bold transition-all active-press ${
             activeSubTab === 'sends'
               ? 'shadow-sm'
               : 'text-slate-400 hover:text-white'
@@ -77,7 +77,7 @@ export const CrewFeedView: React.FC<CrewFeedViewProps> = ({
           <Zap className="w-3.5 h-3.5" />
           <span>Sends Feed</span>
           <span
-            className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+            className={`text-[10px] px-2 py-0.2 rounded-full font-mono font-bold ${
               activeSubTab === 'sends' ? 'bg-black/20 text-black' : 'bg-slate-800 text-slate-300'
             }`}
           >
@@ -92,7 +92,7 @@ export const CrewFeedView: React.FC<CrewFeedViewProps> = ({
             window.location.hash = '#/beta';
           }}
           style={activeSubTab === 'beta' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all active-press ${
+          className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-full text-xs font-bold transition-all active-press ${
             activeSubTab === 'beta'
               ? 'shadow-sm'
               : 'text-slate-400 hover:text-white'
@@ -101,7 +101,7 @@ export const CrewFeedView: React.FC<CrewFeedViewProps> = ({
           <MessageSquare className="w-3.5 h-3.5" />
           <span>Beta Spray</span>
           <span
-            className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+            className={`text-[10px] px-2 py-0.2 rounded-full font-mono font-bold ${
               activeSubTab === 'beta' ? 'bg-black/20 text-black' : 'bg-slate-800 text-slate-300'
             }`}
           >

@@ -453,12 +453,12 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
       {/* Top Controls: Sub-Tabs & Gym Filter */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         {/* Navigation Sub-Tabs */}
-        <div className="flex p-1 bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto no-scrollbar">
+        <div className="flex p-1 bg-surface border border-slate-800/80 rounded-full overflow-x-auto no-scrollbar shadow-xs">
           <button
             type="button"
             onClick={() => setActiveTab('overview')}
             style={activeTab === 'overview' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all active-press ${
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all active-press ${
               activeTab === 'overview' ? 'text-black shadow-md' : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -470,7 +470,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
             type="button"
             onClick={() => setActiveTab('leaderboard')}
             style={activeTab === 'leaderboard' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all active-press ${
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all active-press ${
               activeTab === 'leaderboard' ? 'text-black shadow-md' : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -482,7 +482,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
             type="button"
             onClick={() => setActiveTab('comparison')}
             style={activeTab === 'comparison' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all active-press ${
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all active-press ${
               activeTab === 'comparison' ? 'text-black shadow-md' : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -494,7 +494,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
             type="button"
             onClick={() => setActiveTab('timeline')}
             style={activeTab === 'timeline' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all active-press ${
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all active-press ${
               activeTab === 'timeline' ? 'text-black shadow-md' : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -506,7 +506,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
             type="button"
             onClick={() => setActiveTab('pyramid')}
             style={activeTab === 'pyramid' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all active-press ${
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all active-press ${
               activeTab === 'pyramid' ? 'text-black shadow-md' : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -518,7 +518,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
             type="button"
             onClick={() => setActiveTab('circuits')}
             style={activeTab === 'circuits' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all active-press ${
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all active-press ${
               activeTab === 'circuits' ? 'text-black shadow-md' : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -533,7 +533,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           <select
             value={selectedGymId}
             onChange={(e) => setSelectedGymId(e.target.value)}
-            className="flex-1 sm:flex-none bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 outline-none focus:border-slate-500 font-medium"
+            className="flex-1 sm:flex-none bg-surface border border-slate-800 text-slate-200 text-xs rounded-full px-4 py-2 outline-none focus:border-slate-500 font-medium cursor-pointer shadow-xs"
           >
             <option value="all">All Gyms (Bond & Hub)</option>
             {gyms.map((g) => (

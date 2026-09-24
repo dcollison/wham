@@ -32,7 +32,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-lg border-t border-slate-800/80 px-4 pt-2.5 pb-safe">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/90 backdrop-blur-xl border-t border-white/[0.06] px-3 pt-2 pb-safe shadow-[0_-4px_24px_rgba(0,0,0,0.35)]">
       <div className="max-w-md mx-auto grid grid-cols-4 gap-1">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -47,25 +47,38 @@ export const Navigation: React.FC<NavigationProps> = ({
                 window.location.hash = tab.hash;
                 onSelectTab(tab.id);
               }}
-              className={`flex flex-col items-center justify-center py-1.5 rounded-xl transition-all active-press relative ${
-                isActive
-                  ? 'font-bold'
-                  : 'text-slate-400 hover:text-slate-200 font-medium'
-              }`}
-              style={isActive ? { color: activeColor } : undefined}
+              className="group flex flex-col items-center justify-center py-1 transition-all active-press select-none"
             >
-              <div className="relative">
-                <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
+              {/* Material You Pill Indicator for Icon */}
+              <div
+                className={`relative px-4 sm:px-5 py-1.5 rounded-full transition-all duration-200 flex items-center justify-center ${
+                  isActive ? 'shadow-xs' : 'bg-transparent'
+                }`}
+                style={isActive ? { backgroundColor: `${activeColor}22` } : undefined}
+              >
+                <Icon
+                  className={`w-5 h-5 transition-transform duration-200 ${
+                    isActive ? 'stroke-[2.5] scale-105' : 'stroke-[1.8] text-slate-400 group-hover:text-slate-200'
+                  }`}
+                  style={isActive ? { color: activeColor } : undefined}
+                />
                 {Boolean(tab.badge && tab.badge > 0) && (
                   <span
-                    className="absolute -top-1 -right-2 w-4 h-4 text-black text-[10px] font-black rounded-full flex items-center justify-center shadow"
+                    className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 text-slate-950 text-[10px] font-black rounded-full flex items-center justify-center shadow-md animate-pulse"
                     style={{ backgroundColor: activeColor }}
                   >
                     {tab.badge}
                   </span>
                 )}
               </div>
-              <span className="text-xs mt-1 tracking-tight">{tab.label}</span>
+              <span
+                className={`text-[11px] mt-1 tracking-tight transition-colors duration-150 ${
+                  isActive ? 'font-bold text-white' : 'font-medium text-slate-400 group-hover:text-slate-300'
+                }`}
+                style={isActive ? { color: activeColor } : undefined}
+              >
+                {tab.label}
+              </span>
             </a>
           );
         })}

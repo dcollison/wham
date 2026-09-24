@@ -49,21 +49,21 @@ export const CompLeaderboardModal: React.FC<CompLeaderboardModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div
-        className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-slate-950 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-2xl flex flex-col gap-4 no-scrollbar"
+        className="relative w-full max-w-3xl max-h-[92vh] overflow-y-auto bg-surface border-t sm:border border-slate-800/80 rounded-t-[32px] sm:rounded-4xl p-5 sm:p-7 shadow-2xl flex flex-col gap-5 no-scrollbar sheet-elevated"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header Close Button */}
-        <div className="flex items-center justify-between sticky top-0 bg-slate-950/90 backdrop-blur-md pb-2 z-10 border-b border-slate-800/80">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between sticky top-0 bg-surface/95 backdrop-blur-md pb-3 z-10 border-b border-slate-800/80">
+          <div className="flex items-center gap-2.5">
             <Trophy className="w-5 h-5" style={{ color: activeColor }} />
             <span className="text-sm font-bold text-white font-mono uppercase tracking-wider">
               Gym Comp Standings
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             {onNavigateToStats && (
               <button
                 type="button"
@@ -71,18 +71,18 @@ export const CompLeaderboardModal: React.FC<CompLeaderboardModalProps> = ({
                   onClose();
                   onNavigateToStats();
                 }}
-                className="text-[11px] font-bold text-slate-400 hover:text-white px-2 py-1 rounded-lg hover:bg-slate-800 transition-colors hidden sm:flex items-center gap-1"
+                className="text-xs font-bold text-slate-300 hover:text-white px-3 py-1.5 rounded-full bg-slate-800/80 hover:bg-slate-750 border border-slate-750 transition-colors hidden sm:flex items-center gap-1.5 active-press"
                 title="View in full Analytics tab"
               >
                 <span>Analytics Tab</span>
-                <ExternalLink className="w-3 h-3" />
+                <ExternalLink className="w-3.5 h-3.5" />
               </button>
             )}
 
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors active-press"
               title="Close modal"
             >
               <X className="w-5 h-5" />

@@ -57,13 +57,13 @@ export const GymCompBanner: React.FC<GymCompBannerProps> = ({
   return (
     <div
       style={{
-        borderColor: `${activeColor}40`,
-        boxShadow: `0 4px 20px -2px ${activeColor}15`
+        borderColor: `${activeColor}35`,
+        boxShadow: `0 4px 24px -2px ${activeColor}12`
       }}
-      className="bg-slate-900/90 border rounded-2xl overflow-hidden transition-all"
+      className="bg-slate-900/90 border rounded-3xl overflow-hidden transition-all surface-card"
     >
       {/* Top Main Bar */}
-      <div className="p-3.5 sm:p-4 flex items-center justify-between gap-3">
+      <div className="p-4 sm:p-5 flex items-center justify-between gap-3">
         {/* Left: Trophy & Gym Title */}
         <div
           onClick={onOpenFullLeaderboard}
@@ -71,9 +71,9 @@ export const GymCompBanner: React.FC<GymCompBannerProps> = ({
         >
           <div
             style={{ backgroundColor: activeColor }}
-            className="w-9 h-9 rounded-xl text-black flex items-center justify-center font-black shrink-0 shadow-md group-hover:scale-105 transition-transform"
+            className="w-10 h-10 rounded-2xl text-black flex items-center justify-center font-black shrink-0 shadow-xs group-hover:scale-105 transition-transform"
           >
-            <Trophy className="w-4.5 h-4.5 text-slate-950 stroke-[2.5]" />
+            <Trophy className="w-5 h-5 text-slate-950 stroke-[2.5]" />
           </div>
 
           <div className="min-w-0">
@@ -87,7 +87,7 @@ export const GymCompBanner: React.FC<GymCompBannerProps> = ({
                   color: activeColor,
                   borderColor: `${activeColor}40`
                 }}
-                className="text-[10px] px-2 py-0.5 font-mono font-bold rounded-md border flex items-center gap-1"
+                className="text-[10px] px-2.5 py-0.5 font-mono font-bold rounded-full border flex items-center gap-1"
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 <span>{monthInfo?.daysRemaining ?? 0}d left</span>
@@ -120,7 +120,7 @@ export const GymCompBanner: React.FC<GymCompBannerProps> = ({
           <button
             type="button"
             onClick={toggleExpanded}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors text-xs font-semibold flex items-center gap-1"
+            className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors text-xs font-semibold flex items-center gap-1 active-press"
             title={isExpanded ? 'Collapse podium' : 'Expand podium'}
           >
             <span className="hidden sm:inline text-xs">
@@ -137,7 +137,7 @@ export const GymCompBanner: React.FC<GymCompBannerProps> = ({
             type="button"
             onClick={onOpenFullLeaderboard}
             style={{ backgroundColor: activeColor, color: '#000000' }}
-            className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold active-press shadow-sm transition-all"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs sm:text-sm font-bold active-press shadow-xs transition-all"
           >
             <span>Leaderboard</span>
             <ChevronRight className="w-4 h-4 stroke-[2.5]" />

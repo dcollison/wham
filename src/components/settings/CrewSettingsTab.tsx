@@ -151,7 +151,7 @@ export const CrewSettingsTab: React.FC<CrewSettingsTabProps> = ({
               type="button"
               onClick={() => setIsAddingClimber(true)}
               style={{ color: activeColor }}
-              className="flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded-lg hover:brightness-125 transition-colors"
+              className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full hover:brightness-125 transition-all active-press"
             >
               <UserPlus className="w-3.5 h-3.5" />
               <span>+ Add Climber</span>
@@ -159,7 +159,7 @@ export const CrewSettingsTab: React.FC<CrewSettingsTabProps> = ({
           )}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
           {climbers.map((climber) => {
             const isActive = currentUser?.id === climber.id;
             const isSelectedForEdit = selectedClimber?.id === climber.id;
@@ -181,7 +181,7 @@ export const CrewSettingsTab: React.FC<CrewSettingsTabProps> = ({
                         }
                       : undefined
                   }
-                  className={`w-full p-3 rounded-xl border flex flex-col items-center gap-1.5 transition-all active-press ${
+                  className={`w-full p-3.5 rounded-2xl border flex flex-col items-center gap-2 transition-all active-press ${
                     isSelectedForEdit
                       ? 'ring-1'
                       : 'bg-slate-800/60 border-slate-700 text-slate-300 hover:border-slate-600'
@@ -196,7 +196,7 @@ export const CrewSettingsTab: React.FC<CrewSettingsTabProps> = ({
                   <div className="flex items-center gap-1 flex-wrap justify-center">
                     {isActive && (
                       <span
-                        className="text-[10px] font-bold px-1.5 py-0.2 rounded"
+                        className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                         style={{
                           backgroundColor: `${climberColor.hex}25`,
                           color: climberColor.hex
@@ -206,7 +206,7 @@ export const CrewSettingsTab: React.FC<CrewSettingsTabProps> = ({
                       </span>
                     )}
                     {isSelectedForEdit && !isActive && (
-                      <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-slate-700 text-slate-200">
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-700 text-slate-200">
                         Editing
                       </span>
                     )}
@@ -228,7 +228,7 @@ export const CrewSettingsTab: React.FC<CrewSettingsTabProps> = ({
                         onRemoveClimber(climber.id);
                       }
                     }}
-                    className="absolute top-1 right-1 p-1 rounded-full bg-slate-900/80 border border-slate-700 text-slate-400 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-1 right-1 p-1.5 rounded-full bg-slate-900/80 border border-slate-700 text-slate-400 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity"
                     title={`Remove ${climber.display_name}`}
                   >
                     <Trash2 className="w-3 h-3" />
@@ -243,9 +243,9 @@ export const CrewSettingsTab: React.FC<CrewSettingsTabProps> = ({
             <button
               type="button"
               onClick={() => setIsAddingClimber(true)}
-              className="p-3 rounded-xl border border-dashed border-slate-700 hover:border-slate-500 bg-slate-800/30 hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 flex flex-col items-center justify-center gap-1.5 transition-all active-press"
+              className="p-3.5 rounded-2xl border border-dashed border-slate-700 hover:border-slate-500 bg-slate-800/30 hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 flex flex-col items-center justify-center gap-1.5 transition-all active-press"
             >
-              <div className="w-9 h-9 rounded-full border border-dashed border-slate-600 flex items-center justify-center text-slate-400">
+              <div className="w-10 h-10 rounded-full border border-dashed border-slate-600 flex items-center justify-center text-slate-400">
                 <UserPlus className="w-4 h-4" />
               </div>
               <span className="text-xs font-bold">+ Add New</span>
@@ -285,12 +285,12 @@ export const CrewSettingsTab: React.FC<CrewSettingsTabProps> = ({
               onChange={(e) => setNewClimberName(e.target.value)}
               placeholder="Enter climber name..."
               autoFocus
-              className="flex-1 bg-slate-900 border border-slate-700 text-slate-100 text-xs rounded-xl px-3.5 py-2.5 outline-none focus:border-slate-500"
+              className="flex-1 bg-slate-900 border border-slate-700 text-slate-100 text-xs rounded-full px-4 py-2.5 outline-none focus:border-slate-500"
             />
             <button
               type="submit"
               style={{ backgroundColor: activeColor, color: '#000000' }}
-              className="px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 active-press transition-colors shrink-0"
+              className="px-5 py-2.5 rounded-full font-bold text-xs flex items-center gap-1.5 active-press transition-colors shrink-0"
             >
               <Check className="w-3.5 h-3.5 stroke-[3]" />
               <span>Add</span>
@@ -339,7 +339,7 @@ export const CrewSettingsTab: React.FC<CrewSettingsTabProps> = ({
                     key={iconOpt.id}
                     type="button"
                     onClick={() => setNewClimberIcon(iconOpt.id)}
-                    className={`w-7 h-7 rounded-xl transition-all active:scale-95 flex items-center justify-center ${
+                    className={`w-7 h-7 rounded-2xl transition-all active:scale-95 flex items-center justify-center ${
                       isSelected
                         ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900 scale-105 text-black'
                         : 'bg-slate-850 border border-slate-700 text-slate-300 hover:text-white'
@@ -446,7 +446,7 @@ export const CrewSettingsTab: React.FC<CrewSettingsTabProps> = ({
                   key={palette.hex}
                   type="button"
                   onClick={() => handleSelectColor(palette.hex)}
-                  className={`flex items-center gap-1.5 p-2 rounded-xl border text-xs font-semibold transition-all active-press ${
+                  className={`flex items-center gap-1.5 p-2 rounded-2xl border text-xs font-semibold transition-all active-press ${
                     isSelected
                       ? 'bg-slate-800 text-white shadow-md ring-2 ring-white/60'
                       : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:border-slate-700'
@@ -484,7 +484,7 @@ export const CrewSettingsTab: React.FC<CrewSettingsTabProps> = ({
                   key={iconOpt.id}
                   type="button"
                   onClick={() => handleSelectIcon(iconOpt.id)}
-                  className={`flex items-center gap-2 p-2 rounded-xl border text-xs font-semibold transition-all active-press ${
+                  className={`flex items-center gap-2 p-2 rounded-2xl border text-xs font-semibold transition-all active-press ${
                     isSelected
                       ? 'bg-slate-800 text-white shadow-md ring-2 ring-white/60'
                       : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:border-slate-700'
@@ -515,11 +515,11 @@ export const CrewSettingsTab: React.FC<CrewSettingsTabProps> = ({
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder="Display name..."
-              className="flex-1 bg-slate-800 border border-slate-700 text-slate-100 text-xs rounded-xl px-3.5 py-2.5 outline-none focus:border-slate-500"
+              className="flex-1 bg-slate-800 border border-slate-700 text-slate-100 text-xs rounded-full px-4 py-2.5 outline-none focus:border-slate-500"
             />
             <button
               type="submit"
-              className="px-4 py-2.5 rounded-xl font-bold text-xs bg-slate-700 hover:bg-slate-600 text-white active-press transition-colors"
+              className="px-5 py-2.5 rounded-full font-bold text-xs bg-slate-700 hover:bg-slate-600 text-white active-press transition-colors"
             >
               Save Name
             </button>
@@ -528,7 +528,7 @@ export const CrewSettingsTab: React.FC<CrewSettingsTabProps> = ({
       </div>
 
       {/* Information Note */}
-      <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-800 text-xs text-slate-400 leading-relaxed flex items-start gap-2">
+      <div className="p-3.5 rounded-2xl bg-slate-800/40 border border-slate-800 text-xs text-slate-400 leading-relaxed flex items-start gap-2.5">
         <Info className="w-4 h-4 shrink-0 mt-0.5" style={{ color: activeColor }} />
         <span>
           <strong className="text-slate-300">Shared Gym Phone Tip:</strong> Tap any climber above to switch who is actively logging climbs, or update their personal accent colour and icon. Changes are saved instantly and preserved locally on this device.
@@ -537,7 +537,7 @@ export const CrewSettingsTab: React.FC<CrewSettingsTabProps> = ({
 
       {/* Passcode Security & Lock App */}
       {onLockApp && (
-        <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between gap-3">
+        <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-between gap-3">
           <div className="flex flex-col">
             <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
               <Lock className="w-3.5 h-3.5 text-amber-400" />
@@ -548,7 +548,7 @@ export const CrewSettingsTab: React.FC<CrewSettingsTabProps> = ({
           <button
             type="button"
             onClick={onLockApp}
-            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 active-press transition-colors shrink-0 shadow-sm"
+            className="inline-flex items-center gap-1 px-4 py-2 rounded-full text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 active-press transition-colors shrink-0 shadow-sm"
           >
             Lock Now
           </button>

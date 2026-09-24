@@ -98,7 +98,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
   return (
     <div className="flex flex-col gap-4 sm:gap-5">
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-sm">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-surface/90 border border-slate-800/80 rounded-3xl p-5 shadow-sm">
         <div>
           <div className="flex items-center gap-2">
             <Trophy className="w-5 h-5 text-amber-400" />
@@ -106,7 +106,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
               {gymName} Comp Leaderboard
             </h2>
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-400 mt-1">
             {isMonthly
               ? `Points scored during ${monthInfo?.label || 'this month'} (${activeBouldersCount} climbs scored)`
               : `Real-time points scored on active wall set (${activeBouldersCount} active boulders)`}
@@ -121,10 +121,10 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
               setShowHallOfFame(!showHallOfFame);
               if (showRules) setShowRules(false);
             }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border active-press ${
               showHallOfFame
-                ? 'bg-amber-400/20 text-amber-300 border-amber-400/40'
-                : 'bg-slate-900 border-slate-700/80 text-slate-400 hover:text-slate-200 hover:border-slate-600'
+                ? 'bg-amber-400/20 text-amber-300 border-amber-400/40 shadow-xs'
+                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
             }`}
           >
             <Award className="w-3.5 h-3.5 text-amber-400" />
@@ -137,10 +137,10 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
               setShowRules(!showRules);
               if (showHallOfFame) setShowHallOfFame(false);
             }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border active-press ${
               showRules
-                ? 'bg-amber-400/20 text-amber-300 border-amber-400/40'
-                : 'bg-slate-900 border-slate-700/80 text-slate-400 hover:text-slate-200 hover:border-slate-600'
+                ? 'bg-amber-400/20 text-amber-300 border-amber-400/40 shadow-xs'
+                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
             }`}
           >
             <HelpCircle className="w-3.5 h-3.5" />
@@ -148,12 +148,12 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
           </button>
 
           {showGymSelector && (
-            <div className="flex p-1 bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto no-scrollbar">
+            <div className="flex p-1 bg-surface border border-slate-800/80 rounded-full overflow-x-auto no-scrollbar shadow-xs">
               <button
                 type="button"
                 onClick={() => setSelectedGymId('all')}
                 style={selectedGymId === 'all' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all active-press ${
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all active-press ${
                   selectedGymId === 'all'
                     ? 'text-black shadow-md font-black'
                     : 'text-slate-400 hover:text-white'
@@ -167,7 +167,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                   type="button"
                   onClick={() => setSelectedGymId(gym.id)}
                   style={selectedGymId === gym.id ? { backgroundColor: activeColor, color: '#000000' } : undefined}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all active-press ${
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all active-press ${
                     selectedGymId === gym.id
                       ? 'text-black shadow-md font-black'
                       : 'text-slate-400 hover:text-white'
@@ -182,13 +182,13 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
       </div>
 
       {/* Period Selection & Month Stepper Bar */}
-      <div className="flex flex-col gap-3 bg-slate-900/70 border border-slate-800 rounded-2xl p-3 shadow-sm">
+      <div className="flex flex-col gap-3 bg-surface/70 border border-slate-800/80 rounded-3xl p-4 shadow-sm">
         {/* Mode Switcher: Monthly Comp vs Wall Set */}
-        <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-950/80 border border-slate-800 rounded-xl w-full">
+        <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-950/80 border border-slate-800 rounded-full w-full">
           <button
             type="button"
             onClick={() => setSelectedPeriod(currentMonth.key)}
-            className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 active-press ${
+            className={`py-2 px-4 rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 active-press ${
               selectedPeriod !== 'active_set'
                 ? 'bg-amber-400 text-slate-950 shadow-md font-black'
                 : 'text-slate-400 hover:text-white'
@@ -200,7 +200,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
           <button
             type="button"
             onClick={() => setSelectedPeriod('active_set')}
-            className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 active-press ${
+            className={`py-2 px-4 rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 active-press ${
               selectedPeriod === 'active_set'
                 ? 'bg-amber-400 text-slate-950 shadow-md font-black'
                 : 'text-slate-400 hover:text-white'
@@ -213,9 +213,9 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
 
         {/* If Monthly Mode: Stepper and Month Dropdown */}
         {selectedPeriod !== 'active_set' ? (
-          <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1 border-t border-slate-800/60">
+          <div className="flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t border-slate-800/60">
             {/* Stepper Buttons & Dropdown */}
-            <div className="flex items-center gap-1 bg-slate-950/80 border border-slate-800 rounded-xl p-1 max-w-full">
+            <div className="flex items-center gap-1 bg-slate-950/80 border border-slate-800 rounded-full p-1 max-w-full">
               <button
                 type="button"
                 onClick={() => {
@@ -443,10 +443,10 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
 
       {/* The Podium: Top 3 Climbers */}
       {standings.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end pt-4 sm:pt-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 items-end pt-4 sm:pt-6">
           {/* 2nd Place (Silver) */}
           {secondPlace && (
-            <div className="order-2 sm:order-1 bg-slate-900/90 border border-slate-700/70 rounded-2xl p-4 sm:p-5 flex flex-col items-center text-center gap-2 hover:border-slate-500 transition-all shadow-md">
+            <div className="order-2 sm:order-1 bg-surface/90 border border-slate-700/60 rounded-3xl p-5 flex flex-col items-center text-center gap-2 hover:border-slate-500 transition-all shadow-md">
               <div className="relative">
                 <div className="w-8 h-8 rounded-full bg-slate-700 border-2 border-slate-400 text-slate-200 flex items-center justify-center font-black text-xs absolute -top-2 -left-2 shadow-md">
                   2
@@ -462,7 +462,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                   {secondPlace.climber.id === currentUserId && (
                     <span
                       style={{ backgroundColor: activeColor, color: '#000000' }}
-                      className="text-[10px] px-1.5 py-0.2 font-bold rounded-full"
+                      className="text-[10px] px-2 py-0.5 font-bold rounded-full"
                     >
                       YOU
                     </span>
@@ -471,7 +471,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                 <span className="text-xs text-slate-400 font-mono">Silver Medal</span>
               </div>
 
-              <div className="w-full bg-slate-800/60 rounded-xl p-2.5 flex flex-col items-center">
+              <div className="w-full bg-slate-800/60 rounded-2xl p-3 flex flex-col items-center">
                 <span className="text-xl sm:text-2xl font-black font-mono text-slate-100">
                   {secondPlace.totalPoints.toLocaleString()}
                 </span>
@@ -479,11 +479,11 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
               </div>
 
               <div className="grid grid-cols-2 gap-1.5 w-full text-xs font-mono">
-                <div className="bg-slate-800/40 rounded-lg py-1 px-1.5 text-center">
+                <div className="bg-slate-800/40 rounded-xl py-1 px-1.5 text-center">
                   <span className="text-slate-400 block text-[10px] uppercase">Tops</span>
                   <strong className="text-white font-bold">{secondPlace.topsCount}</strong>
                 </div>
-                <div className="bg-slate-800/40 rounded-lg py-1 px-1.5 text-center">
+                <div className="bg-slate-800/40 rounded-xl py-1 px-1.5 text-center">
                   <span className="text-slate-400 block text-[10px] uppercase">Flashes</span>
                   <strong className="text-emerald-400 font-bold">{secondPlace.flashesCount}</strong>
                 </div>
@@ -493,7 +493,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
 
           {/* 1st Place (Gold Champion) */}
           {firstPlace && (
-            <div className="order-1 sm:order-2 bg-gradient-to-b from-amber-500/15 via-slate-900 to-slate-900 border-2 border-amber-400/70 rounded-2xl p-5 sm:p-6 flex flex-col items-center text-center gap-2.5 hover:border-amber-400 transition-all shadow-xl shadow-amber-400/10 sm:-translate-y-2">
+            <div className="order-1 sm:order-2 bg-gradient-to-b from-amber-500/15 via-surface to-surface border-2 border-amber-400/70 rounded-3xl p-6 flex flex-col items-center text-center gap-3 hover:border-amber-400 transition-all shadow-xl shadow-amber-400/10 sm:-translate-y-2">
               <div className="relative">
                 <div className="w-9 h-9 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black text-sm absolute -top-3 -left-3 shadow-lg shadow-amber-400/30">
                   <Crown className="w-4 h-4 fill-slate-950" />
@@ -509,7 +509,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                   {firstPlace.climber.id === currentUserId && (
                     <span
                       style={{ backgroundColor: activeColor, color: '#000000' }}
-                      className="text-[10px] px-1.5 py-0.2 font-bold rounded-full"
+                      className="text-[10px] px-2 py-0.5 font-bold rounded-full"
                     >
                       YOU
                     </span>
@@ -521,7 +521,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                 </span>
               </div>
 
-              <div className="w-full bg-amber-500/20 border border-amber-400/40 rounded-xl p-3 flex flex-col items-center">
+              <div className="w-full bg-amber-500/20 border border-amber-400/40 rounded-2xl p-3.5 flex flex-col items-center">
                 <span className="text-2xl sm:text-3xl font-black font-mono text-amber-400">
                   {firstPlace.totalPoints.toLocaleString()}
                 </span>
@@ -529,15 +529,15 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
               </div>
 
               <div className="grid grid-cols-3 gap-1.5 w-full text-xs font-mono">
-                <div className="bg-slate-800/80 rounded-lg py-1 px-1 text-center">
+                <div className="bg-slate-800/80 rounded-xl py-1 px-1 text-center">
                   <span className="text-slate-400 block text-[10px] uppercase">Tops</span>
                   <strong className="text-white font-bold">{firstPlace.topsCount}</strong>
                 </div>
-                <div className="bg-slate-800/80 rounded-lg py-1 px-1 text-center">
+                <div className="bg-slate-800/80 rounded-xl py-1 px-1 text-center">
                   <span className="text-slate-400 block text-[10px] uppercase">Flashes</span>
                   <strong className="text-emerald-400 font-bold">{firstPlace.flashesCount}</strong>
                 </div>
-                <div className="bg-slate-800/80 rounded-lg py-1 px-1 text-center">
+                <div className="bg-slate-800/80 rounded-xl py-1 px-1 text-center">
                   <span className="text-slate-400 block text-[10px] uppercase">Top Grade</span>
                   <strong className="text-rose-400 font-bold">{firstPlace.hardestSend || '—'}</strong>
                 </div>
@@ -547,7 +547,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
 
           {/* 3rd Place (Bronze) */}
           {thirdPlace && (
-            <div className="order-3 sm:order-3 bg-slate-900/90 border border-amber-900/60 rounded-2xl p-4 sm:p-5 flex flex-col items-center text-center gap-2 hover:border-amber-800 transition-all shadow-md">
+            <div className="order-3 sm:order-3 bg-surface/90 border border-amber-900/60 rounded-3xl p-5 flex flex-col items-center text-center gap-2 hover:border-amber-800 transition-all shadow-md">
               <div className="relative">
                 <div className="w-8 h-8 rounded-full bg-amber-800 border-2 border-amber-600 text-amber-100 flex items-center justify-center font-black text-xs absolute -top-2 -left-2 shadow-md">
                   3
@@ -563,7 +563,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                   {thirdPlace.climber.id === currentUserId && (
                     <span
                       style={{ backgroundColor: activeColor, color: '#000000' }}
-                      className="text-[10px] px-1.5 py-0.2 font-bold rounded-full"
+                      className="text-[10px] px-2 py-0.5 font-bold rounded-full"
                     >
                       YOU
                     </span>
@@ -572,7 +572,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                 <span className="text-xs text-amber-600/90 font-mono">Bronze Medal</span>
               </div>
 
-              <div className="w-full bg-slate-800/60 rounded-xl p-2.5 flex flex-col items-center">
+              <div className="w-full bg-slate-800/60 rounded-2xl p-3 flex flex-col items-center">
                 <span className="text-xl sm:text-2xl font-black font-mono text-amber-200">
                   {thirdPlace.totalPoints.toLocaleString()}
                 </span>
@@ -580,11 +580,11 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
               </div>
 
               <div className="grid grid-cols-2 gap-1.5 w-full text-xs font-mono">
-                <div className="bg-slate-800/40 rounded-lg py-1 px-1.5 text-center">
+                <div className="bg-slate-800/40 rounded-xl py-1 px-1.5 text-center">
                   <span className="text-slate-400 block text-[10px] uppercase">Tops</span>
                   <strong className="text-white font-bold">{thirdPlace.topsCount}</strong>
                 </div>
-                <div className="bg-slate-800/40 rounded-lg py-1 px-1.5 text-center">
+                <div className="bg-slate-800/40 rounded-xl py-1 px-1.5 text-center">
                   <span className="text-slate-400 block text-[10px] uppercase">Flashes</span>
                   <strong className="text-emerald-400 font-bold">{thirdPlace.flashesCount}</strong>
                 </div>
@@ -595,7 +595,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
       )}
 
       {/* Full Standings List & Scorecards */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col gap-3 shadow-sm">
+      <div className="bg-surface/90 border border-slate-800/80 rounded-3xl p-5 sm:p-6 flex flex-col gap-4 shadow-sm">
         <div className="flex items-center justify-between pb-2 border-b border-slate-800">
           <div className="flex items-center gap-2">
             <Medal className="w-4 h-4" style={{ color: activeColor }} />

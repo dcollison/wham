@@ -116,17 +116,20 @@ export const FeatureRequestModal: React.FC<FeatureRequestModalProps> = ({
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg bg-slate-900 border border-slate-700/80 rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col gap-4 max-h-[90vh] overflow-y-auto overscroll-contain"
+        className="w-full max-w-lg bg-surface border border-slate-700/80 rounded-t-[32px] sm:rounded-4xl p-5 sm:p-6 sheet-elevated flex flex-col gap-4 max-h-[90vh] overflow-y-auto overscroll-contain animate-in slide-in-from-bottom-6 sm:zoom-in-95 duration-200"
       >
+        {/* Mobile Pull Handle */}
+        <div className="w-12 h-1.5 bg-slate-700/60 rounded-full mx-auto sm:hidden -mt-1 mb-1 shrink-0" />
+
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div className="flex items-center gap-2.5">
             <div
-              className="p-2 rounded-xl"
+              className="p-2.5 rounded-2xl"
               style={{ backgroundColor: `${activeColor}20`, color: activeColor }}
             >
               <Lightbulb className="w-5 h-5" />
@@ -139,14 +142,14 @@ export const FeatureRequestModal: React.FC<FeatureRequestModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-2.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800/80 active:scale-95 transition-all"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {error && (
-          <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold animate-in fade-in">
+          <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold animate-in fade-in">
             {error}
           </div>
         )}
@@ -166,7 +169,7 @@ export const FeatureRequestModal: React.FC<FeatureRequestModalProps> = ({
                     key={climber.id}
                     type="button"
                     onClick={() => setSelectedUserId(climber.id)}
-                    className={`flex items-center gap-2 p-2 rounded-xl border transition-all active-press text-left ${
+                    className={`flex items-center gap-2 p-2.5 rounded-2xl border transition-all active-press text-left ${
                       isSelected
                         ? 'bg-slate-800 shadow-sm ring-1'
                         : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200'
@@ -205,7 +208,7 @@ export const FeatureRequestModal: React.FC<FeatureRequestModalProps> = ({
                     key={cat.id}
                     type="button"
                     onClick={() => setCategory(cat.id)}
-                    className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs font-bold transition-all active-press ${
+                    className={`flex items-center gap-2 p-3 rounded-2xl border text-xs font-bold transition-all active-press ${
                       isSelected
                         ? `${cat.bg} ${cat.border} ${cat.color} shadow-sm ring-1 ring-current`
                         : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200'
@@ -234,7 +237,7 @@ export const FeatureRequestModal: React.FC<FeatureRequestModalProps> = ({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Rest timer countdown on boulder card"
-              className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-amber-400/80 focus:ring-1 focus:ring-amber-400/80 font-mono transition-colors"
+              className="w-full bg-slate-950 border border-slate-700/80 rounded-2xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-amber-400/80 focus:ring-1 focus:ring-amber-400/80 font-mono transition-colors"
             />
           </div>
 
@@ -252,7 +255,7 @@ export const FeatureRequestModal: React.FC<FeatureRequestModalProps> = ({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="How should it work? What problem does it solve for the crew at the gym?"
-              className="w-full bg-slate-950 border border-slate-700/80 rounded-xl p-3 text-white text-xs leading-relaxed focus:outline-none focus:border-amber-400/80 focus:ring-1 focus:ring-amber-400/80 transition-colors"
+              className="w-full bg-slate-950 border border-slate-700/80 rounded-2xl p-3.5 text-white text-xs leading-relaxed focus:outline-none focus:border-amber-400/80 focus:ring-1 focus:ring-amber-400/80 transition-colors"
             />
           </div>
 
@@ -261,14 +264,14 @@ export const FeatureRequestModal: React.FC<FeatureRequestModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              className="px-5 py-2.5 rounded-full text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting || !title.trim()}
-              className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-black shadow-md transition-all active-press disabled:opacity-50 disabled:cursor-not-allowed font-heading"
+              className="flex items-center gap-1.5 px-6 py-2.5 rounded-full text-xs font-black shadow-md transition-all active-press disabled:opacity-50 disabled:cursor-not-allowed font-heading"
               style={{ backgroundColor: activeColor, color: '#000000' }}
             >
               {submitting ? (

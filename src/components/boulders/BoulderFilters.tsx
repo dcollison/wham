@@ -149,17 +149,17 @@ export const BoulderFilters: React.FC<BoulderFiltersProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2.5">
       {/* ROW 1: Quick Send Status Switcher + Filters Modal Button */}
       <div className="flex items-center gap-2">
         {/* Send Status Segmented Pills */}
-        <div className="flex-1 flex p-1 bg-slate-900/90 border border-slate-800 rounded-xl overflow-x-auto no-scrollbar">
+        <div className="flex-1 flex p-1.5 bg-slate-900/90 border border-white/[0.06] rounded-full overflow-x-auto no-scrollbar shadow-xs">
           <button
             type="button"
             onClick={() => onUpdateFilters((p) => ({ ...p, statusFilter: 'all' }))}
-            className={`flex-1 min-w-[50px] py-1.5 px-2 rounded-lg text-xs font-bold text-center transition-all active-press ${
+            className={`flex-1 min-w-[50px] py-1.5 px-3 rounded-full text-xs font-bold text-center transition-all active-press ${
               filters.statusFilter === 'all'
-                ? 'bg-slate-800 text-white shadow-sm'
+                ? 'bg-slate-800 text-white shadow-xs'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -170,43 +170,43 @@ export const BoulderFilters: React.FC<BoulderFiltersProps> = ({
             type="button"
             onClick={() => onUpdateFilters((p) => ({ ...p, statusFilter: 'unsent' }))}
             style={filters.statusFilter === 'unsent' ? {
-              backgroundColor: `${activeColor}20`,
+              backgroundColor: `${activeColor}22`,
               color: activeColor,
-              borderColor: `${activeColor}50`
+              borderColor: `${activeColor}40`
             } : undefined}
-            className={`flex-1 min-w-[62px] flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold text-center transition-all active-press border border-transparent ${
+            className={`flex-1 min-w-[62px] flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-bold text-center transition-all active-press border border-transparent ${
               filters.statusFilter === 'unsent'
-                ? 'shadow-sm'
+                ? 'shadow-xs'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <CircleDashed className="w-3 h-3 shrink-0" style={filters.statusFilter === 'unsent' ? { color: activeColor } : undefined} />
+            <CircleDashed className="w-3.5 h-3.5 shrink-0" style={filters.statusFilter === 'unsent' ? { color: activeColor } : undefined} />
             <span>To Do</span>
           </button>
 
           <button
             type="button"
             onClick={() => onUpdateFilters((p) => ({ ...p, statusFilter: 'sent' }))}
-            className={`flex-1 min-w-[56px] flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold text-center transition-all active-press ${
+            className={`flex-1 min-w-[56px] flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-bold text-center transition-all active-press ${
               filters.statusFilter === 'sent'
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
+                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-xs'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Check className="w-3 h-3 text-emerald-400 stroke-[3] shrink-0" />
+            <Check className="w-3.5 h-3.5 text-emerald-400 stroke-[3] shrink-0" />
             <span>Sent</span>
           </button>
 
           <button
             type="button"
             onClick={() => onUpdateFilters((p) => ({ ...p, statusFilter: 'projecting' }))}
-            className={`flex-1 min-w-[68px] flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold text-center transition-all active-press ${
+            className={`flex-1 min-w-[68px] flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-bold text-center transition-all active-press ${
               filters.statusFilter === 'projecting'
-                ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40 shadow-sm'
+                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-xs'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Clock className="w-3 h-3 text-blue-400 shrink-0" />
+            <Clock className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
             <span>Projects</span>
           </button>
         </div>
@@ -215,10 +215,10 @@ export const BoulderFilters: React.FC<BoulderFiltersProps> = ({
         <button
           type="button"
           onClick={() => setIsModalOpen(true)}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all active-press shrink-0 border ${
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all active-press shrink-0 border shadow-xs ${
             modalActiveFiltersCount > 0
-              ? 'bg-slate-850 text-white shadow-sm'
-              : 'bg-slate-900/90 hover:bg-slate-850 text-slate-300 border-slate-800'
+              ? 'bg-slate-850 text-white'
+              : 'bg-slate-900/90 hover:bg-slate-850 text-slate-300 border-white/[0.08]'
           }`}
           style={modalActiveFiltersCount > 0 ? { borderColor: `${activeColor}80` } : undefined}
           title="More filters: hold colours, climber, sort order"
@@ -230,7 +230,7 @@ export const BoulderFilters: React.FC<BoulderFiltersProps> = ({
           <span className="hidden xs:inline">Filters</span>
           {modalActiveFiltersCount > 0 && (
             <span
-              className="w-4 h-4 rounded-full text-[10px] font-black flex items-center justify-center text-black"
+              className="w-4 h-4 rounded-full text-[10px] font-black flex items-center justify-center text-slate-950"
               style={{ backgroundColor: activeColor }}
             >
               {modalActiveFiltersCount}
@@ -240,7 +240,7 @@ export const BoulderFilters: React.FC<BoulderFiltersProps> = ({
       </div>
 
       {/* ROW 2: Quick Grade Range Presets Strip */}
-      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
         {GRADE_PRESETS.map((preset) => {
           const isSelected = activePreset?.label === preset.label;
           return (
@@ -248,10 +248,10 @@ export const BoulderFilters: React.FC<BoulderFiltersProps> = ({
               key={preset.label}
               type="button"
               onClick={() => handleSelectPreset(preset.min, preset.max)}
-              className={`flex-1 min-w-[58px] py-1.5 px-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all text-center border active-press ${
+              className={`flex-1 min-w-[62px] py-1.5 px-3 rounded-full text-xs font-bold whitespace-nowrap transition-all text-center border active-press ${
                 isSelected
-                  ? 'text-black shadow-sm font-extrabold'
-                  : 'bg-slate-900/80 text-slate-400 border-slate-800/80 hover:text-slate-200'
+                  ? 'text-slate-950 shadow-xs font-extrabold'
+                  : 'bg-slate-900/80 text-slate-400 border-white/[0.06] hover:text-slate-200'
               }`}
               style={isSelected ? { backgroundColor: activeColor, borderColor: activeColor, color: '#000000' } : undefined}
             >
@@ -354,13 +354,16 @@ export const BoulderFilters: React.FC<BoulderFiltersProps> = ({
 
       {/* DEDICATED FILTER MODAL / SHEET */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
           <div
-            className="w-full max-w-lg bg-slate-900 border-t sm:border border-slate-800 rounded-t-3xl sm:rounded-2xl p-5 shadow-2xl flex flex-col gap-4 max-h-[88vh] overflow-y-auto"
+            className="w-full max-w-lg bg-slate-900/95 backdrop-blur-2xl border-t sm:border border-white/[0.08] rounded-t-[32px] sm:rounded-3xl p-6 sm:p-7 shadow-2xl flex flex-col gap-4 max-h-[88vh] overflow-y-auto sheet-elevated"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Tactile drag handle for mobile */}
+            <div className="w-12 h-1.5 rounded-full bg-slate-700/60 mx-auto -mt-1 mb-1 sm:hidden shrink-0" />
+
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
               <div className="flex items-center gap-2">
                 <SlidersHorizontal className="w-4 h-4" style={{ color: activeColor }} />
                 <h2 className="text-base font-bold text-white">Filter & Sort Wall</h2>
@@ -369,7 +372,7 @@ export const BoulderFilters: React.FC<BoulderFiltersProps> = ({
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors active-press"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -631,11 +634,11 @@ export const BoulderFilters: React.FC<BoulderFiltersProps> = ({
             </div>
 
             {/* Modal Footer: Reset All & Apply */}
-            <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-800 mt-1">
+            <div className="flex items-center justify-between gap-3 pt-3 border-t border-white/[0.06] mt-2">
               <button
                 type="button"
                 onClick={onResetFilters}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-colors"
+                className="px-5 py-2.5 rounded-full text-xs font-bold text-slate-400 hover:text-white transition-colors active-press"
               >
                 Reset All
               </button>
@@ -643,7 +646,7 @@ export const BoulderFilters: React.FC<BoulderFiltersProps> = ({
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold shadow-md active-press transition-transform"
+                className="px-6 py-3 rounded-full text-xs font-bold shadow-md active-press transition-transform"
                 style={{ backgroundColor: activeColor, color: '#000000' }}
               >
                 Apply ({filteredBouldersCount} climbs)

@@ -150,15 +150,18 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
       <div
-        className="w-full max-w-lg bg-slate-900 border-t sm:border border-slate-700/80 rounded-t-3xl sm:rounded-2xl p-5 shadow-2xl flex flex-col gap-5 max-h-[92vh] overflow-y-auto"
+        className="w-full max-w-lg bg-surface border-t sm:border border-slate-700/80 rounded-t-[32px] sm:rounded-4xl p-5 sm:p-6 sheet-elevated flex flex-col gap-5 max-h-[92vh] overflow-y-auto animate-in slide-in-from-bottom-6 sm:zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Mobile Pull Handle */}
+        <div className="w-12 h-1.5 bg-slate-700/60 rounded-full mx-auto sm:hidden -mt-1 mb-1 shrink-0" />
+
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div>
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <h2 className="text-lg font-bold text-white font-heading flex items-center gap-2">
               <Plus className="w-5 h-5" style={{ color: activeColor }} />
               Add Boulder to {displayAreaName}
             </h2>
@@ -172,7 +175,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
                   onClose();
                   onSwitchToBulk();
                 }}
-                className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-xl transition-all active-press border"
+                className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full transition-all active-press border"
                 style={{ color: activeColor, backgroundColor: `${activeColor}15`, borderColor: `${activeColor}30` }}
               >
                 <Layers className="w-3.5 h-3.5" style={{ color: activeColor }} />
@@ -182,7 +185,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800/80 active:scale-95 transition-all"
             >
               <X className="w-5 h-5" />
             </button>
@@ -212,7 +215,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
                   setSelectedAreaId(e.target.value);
                   setInsertAfterId('');
                 }}
-                className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl p-2.5 outline-none focus:border-slate-500"
+                className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-2xl p-3 outline-none focus:border-slate-500"
               >
                 {gymAreas.map((a) => (
                   <option key={a.id} value={a.id}>
@@ -236,7 +239,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
                     type="button"
                     onClick={() => setHoldColour(colorName)}
                     style={isSelected ? { borderColor: activeColor, boxShadow: `0 0 0 1px ${activeColor}80` } : undefined}
-                    className={`flex items-center gap-1.5 px-2.5 py-2 rounded-xl border text-xs font-semibold transition-all active-press ${
+                    className={`flex items-center gap-1.5 px-2.5 py-2 rounded-2xl border text-xs font-semibold transition-all active-press ${
                       isSelected
                         ? 'bg-slate-800 text-white shadow-md'
                         : 'border-slate-800 bg-slate-950 text-slate-300 hover:border-slate-700'
@@ -253,7 +256,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
           </div>
 
           {/* Mode Switcher / Comp Wall indicator */}
-          <div className="flex items-center justify-between p-3 rounded-xl bg-slate-800/40 border border-slate-700/60">
+          <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-800/40 border border-slate-700/60">
             <div className="flex items-center gap-2">
               <Trophy className={`w-4 h-4 ${isComp ? 'text-amber-400' : 'text-slate-400'}`} />
               <div>
@@ -268,7 +271,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
             <button
               type="button"
               onClick={() => setIsComp((prev) => !prev)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold font-mono transition-all ${
+              className={`px-3 py-1.5 rounded-full text-xs font-bold font-mono transition-all active-press ${
                 isComp
                   ? 'bg-amber-400 text-black shadow'
                   : 'bg-slate-700 text-slate-300 hover:text-white'
@@ -280,7 +283,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
 
           {/* Grade Picker OR Comp Problem Number Input */}
           {isComp ? (
-            <div className="flex flex-col gap-2 bg-amber-500/10 border border-amber-500/30 rounded-xl p-3.5 animate-in fade-in">
+            <div className="flex flex-col gap-2 bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 animate-in fade-in">
               <label className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center justify-between">
                 <span>Comp Problem Number:</span>
                 <span className="font-mono text-sm font-black text-amber-400">#{compNumber}</span>
@@ -293,7 +296,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
                   max="200"
                   value={compNumber || ''}
                   onChange={(e) => setCompNumber(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                  className="w-28 bg-slate-900 border border-amber-500/50 text-amber-200 font-mono font-bold text-lg rounded-xl py-2 px-3 outline-none focus:border-amber-400"
+                  className="w-28 bg-slate-900 border border-amber-500/50 text-amber-200 font-mono font-bold text-lg rounded-2xl py-2 px-3 outline-none focus:border-amber-400"
                 />
                 <span className="text-xs text-slate-400">
                   Next sequential problem on the comp wall
@@ -314,7 +317,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
                       type="button"
                       onClick={() => setGrade(g)}
                       style={isSelected ? { backgroundColor: activeColor, color: '#000000' } : undefined}
-                      className={`px-3 py-2 rounded-xl font-mono text-xs font-bold shrink-0 transition-all active-press ${
+                      className={`px-3.5 py-2 rounded-full font-mono text-xs font-bold shrink-0 transition-all active-press ${
                         isSelected
                           ? 'shadow-md font-black scale-105'
                           : 'bg-slate-800 border border-slate-700/60 text-slate-300 hover:bg-slate-750'
@@ -329,7 +332,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
           )}
 
           {/* "Insert Boulder Adjacent" Clockwise Order Selector */}
-          <div className="flex flex-col gap-1.5 bg-slate-800/40 p-3.5 rounded-xl border border-slate-700/60">
+          <div className="flex flex-col gap-1.5 bg-slate-800/40 p-3.5 rounded-2xl border border-slate-700/60">
             <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
               <span>Insert Sequential Order</span>
               <span className="text-[10px] font-mono" style={{ color: activeColor }}>Clockwise Positioning</span>
@@ -337,7 +340,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
             <select
               value={effectiveInsertAfterId}
               onChange={(e) => setInsertAfterId(e.target.value)}
-              className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg p-2.5 outline-none focus:border-slate-500"
+              className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl p-2.5 outline-none focus:border-slate-500"
             >
               <option value="">
                 {areaBoulders.length === 0
@@ -377,7 +380,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={compressing}
-                className="flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed border-slate-700 hover:border-slate-500 bg-slate-800/40 text-slate-300 hover:bg-slate-800/70 transition-all text-xs font-semibold active-press"
+                className="flex items-center justify-center gap-2 p-4 rounded-2xl border-2 border-dashed border-slate-700 hover:border-slate-500 bg-slate-800/40 text-slate-300 hover:bg-slate-800/70 transition-all text-xs font-semibold active-press"
               >
                 {compressing ? (
                   <span>Compressing image on device...</span>
@@ -389,11 +392,11 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
                 )}
               </button>
             ) : (
-              <div className="relative rounded-xl overflow-hidden border border-slate-700 bg-slate-950 p-2 flex items-center gap-3">
+              <div className="relative rounded-2xl overflow-hidden border border-slate-700 bg-slate-950 p-2.5 flex items-center gap-3">
                 <img
                   src={compressionResult.dataUrl}
                   alt="Preview"
-                  className="w-16 h-16 object-cover rounded-lg border border-slate-700"
+                  className="w-16 h-16 object-cover rounded-xl border border-slate-700"
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-slate-200 truncate">
@@ -409,7 +412,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setCompressionResult(null)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"
+                  className="p-1.5 rounded-full text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -427,7 +430,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. Low crimp start, high left heel, reachy top move..."
-              className="bg-slate-900 border border-slate-700 text-slate-100 placeholder:text-slate-500 text-xs rounded-xl p-3 outline-none focus:border-slate-500 resize-none"
+              className="bg-slate-900 border border-slate-700 text-slate-100 placeholder:text-slate-500 text-xs rounded-2xl p-3 outline-none focus:border-slate-500 resize-none"
             />
           </div>
 
@@ -436,7 +439,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
             type="submit"
             disabled={submitting || compressing}
             style={{ backgroundColor: activeColor, color: '#000000' }}
-            className="w-full mt-2 min-h-[50px] py-4 px-5 rounded-2xl font-heading font-black text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-xl active-press disabled:opacity-50"
+            className="w-full mt-2 min-h-[52px] py-4 px-5 rounded-full font-heading font-black text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-xl active-press disabled:opacity-50"
           >
             <Plus className="w-5 h-5 stroke-[3]" />
             <span>{submitting ? 'Adding Boulder...' : 'Add Boulder'}</span>

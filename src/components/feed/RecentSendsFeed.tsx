@@ -238,7 +238,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
           <button
             type="button"
             onClick={() => setSelectedClimberId('all')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all active-press ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold shrink-0 transition-all active-press ${
               selectedClimberId === 'all'
                 ? 'text-black shadow'
                 : 'bg-slate-800/80 text-slate-400 hover:text-white border border-slate-700/80'
@@ -260,7 +260,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                 type="button"
                 onClick={() => setSelectedClimberId(c.id)}
                 style={isSelected ? { borderColor: c.accent_color || activeColor, boxShadow: `0 0 0 1px ${(c.accent_color || activeColor)}80` } : undefined}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 transition-all active-press border ${
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all active-press border ${
                   isSelected
                     ? 'bg-slate-800 text-white shadow'
                     : 'bg-slate-850/70 border-slate-800 text-slate-400 hover:text-slate-200'
@@ -277,12 +277,12 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
         </div>
 
         {/* Subfilters: Send Type Toggle & Search */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-1">
-          <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 p-1 rounded-xl overflow-x-auto no-scrollbar">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
+          <div className="flex items-center gap-1 bg-surface border border-slate-800/80 p-1 rounded-full overflow-x-auto no-scrollbar shadow-xs">
             <button
               type="button"
               onClick={() => setSendTypeFilter('all')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+              className={`px-3 py-1 rounded-full text-xs font-semibold transition-all active-press ${
                 sendTypeFilter === 'all' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -291,7 +291,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
             <button
               type="button"
               onClick={() => setSendTypeFilter('flashes')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
+              className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 transition-all active-press ${
                 sendTypeFilter === 'flashes' ? 'bg-amber-500/20 text-amber-300 font-bold' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -301,7 +301,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
             <button
               type="button"
               onClick={() => setSendTypeFilter('sends')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
+              className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 transition-all active-press ${
                 sendTypeFilter === 'sends' ? 'bg-emerald-500/20 text-emerald-300 font-bold' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -311,7 +311,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
             <button
               type="button"
               onClick={() => setSendTypeFilter('projects')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
+              className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 transition-all active-press ${
                 sendTypeFilter === 'projects' ? 'bg-blue-500/20 text-blue-300 font-bold' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -321,13 +321,13 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
           </div>
 
           <div className="relative flex-1 sm:max-w-xs">
-            <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search climber, grade, hold..."
-              className="w-full bg-slate-900 border border-slate-800 text-slate-200 placeholder:text-slate-500 text-xs rounded-xl pl-8 pr-3 py-1.5 outline-none focus:border-slate-500 transition-colors"
+              className="w-full bg-surface border border-slate-800 text-slate-200 placeholder:text-slate-500 text-xs rounded-full pl-9 pr-4 py-2 outline-none focus:border-slate-500 transition-colors"
             />
           </div>
         </div>
@@ -378,7 +378,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                     <div
                       key={attempt.id}
                       onClick={() => handleCardDoubleTap(attempt.id)}
-                      className="relative bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-slate-700/80 rounded-2xl p-4 flex flex-col gap-3 transition-all shadow-md active-press surface-elevated overflow-hidden select-none"
+                      className="relative bg-surface/90 hover:bg-slate-900 border border-slate-800/80 hover:border-slate-700/80 rounded-3xl p-5 flex flex-col gap-3.5 transition-all shadow-md active-press surface-elevated overflow-hidden select-none"
                     >
                       {/* Floating Double-Tap Prop Burst */}
                       {floatingPropAttemptId === attempt.id && (
@@ -400,7 +400,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                               </span>
                               {isYou && (
                                 <span
-                                  className="text-[10px] font-semibold px-1.5 py-0.2 rounded shrink-0"
+                                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0"
                                   style={{ backgroundColor: `${activeColor}20`, color: activeColor }}
                                 >
                                   You
@@ -416,17 +416,17 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                         {/* Send Status Badge */}
                         <div className="shrink-0">
                           {isFlash ? (
-                            <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-300 bg-amber-500/15 border border-amber-500/40 px-2.5 py-1 rounded-full shadow-sm whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-300 bg-amber-500/15 border border-amber-500/40 px-3 py-1 rounded-full shadow-sm whitespace-nowrap">
                               <Zap className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                               Flash (<span className="tabular-nums">1 try</span>)
                             </span>
                           ) : isSent ? (
-                            <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/40 px-2.5 py-1 rounded-full shadow-sm whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/40 px-3 py-1 rounded-full shadow-sm whitespace-nowrap">
                               <Check className="w-3.5 h-3.5 stroke-[3] text-emerald-400" />
                               Sent (<span className="tabular-nums">{attempt.attempt_count}t</span>)
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-300 bg-blue-500/15 border border-blue-500/30 px-2.5 py-1 rounded-full shadow-sm whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-300 bg-blue-500/15 border border-blue-500/30 px-3 py-1 rounded-full shadow-sm whitespace-nowrap">
                               <Clock className="w-3.5 h-3.5 text-blue-400" />
                               Project (<span className="tabular-nums">{attempt.attempt_count}t</span>)
                             </span>
@@ -440,11 +440,11 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                           e.stopPropagation();
                           onSelectBoulder(boulder);
                         }}
-                        className="flex items-start justify-between gap-3 p-3 rounded-xl bg-slate-850/60 border border-slate-800 hover:border-slate-700/80 cursor-pointer transition-colors"
+                        className="flex items-start justify-between gap-3 p-3.5 rounded-2xl bg-slate-850/60 border border-slate-800 hover:border-slate-700/80 cursor-pointer transition-colors"
                       >
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-mono text-xs font-bold text-slate-300 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 shrink-0 tabular-nums">
+                            <span className="font-mono text-xs font-bold text-slate-300 bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-700 shrink-0 tabular-nums">
                               #{Math.round(boulder.position_order)}
                             </span>
                             <HoldBadge color={boulder.hold_colour} grade={boulder.grade} size="sm" />
@@ -461,7 +461,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                         </div>
 
                         {boulder.image_url && (
-                          <div className="w-12 h-12 rounded-lg overflow-hidden border border-slate-700/80 bg-slate-800 shrink-0 shadow">
+                          <div className="w-12 h-12 rounded-xl overflow-hidden border border-slate-700/80 bg-slate-800 shrink-0 shadow">
                             <img
                               src={boulder.image_url}
                               alt={`${boulder.hold_colour} ${boulder.grade}`}
@@ -481,7 +481,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                             e.stopPropagation();
                             handleGiveProps(attempt.id);
                           }}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all active-press ${
+                          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border transition-all active-press ${
                             isProppedByMe
                               ? 'text-white shadow-sm ring-1'
                               : propsCount > 0
@@ -517,7 +517,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                               e.stopPropagation();
                               onQuickLog(boulder, currentUserId);
                             }}
-                            className="text-xs font-semibold text-slate-400 hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+                            className="text-xs font-semibold text-slate-400 hover:text-white px-3 py-1.5 rounded-full hover:bg-slate-800 transition-colors active-press"
                           >
                             Log Send
                           </button>
@@ -529,7 +529,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                               onSelectBoulder(boulder);
                             }}
                             style={{ color: activeColor }}
-                            className="text-xs font-bold flex items-center gap-0.5 px-2 py-1.5 hover:brightness-125 transition-all"
+                            className="text-xs font-bold flex items-center gap-0.5 px-3 py-1.5 rounded-full hover:bg-slate-800/60 transition-all active-press"
                           >
                             <span>Details</span>
                             <ChevronRight className="w-3.5 h-3.5" />

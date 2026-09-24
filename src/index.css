@@ -4,11 +4,13 @@
 
 @layer base {
   :root {
-    --color-bg: #0b0f19;
-    --color-card: #151d2f;
-    --color-border: #222f49;
-    --color-accent: #e2a336;
-    --wham-accent: #e2a336;
+    --color-bg: #090c13;
+    --color-surface: #121722;
+    --color-surface-elevated: #1a2130;
+    --color-surface-high: #232c3e;
+    --color-border: rgba(255, 255, 255, 0.07);
+    --color-accent: #e59846;
+    --wham-accent: #e59846;
   }
 
   html, body {
@@ -18,12 +20,10 @@
   body {
     background-color: var(--color-bg);
     background-image: 
-      url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='chalkNoise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.035 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23chalkNoise)'/%3E%3C/svg%3E"),
-      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(56, 73, 107, 0.15), transparent),
-      radial-gradient(circle at 100% 100%, rgba(30, 41, 59, 0.2), transparent);
+      radial-gradient(ellipse 90% 45% at 50% -10%, rgba(56, 73, 107, 0.12), transparent),
+      radial-gradient(circle at 100% 100%, rgba(30, 41, 59, 0.15), transparent);
     background-attachment: fixed;
-    background-size: 180px 180px, auto, auto;
-    color: #f8fafc;
+    color: #f1f5f9;
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
@@ -32,7 +32,7 @@
 
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Space Mono', ui-monospace, SFMono-Regular, monospace;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
   }
 
   input, textarea {
@@ -41,15 +41,15 @@
   }
 
   ::selection {
-    background-color: var(--wham-accent, #06B6D4);
+    background-color: var(--wham-accent, #e59846);
     color: #000000;
   }
 }
 
-/* Custom scrollbars */
+/* Custom modern scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -62,21 +62,22 @@
   background: #475569;
 }
 
-/* Touch feedback utility */
+/* Snappy tactile spring touch feedback (Material You / iOS haptic aesthetic) */
 .active-press {
-  transition: transform 0.1s ease, opacity 0.1s ease;
+  transition: transform 0.18s cubic-bezier(0.2, 0, 0, 1), opacity 0.18s ease;
+  will-change: transform;
 }
 .active-press:active {
-  transform: scale(0.96);
-  opacity: 0.9;
+  transform: scale(0.97);
+  opacity: 0.92;
 }
 
 /* Glassmorphism styling */
 .glass-panel {
-  background: rgba(21, 29, 47, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(18, 23, 34, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 @keyframes shake {
@@ -89,11 +90,11 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-2px); }
+  from { opacity: 0; transform: translateY(-3px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .animate-fadeIn {
-  animation: fadeIn 0.2s ease-out forwards;
+  animation: fadeIn 0.2s cubic-bezier(0.2, 0, 0, 1) forwards;
 }
 
 /* Safe area padding utilities for edge-to-edge mobile screens */
@@ -109,12 +110,15 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Specular top-edge refraction for cards and bottom sheets */
+/* Diffuse ambient elevation for cards and bottom sheets (Material You tonal elevation) */
+.surface-card {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 2px 12px -2px rgba(0, 0, 0, 0.2);
+}
 .surface-elevated {
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08), 0 4px 14px -2px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 4px 20px -2px rgba(0, 0, 0, 0.25);
 }
 .sheet-elevated {
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1), 0 -8px 24px -4px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 -10px 32px -4px rgba(0, 0, 0, 0.45);
 }
 
 /* Float-up celebration animation for double-tap reactions */
@@ -140,16 +144,5 @@
   animation: floatUp 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Subtle climbing chalk micro-grain texture overlay */
-.chalk-grain-overlay {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 35;
-  opacity: 0.035;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='chalkNoise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23chalkNoise)'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-  background-size: 180px 180px;
-}
 
 

@@ -386,19 +386,19 @@ export function App() {
       />
 
       {/* Main View Area */}
-      <main className="flex-1 max-w-2xl w-full mx-auto p-4 sm:p-6 pb-28 sm:pb-24 flex flex-col">
+      <main className="flex-1 max-w-2xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-32 sm:pb-28 flex flex-col gap-6 sm:gap-8">
         {/* TAB 1: Clockwise Boulders View */}
         {currentTab === 'boulders' && (() => {
           const currentAreaResetInfo = currentArea ? getAreaResetInfo(currentArea.id, boulders) : null;
           return (
-          <div className="flex flex-col gap-4 animate-in fade-in duration-200">
+          <div className="flex flex-col gap-6 sm:gap-7 animate-in fade-in duration-200">
             {/* Area Header & Info */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-lg font-black tracking-tight text-white flex items-center gap-1.5">
+                <h1 className="text-xl font-black tracking-tight text-white flex items-center gap-2">
                   <span>{currentArea?.name || `${currentGym?.name || 'Gym'} • All Areas`}</span>
                 </h1>
-                <p className="text-xs text-slate-400 font-mono flex items-center gap-1.5 flex-wrap">
+                <p className="text-xs text-slate-400 font-mono flex items-center gap-2 flex-wrap mt-0.5">
                   <span>
                     {orderedActiveBouldersInCurrentArea.length}{' '}
                     {orderedActiveBouldersInCurrentArea.length === 1 ? 'boulder' : 'boulders'} •{' '}
@@ -406,7 +406,7 @@ export function App() {
                   </span>
                   {currentAreaResetInfo?.isDueForReset && (
                     <span
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-400 bg-amber-400/10 border border-amber-400/25 px-2 py-0.5 rounded-full"
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-400 bg-amber-400/10 border border-amber-400/25 px-2.5 py-0.5 rounded-full"
                       title={`Wall set ${currentAreaResetInfo.weeksOld} weeks ago – sector is due for a reset`}
                     >
                       <Clock className="w-3 h-3 text-amber-400 shrink-0" />
@@ -461,7 +461,7 @@ export function App() {
 
             {/* Boulders List */}
             {visibleBoulders.length > 0 ? (
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-4 sm:gap-5">
                 {!currentArea ? (
                   // Group with sticky sector headers when viewing All Areas
                   (() => {
@@ -478,7 +478,7 @@ export function App() {
                       return (
                         <React.Fragment key={boulder.id}>
                           {isNewArea && (
-                            <div className="sticky top-[92px] sm:top-[96px] z-20 -mx-1 px-3.5 py-2 bg-slate-950/95 backdrop-blur-md border-y border-slate-800/80 rounded-xl my-2 flex items-center justify-between shadow-sm">
+                            <div className="sticky top-[92px] sm:top-[96px] z-20 -mx-1 px-4 py-2.5 bg-slate-950/95 backdrop-blur-md border-y border-slate-800/80 rounded-2xl my-2 flex items-center justify-between shadow-sm">
                               <div className="flex items-center gap-2">
                                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: activeColor }} />
                                 <span className="text-xs font-bold font-heading text-slate-200 uppercase tracking-wider">
@@ -486,7 +486,7 @@ export function App() {
                                 </span>
                                 {sectorResetInfo?.isDueForReset && (
                                   <span
-                                    className="inline-flex items-center gap-1 text-[10px] font-mono font-medium text-amber-400 bg-amber-400/10 border border-amber-400/25 px-2 py-0.5 rounded-full"
+                                    className="inline-flex items-center gap-1 text-[10px] font-mono font-medium text-amber-400 bg-amber-400/10 border border-amber-400/25 px-2.5 py-0.5 rounded-full"
                                     title={`Wall set ${sectorResetInfo.weeksOld} weeks ago – reset soon`}
                                   >
                                     <Clock className="w-2.5 h-2.5 text-amber-400 shrink-0" />
@@ -494,7 +494,7 @@ export function App() {
                                   </span>
                                 )}
                               </div>
-                              <span className="text-[10px] font-mono font-medium text-slate-400 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
+                              <span className="text-[10px] font-mono font-medium text-slate-400 bg-slate-900 px-2.5 py-0.5 rounded-full border border-slate-800">
                                 {areaBouldersCount} {areaBouldersCount === 1 ? 'climb' : 'climbs'}
                               </span>
                             </div>
@@ -534,7 +534,7 @@ export function App() {
                 )}
               </div>
             ) : orderedActiveBouldersInCurrentArea.length > 0 ? (
-              <div className="flex flex-col items-center justify-center p-8 bg-slate-900/60 border border-slate-800 rounded-2xl text-center gap-3 my-4">
+              <div className="flex flex-col items-center justify-center p-8 sm:p-10 bg-surface border border-slate-800/80 rounded-3xl text-center gap-3 my-4">
                 <div className="p-3 bg-slate-800 rounded-2xl" style={{ color: activeColor }}>
                   <Filter className="w-6 h-6" />
                 </div>
