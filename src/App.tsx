@@ -14,7 +14,7 @@ import { CompLeaderboardModal } from './components/leaderboard/CompLeaderboardMo
 import { GymCompBanner } from './components/boulders/GymCompBanner';
 import { CompWallBanner } from './components/boulders/CompWallBanner';
 import { CrewFeedView } from './components/feed/CrewFeedView';
-import { SettingsModal } from './components/settings/SettingsModal';
+import { CircleView } from './components/settings/CircleView';
 import { AreaPhotoBanner } from './components/boulders/AreaPhotoBanner';
 import { BoulderFilters, BoulderFiltersState } from './components/boulders/BoulderFilters';
 import { ClimberAvatar } from './components/ClimberAvatar';
@@ -33,7 +33,6 @@ export function App() {
   const handleLockApp = () => {
     localStorage.removeItem(STORAGE_KEYS.PASSCODE_UNLOCKED);
     setIsPasscodeUnlocked(false);
-    setIsSettingsOpen(false);
   };
   const {
     currentUser,
@@ -164,7 +163,6 @@ export function App() {
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const [isBulkAddOpen, setIsBulkAddOpen] = useState<boolean>(false);
   const [isAreaResetOpen, setIsAreaResetOpen] = useState<boolean>(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [hasChosenClimber, setHasChosenClimber] = useState<boolean>(() => {
     return Boolean(localStorage.getItem('wham_active_profile_id'));
   });
@@ -358,7 +356,8 @@ export function App() {
         boulders={boulders}
         onOpenProfileSwitcher={() => {
           setSettingsInitialTab('crew');
-          setIsSettingsOpen(true);
+          window.location.hash = '#/settings';
+          setCurrentTab('settings');
         }}
         onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
         onOpenAddBoulder={() => setIsAddModalOpen(true)}
@@ -372,11 +371,13 @@ export function App() {
         }}
         onOpenBackups={() => {
           setSettingsInitialTab('backups');
-          setIsSettingsOpen(true);
+          window.location.hash = '#/backup';
+          setCurrentTab('settings');
         }}
         onOpenIdeas={() => {
           setSettingsInitialTab('ideas');
-          setIsSettingsOpen(true);
+          window.location.hash = '#/ideas';
+          setCurrentTab('settings');
         }}
         openIdeasCount={featureRequests.filter((r) => r.status !== 'shipped').length}
         showArchived={showArchived}
@@ -626,29 +627,21 @@ export function App() {
           />
         )}
 
-        {/* TAB 4: The Circle & Settings View */}
+        {/* TAB 4: The Circle Page View */}
         {currentTab === 'settings' && (
-          <div className="flex flex-col gap-4 animate-in fade-in duration-200">
-            <h2 className="text-lg font-bold text-white">The Circle & Account</h2>
-            <SettingsModal
-              isOpen={true}
-              onClose={() => {
-                window.location.hash = '#/boulders';
-                setCurrentTab('boulders');
-              }}
-              currentUser={currentUser}
-              climbers={climbers}
-              onSwitchClimber={switchClimber}
-              onUpdateDisplayName={updateDisplayName}
-              onUpdateAccentColor={updateAccentColor}
-              onUpdateAvatarIcon={updateAvatarIcon}
-              onUpdateClimber={updateClimber}
-              onAddClimber={addClimber}
-              onRemoveClimber={removeClimber}
-              onLockApp={handleLockApp}
-              initialTab={settingsInitialTab}
-            />
-          </div>
+          <CircleView
+            currentUser={currentUser}
+            climbers={climbers}
+            onSwitchClimber={switchClimber}
+            onUpdateDisplayName={updateDisplayName}
+            onUpdateAccentColor={updateAccentColor}
+            onUpdateAvatarIcon={updateAvatarIcon}
+            onUpdateClimber={updateClimber}
+            onAddClimber={addClimber}
+            onRemoveClimber={removeClimber}
+            onLockApp={handleLockApp}
+            initialTab={settingsInitialTab}
+          />
         )}
       </main>
 
@@ -757,23 +750,6 @@ export function App() {
         }}
       />
 
-      {/* Profile Switcher & Settings Modal (from Header avatar) */}
-      <SettingsModal
-        isOpen={isSettingsOpen && currentTab !== 'settings'}
-        onClose={() => setIsSettingsOpen(false)}
-        currentUser={currentUser}
-        climbers={climbers}
-        onSwitchClimber={switchClimber}
-        onUpdateDisplayName={updateDisplayName}
-        onUpdateAccentColor={updateAccentColor}
-        onUpdateAvatarIcon={updateAvatarIcon}
-        onUpdateClimber={updateClimber}
-        onAddClimber={addClimber}
-        onRemoveClimber={removeClimber}
-        onLockApp={handleLockApp}
-        initialTab={settingsInitialTab}
-      />
-
       {/* Gym Comp Leaderboard Modal */}
       <CompLeaderboardModal
         isOpen={isLeaderboardOpen}
@@ -824,7 +800,8 @@ export function App() {
               type="button"
               onClick={() => {
                 setHasChosenClimber(true);
-                setIsSettingsOpen(true);
+                window.location.hash = '#/settings';
+                setCurrentTab('settings');
               }}
               className="text-xs text-slate-400 hover:text-white font-bold hover:underline pt-1 transition-colors"
             >

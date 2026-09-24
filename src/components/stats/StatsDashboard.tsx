@@ -533,11 +533,11 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           <select
             value={selectedGymId}
             onChange={(e) => setSelectedGymId(e.target.value)}
-            className="flex-1 sm:flex-none bg-surface border border-slate-800 text-slate-200 text-xs rounded-full px-4 py-2 outline-none focus:border-slate-500 font-medium cursor-pointer shadow-xs"
+            className="flex-1 sm:flex-none bg-slate-900 border border-slate-800 text-slate-100 text-xs rounded-full px-4 py-2 outline-none focus:border-slate-500 font-medium cursor-pointer shadow-xs"
           >
-            <option value="all">All Gyms (Bond & Hub)</option>
+            <option value="all" className="bg-slate-900 text-slate-100">All Gyms (Bond & Hub)</option>
             {gyms.map((g) => (
-              <option key={g.id} value={g.id}>
+              <option key={g.id} value={g.id} className="bg-slate-900 text-slate-100">
                 {g.name}
               </option>
             ))}

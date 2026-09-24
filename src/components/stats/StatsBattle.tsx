@@ -248,7 +248,7 @@ export const StatsBattle: React.FC<StatsBattleProps> = ({
                   className="flex-1 bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 outline-none focus:border-slate-500 font-semibold"
                 >
                   {climbers.map((c) => (
-                    <option key={c.id} value={c.id}>{c.display_name}</option>
+                    <option key={c.id} value={c.id} className="bg-slate-900 text-slate-100">{c.display_name}</option>
                   ))}
                 </select>
               </div>
@@ -262,7 +262,7 @@ export const StatsBattle: React.FC<StatsBattleProps> = ({
                   className="flex-1 bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 outline-none focus:border-slate-500 font-semibold"
                 >
                   {climbers.map((c) => (
-                    <option key={c.id} value={c.id}>{c.display_name}</option>
+                    <option key={c.id} value={c.id} className="bg-slate-900 text-slate-100">{c.display_name}</option>
                   ))}
                 </select>
               </div>

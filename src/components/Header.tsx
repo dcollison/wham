@@ -126,7 +126,7 @@ export const Header: React.FC<HeaderProps> = ({
             className="appearance-none bg-slate-900/90 hover:bg-slate-850 border border-white/[0.08] hover:border-white/[0.16] text-slate-100 font-bold text-xs sm:text-sm rounded-full py-1.5 pl-4 pr-8 outline-none cursor-pointer shadow-xs transition-colors"
           >
             {gyms.map((gym) => (
-              <option key={gym.id} value={gym.id}>
+              <option key={gym.id} value={gym.id} className="bg-slate-900 text-slate-100">
                 {gym.name}
               </option>
             ))}

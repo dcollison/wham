@@ -17,6 +17,11 @@ export default {
         'spring': 'cubic-bezier(0.2, 0, 0, 1)',
       },
       colors: {
+        surface: {
+          DEFAULT: '#121722',
+          elevated: '#1a2130',
+          high: '#232c3e',
+        },
         slate: {
           950: '#090c13',
           900: '#121722',
