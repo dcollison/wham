@@ -209,6 +209,11 @@ wham-app/
    - `grade_opinion` (`'soft'` | `'fair'` | `'hard'`)
    - `comment` (TEXT), `created_at` (TIMESTAMPTZ), `updated_at` (TIMESTAMPTZ)
    - Unique constraint on `(boulder_id, user_id)`
+9. **`public.safety_snapshots`**:
+   - `id` (TEXT, PK), `created_at` (TIMESTAMPTZ), `user_id` (UUID, FK profiles)
+   - `boulder_count` (INT), `attempt_count` (INT), `climber_count` (INT)
+   - `reason` (TEXT), `data` (JSONB)
+   - Backups and rollback safety nets synced across all crew devices in realtime
 
 ### Idempotent Schema Migration
 If provisioning a new Supabase environment or verifying database integrity:
@@ -399,6 +404,34 @@ CREATE POLICY "Public can delete boulder-photos"
     TO public
     USING (bucket_id = 'boulder-photos');
 
+-- Safety Snapshots table for cross-device cloud backups and rollback safety nets
+CREATE TABLE IF NOT EXISTS public.safety_snapshots (
+    id TEXT PRIMARY KEY,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    boulder_count INT NOT NULL DEFAULT 0,
+    attempt_count INT NOT NULL DEFAULT 0,
+    climber_count INT NOT NULL DEFAULT 0,
+    reason TEXT NOT NULL,
+    data JSONB NOT NULL
+);
+
+ALTER TABLE public.safety_snapshots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.safety_snapshots REPLICA IDENTITY FULL;
+
+CREATE INDEX IF NOT EXISTS idx_safety_snapshots_created_at ON public.safety_snapshots(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_safety_snapshots_user ON public.safety_snapshots(user_id);
+
+DROP POLICY IF EXISTS "Public can view safety snapshots" ON public.safety_snapshots;
+DROP POLICY IF EXISTS "Public can insert safety snapshots" ON public.safety_snapshots;
+DROP POLICY IF EXISTS "Public can update safety snapshots" ON public.safety_snapshots;
+DROP POLICY IF EXISTS "Public can delete safety snapshots" ON public.safety_snapshots;
+
+CREATE POLICY "Public can view safety snapshots" ON public.safety_snapshots FOR SELECT TO public USING (true);
+CREATE POLICY "Public can insert safety snapshots" ON public.safety_snapshots FOR INSERT TO public WITH CHECK (true);
+CREATE POLICY "Public can update safety snapshots" ON public.safety_snapshots FOR UPDATE TO public USING (true) WITH CHECK (true);
+CREATE POLICY "Public can delete safety snapshots" ON public.safety_snapshots FOR DELETE TO public USING (true);
+
 -- Ensure full replica identity for realtime sync
 ALTER TABLE public.boulders REPLICA IDENTITY FULL;
 ALTER TABLE public.gym_areas REPLICA IDENTITY FULL;
@@ -427,6 +460,14 @@ BEGIN
       AND tablename = 'boulder_reviews'
   ) THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.boulder_reviews;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+      AND schemaname = 'public' 
+      AND tablename = 'safety_snapshots'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.safety_snapshots;
   END IF;
 END $$;
 ```

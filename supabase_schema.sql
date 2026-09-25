@@ -117,6 +117,18 @@ CREATE TABLE IF NOT EXISTS public.boulder_reviews (
     CONSTRAINT unique_boulder_user_review UNIQUE (boulder_id, user_id)
 );
 
+-- 1.10 Safety Snapshots table (Cross-device safety snapshots & cloud backups)
+CREATE TABLE IF NOT EXISTS public.safety_snapshots (
+    id TEXT PRIMARY KEY,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    boulder_count INT NOT NULL DEFAULT 0,
+    attempt_count INT NOT NULL DEFAULT 0,
+    climber_count INT NOT NULL DEFAULT 0,
+    reason TEXT NOT NULL,
+    data JSONB NOT NULL
+);
+
 -- =========================================================
 -- 2. INDEXES
 -- =========================================================
@@ -132,6 +144,8 @@ CREATE INDEX IF NOT EXISTS idx_feature_requests_user ON public.feature_requests(
 CREATE INDEX IF NOT EXISTS idx_feature_requests_status ON public.feature_requests(status);
 CREATE INDEX IF NOT EXISTS idx_boulder_reviews_boulder ON public.boulder_reviews(boulder_id);
 CREATE INDEX IF NOT EXISTS idx_boulder_reviews_user ON public.boulder_reviews(user_id);
+CREATE INDEX IF NOT EXISTS idx_safety_snapshots_created_at ON public.safety_snapshots(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_safety_snapshots_user ON public.safety_snapshots(user_id);
 
 -- =========================================================
 -- 3. AUTOMATIC PROFILE CREATION TRIGGER
@@ -398,6 +412,20 @@ CREATE POLICY "Public can delete boulder reviews"
     TO public
     USING (true);
 
+-- 4.10 Safety Snapshots policies
+ALTER TABLE public.safety_snapshots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.safety_snapshots REPLICA IDENTITY FULL;
+
+DROP POLICY IF EXISTS "Public can view safety snapshots" ON public.safety_snapshots;
+DROP POLICY IF EXISTS "Public can insert safety snapshots" ON public.safety_snapshots;
+DROP POLICY IF EXISTS "Public can update safety snapshots" ON public.safety_snapshots;
+DROP POLICY IF EXISTS "Public can delete safety snapshots" ON public.safety_snapshots;
+
+CREATE POLICY "Public can view safety snapshots" ON public.safety_snapshots FOR SELECT TO public USING (true);
+CREATE POLICY "Public can insert safety snapshots" ON public.safety_snapshots FOR INSERT TO public WITH CHECK (true);
+CREATE POLICY "Public can update safety snapshots" ON public.safety_snapshots FOR UPDATE TO public USING (true) WITH CHECK (true);
+CREATE POLICY "Public can delete safety snapshots" ON public.safety_snapshots FOR DELETE TO public USING (true);
+
 -- Ensure gym_areas image_url column exists for wall panorama photos
 ALTER TABLE public.gym_areas ADD COLUMN IF NOT EXISTS image_url TEXT;
 
@@ -474,6 +502,9 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'boulder_reviews') THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.boulder_reviews;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'safety_snapshots') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.safety_snapshots;
   END IF;
 END $$;
 

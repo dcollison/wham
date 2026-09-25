@@ -34,10 +34,12 @@ export interface LocalSnapshotMeta {
   attemptCount: number;
   climberCount: number;
   reason?: string;
+  is_cloud?: boolean;
+  created_by?: string | null;
 }
 
 const SNAPSHOTS_KEY = 'wham_local_snapshots';
-const MAX_SNAPSHOTS = 5;
+const MAX_SNAPSHOTS = 10;
 
 /**
  * Creates a comprehensive backup payload from current application data.
@@ -168,17 +170,25 @@ export function validateAndParseBackup(jsonStr: string): {
  */
 export function saveLocalSnapshot(
   backup: WhamBackupData,
-  reason: string = 'Automatic safety net'
-): void {
+  reason: string = 'Automatic safety net',
+  options?: {
+    id?: string;
+    timestamp?: string;
+    is_cloud?: boolean;
+    created_by?: string | null;
+  }
+): string {
+  const snapshotId = options?.id || `snap_${Date.now()}`;
   try {
-    const snapshotId = `snap_${Date.now()}`;
     const newEntry = {
       id: snapshotId,
-      timestamp: new Date().toISOString(),
+      timestamp: options?.timestamp || new Date().toISOString(),
       boulderCount: backup.boulders.length,
       attemptCount: backup.attempts.length,
       climberCount: backup.profiles.length,
       reason,
+      is_cloud: options?.is_cloud ?? false,
+      created_by: options?.created_by ?? null,
       data: backup
     };
 
@@ -193,15 +203,18 @@ export function saveLocalSnapshot(
       }
     }
 
-    // Keep up to MAX_SNAPSHOTS
+    // Keep existing list minus any entry with the same ID, then prepend
+    list = list.filter((item) => item.id !== snapshotId);
     list.unshift(newEntry);
     if (list.length > MAX_SNAPSHOTS) {
       list = list.slice(0, MAX_SNAPSHOTS);
     }
 
     localStorage.setItem(SNAPSHOTS_KEY, JSON.stringify(list));
+    return snapshotId;
   } catch (e) {
     console.warn('Failed to save local rolling snapshot (localStorage quota may be full):', e);
+    return snapshotId;
   }
 }
 
@@ -220,7 +233,9 @@ export function getLocalSnapshotsMeta(): LocalSnapshotMeta[] {
       boulderCount: item.boulderCount ?? item.data?.boulders?.length ?? 0,
       attemptCount: item.attemptCount ?? item.data?.attempts?.length ?? 0,
       climberCount: item.climberCount ?? item.data?.profiles?.length ?? 0,
-      reason: item.reason
+      reason: item.reason,
+      is_cloud: Boolean(item.is_cloud),
+      created_by: item.created_by ?? null
     }));
   } catch {
     return [];
@@ -241,4 +256,39 @@ export function getLocalSnapshotData(snapshotId: string): WhamBackupData | null 
   } catch {
     return null;
   }
+}
+
+/**
+ * Merges local and cloud snapshot metadata, deduplicating by ID and sorting newest first.
+ */
+export function mergeSnapshotMetas(
+  localMetas: LocalSnapshotMeta[],
+  cloudMetas: LocalSnapshotMeta[]
+): LocalSnapshotMeta[] {
+  const map = new Map<string, LocalSnapshotMeta>();
+
+  for (const s of localMetas) {
+    map.set(s.id, { ...s, is_cloud: Boolean(s.is_cloud) });
+  }
+
+  for (const c of cloudMetas) {
+    const existing = map.get(c.id);
+    if (existing) {
+      map.set(c.id, {
+        ...existing,
+        ...c,
+        is_cloud: true,
+        created_by: c.created_by || existing.created_by
+      });
+    } else {
+      map.set(c.id, {
+        ...c,
+        is_cloud: true
+      });
+    }
+  }
+
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
 }

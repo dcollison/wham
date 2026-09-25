@@ -18,7 +18,8 @@ import {
   createBackupPayload,
   saveLocalSnapshot,
   getLocalSnapshotsMeta,
-  getLocalSnapshotData
+  getLocalSnapshotData,
+  mergeSnapshotMetas
 } from '../lib/backup';
 
 interface LogAttemptParams {
@@ -95,9 +96,12 @@ interface GymContextType {
   toggleFeatureUpvote: (requestId: string, userId: string) => Promise<void>;
   deleteFeatureRequest: (requestId: string) => Promise<void>;
   restoreBackupData: (backup: WhamBackupData) => Promise<{ success: boolean; message: string; counts: any }>;
-  createManualSnapshot: (reason?: string) => void;
+  snapshots: LocalSnapshotMeta[];
+  createManualSnapshot: (reason?: string) => Promise<string>;
   restoreSnapshotById: (snapshotId: string) => Promise<boolean>;
   getSnapshotsList: () => LocalSnapshotMeta[];
+  syncSnapshotsToCloud: () => Promise<{ syncedCount: number; error?: string }>;
+  deleteSnapshot: (snapshotId: string) => Promise<void>;
 }
 
 const GymContext = createContext<GymContextType | undefined>(undefined);
@@ -213,13 +217,21 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const cleaned = parsed
             .map((r: FeatureRequest) => {
               const lower = r.title?.toLowerCase() || '';
-              if (lower === 'save and next buttons' || lower === 'boulder review system') {
+              if (
+                lower === 'save and next buttons' ||
+                lower === 'boulder review system' ||
+                lower.includes('storage tab says 0 photos') ||
+                lower.includes('backups not synced')
+              ) {
                 return { ...r, status: 'shipped' as const };
               }
               return r;
             })
             .filter((r: FeatureRequest) => !['req-001', 'req-002', 'req-003'].includes(r.id));
-          return cleaned;
+
+          const existingIds = new Set(cleaned.map((r: FeatureRequest) => r.id));
+          const missing = INITIAL_FEATURE_REQUESTS.filter(r => !existingIds.has(r.id));
+          return [...cleaned, ...missing];
         }
       } catch {
         // Fallback
@@ -242,6 +254,8 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     return INITIAL_BOULDER_REVIEWS;
   });
+
+  const [snapshots, setSnapshots] = useState<LocalSnapshotMeta[]>(() => getLocalSnapshotsMeta());
 
   const channelRef = useRef<any>(null);
 
@@ -317,7 +331,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       try {
         setLoading(true);
-        const [gymsRes, areasRes, bouldersRes, attemptsRes, commentsRes, propsRes, featureRequestsRes, reviewsRes] = await Promise.all([
+        const [gymsRes, areasRes, bouldersRes, attemptsRes, commentsRes, propsRes, featureRequestsRes, reviewsRes, snapshotsRes] = await Promise.all([
           supabase.from('gyms').select('*').order('name'),
           supabase.from('gym_areas').select('*').order('gym_id').order('sort_order').order('id'),
           supabase.from('boulders').select('*').order('position_order'),
@@ -325,7 +339,8 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           supabase.from('comments').select('*, profile:profiles(*)').order('created_at', { ascending: true }),
           supabase.from('send_props').select('attempt_id, user_id'),
           supabase.from('feature_requests').select('*').order('created_at', { ascending: false }),
-          supabase.from('boulder_reviews').select('*, profile:profiles(*)').order('created_at', { ascending: false }).then((res) => res, () => ({ data: null, error: true }))
+          supabase.from('boulder_reviews').select('*, profile:profiles(*)').order('created_at', { ascending: false }).then((res) => res, () => ({ data: null, error: true })),
+          supabase.from('safety_snapshots').select('id, created_at, user_id, boulder_count, attempt_count, climber_count, reason').order('created_at', { ascending: false }).limit(20).then((res) => res, () => ({ data: null, error: true }))
         ]);
 
         if (!isMounted) return;
@@ -369,16 +384,39 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const cleanRequests = featureRequestsRes.data
             .map((r: FeatureRequest) => {
               const lower = r.title?.toLowerCase() || '';
-              if (lower === 'save and next buttons' || lower === 'boulder review system') {
+              if (
+                lower === 'save and next buttons' ||
+                lower === 'boulder review system' ||
+                lower.includes('storage tab says 0 photos') ||
+                lower.includes('backups not synced')
+              ) {
                 return { ...r, status: 'shipped' as const };
               }
               return r;
             })
             .filter((r: FeatureRequest) => !['req-001', 'req-002', 'req-003'].includes(r.id));
-          setFeatureRequests(cleanRequests.length > 0 ? cleanRequests : INITIAL_FEATURE_REQUESTS);
+
+          const existingIds = new Set(cleanRequests.map((r: FeatureRequest) => r.id));
+          const missing = INITIAL_FEATURE_REQUESTS.filter(r => !existingIds.has(r.id));
+          const merged = [...cleanRequests, ...missing];
+          setFeatureRequests(merged.length > 0 ? merged : INITIAL_FEATURE_REQUESTS);
           try {
-            localStorage.setItem('wham_feature_requests', JSON.stringify(cleanRequests.length > 0 ? cleanRequests : INITIAL_FEATURE_REQUESTS));
+            localStorage.setItem('wham_feature_requests', JSON.stringify(merged.length > 0 ? merged : INITIAL_FEATURE_REQUESTS));
           } catch (e) {}
+        }
+
+        if (snapshotsRes && !snapshotsRes.error && Array.isArray(snapshotsRes.data)) {
+          const cloudMetas: LocalSnapshotMeta[] = snapshotsRes.data.map((d: any) => ({
+            id: d.id,
+            timestamp: d.created_at,
+            boulderCount: d.boulder_count,
+            attemptCount: d.attempt_count,
+            climberCount: d.climber_count,
+            reason: d.reason,
+            is_cloud: true,
+            created_by: d.user_id
+          }));
+          setSnapshots((prev) => mergeSnapshotMetas(prev, cloudMetas));
         }
 
         if (!propsRes.error && Array.isArray(propsRes.data)) {
@@ -653,6 +691,28 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 try { localStorage.setItem('wham_boulder_reviews', JSON.stringify(next)); } catch (e) {}
                 return next;
               });
+            }
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'safety_snapshots' }, (payload) => {
+            if (payload.eventType === 'INSERT' && payload.new) {
+              const incoming = payload.new as any;
+              if (!incoming?.id) return;
+              const meta: LocalSnapshotMeta = {
+                id: incoming.id,
+                timestamp: incoming.created_at,
+                boulderCount: incoming.boulder_count,
+                attemptCount: incoming.attempt_count,
+                climberCount: incoming.climber_count,
+                reason: incoming.reason,
+                is_cloud: true,
+                created_by: incoming.user_id
+              };
+              setSnapshots((prev) => mergeSnapshotMetas(prev, [meta]));
+            } else if (payload.eventType === 'DELETE' && payload.old) {
+              const oldId = (payload.old as any)?.id;
+              if (oldId) {
+                setSnapshots((prev) => prev.filter((s) => s.id !== oldId));
+              }
             }
           })
           .subscribe((status) => {
@@ -1905,8 +1965,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Baseline automatic snapshot on session startup
   useEffect(() => {
     if (!loading && boulders.length > 0) {
-      const existingSnaps = getLocalSnapshotsMeta();
-      if (existingSnaps.length === 0) {
+      if (snapshots.length === 0) {
         const payload = createBackupPayload({
           gyms,
           areas,
@@ -1916,10 +1975,10 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           profiles: climbers,
           propsMap
         });
-        saveLocalSnapshot(payload, 'Session baseline snapshot');
+        createManualSnapshot('Session baseline snapshot', payload);
       }
     }
-  }, [loading, boulders.length]);
+  }, [loading, boulders.length, snapshots.length]);
 
   const submitFeatureRequest = async (params: {
     userId: string;
@@ -2158,7 +2217,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         profiles: climbers,
         propsMap
       });
-      saveLocalSnapshot(currentPayload, 'Pre-restore automatic safety snapshot');
+      await createManualSnapshot('Pre-restore automatic safety snapshot', currentPayload);
 
       // 2. Restore state locally
       if (backup.gyms && backup.gyms.length > 0) {
@@ -2267,8 +2326,11 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const createManualSnapshot = (reason = 'Manual snapshot') => {
-    const payload = createBackupPayload({
+  const createManualSnapshot = async (
+    reason = 'Manual snapshot',
+    customPayload?: WhamBackupData
+  ): Promise<string> => {
+    const payload = customPayload || createBackupPayload({
       gyms,
       areas,
       boulders,
@@ -2279,18 +2341,166 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       featureRequests,
       propsMap
     });
-    saveLocalSnapshot(payload, reason);
+
+    const snapId = `snap_${Date.now()}`;
+    const currentUserId = currentUser?.id || null;
+
+    // 1. Save locally for instant offline availability
+    saveLocalSnapshot(payload, reason, {
+      id: snapId,
+      created_by: currentUserId,
+      is_cloud: false
+    });
+
+    const localMeta: LocalSnapshotMeta = {
+      id: snapId,
+      timestamp: new Date().toISOString(),
+      boulderCount: payload.boulders.length,
+      attemptCount: payload.attempts.length,
+      climberCount: payload.profiles.length,
+      reason,
+      is_cloud: false,
+      created_by: currentUserId
+    };
+    setSnapshots((prev) => mergeSnapshotMetas(prev, [localMeta]));
+
+    // 2. Sync to Supabase cloud if connected
+    if (isSupabaseConfigured && supabase && !isDemoMode && !isDemoRequested()) {
+      try {
+        const { error } = await supabase.from('safety_snapshots').insert({
+          id: snapId,
+          created_at: new Date().toISOString(),
+          user_id: currentUserId,
+          boulder_count: payload.boulders.length,
+          attempt_count: payload.attempts.length,
+          climber_count: payload.profiles.length,
+          reason,
+          data: payload
+        });
+
+        if (!error) {
+          saveLocalSnapshot(payload, reason, {
+            id: snapId,
+            created_by: currentUserId,
+            is_cloud: true
+          });
+          setSnapshots((prev) =>
+            prev.map((s) => (s.id === snapId ? { ...s, is_cloud: true } : s))
+          );
+
+          // Prune cloud snapshots if > 15
+          try {
+            const { data: excess } = await supabase
+              .from('safety_snapshots')
+              .select('id')
+              .order('created_at', { ascending: false })
+              .range(15, 60);
+            if (excess && excess.length > 0) {
+              const toDelete = excess.map((x) => x.id);
+              await supabase.from('safety_snapshots').delete().in('id', toDelete);
+            }
+          } catch (e) {}
+        } else {
+          console.warn('Could not sync snapshot to Supabase (saved locally):', error.message);
+        }
+      } catch (err) {
+        console.warn('Supabase snapshot insert exception:', err);
+      }
+    }
+
+    return snapId;
   };
 
   const restoreSnapshotById = async (snapshotId: string): Promise<boolean> => {
-    const snapshotData = getLocalSnapshotData(snapshotId);
+    let snapshotData = getLocalSnapshotData(snapshotId);
+
+    if (!snapshotData && isSupabaseConfigured && supabase && !isDemoMode && !isDemoRequested()) {
+      try {
+        const { data, error } = await supabase
+          .from('safety_snapshots')
+          .select('data')
+          .eq('id', snapshotId)
+          .single();
+        if (!error && data?.data) {
+          snapshotData = data.data as WhamBackupData;
+        }
+      } catch (err) {
+        console.warn('Failed to fetch snapshot data from Supabase:', err);
+      }
+    }
+
     if (!snapshotData) return false;
     const res = await restoreBackupData(snapshotData);
     return res.success;
   };
 
+  const syncSnapshotsToCloud = async (): Promise<{ syncedCount: number; error?: string }> => {
+    if (!isSupabaseConfigured || !supabase || isDemoMode || isDemoRequested()) {
+      return { syncedCount: 0, error: 'Supabase is not configured or offline' };
+    }
+
+    const unSynced = snapshots.filter((s) => !s.is_cloud);
+    let count = 0;
+
+    for (const snap of unSynced) {
+      const data = getLocalSnapshotData(snap.id);
+      if (!data) continue;
+      try {
+        const { error } = await supabase.from('safety_snapshots').upsert(
+          {
+            id: snap.id,
+            created_at: snap.timestamp,
+            user_id: snap.created_by || currentUser?.id || null,
+            boulder_count: snap.boulderCount,
+            attempt_count: snap.attemptCount,
+            climber_count: snap.climberCount,
+            reason: snap.reason || 'Manual snapshot',
+            data
+          },
+          { onConflict: 'id' }
+        );
+
+        if (!error) {
+          count++;
+          setSnapshots((prev) =>
+            prev.map((s) => (s.id === snap.id ? { ...s, is_cloud: true } : s))
+          );
+        }
+      } catch (e) {
+        console.warn('Error syncing snapshot to cloud:', e);
+      }
+    }
+
+    return { syncedCount: count };
+  };
+
+  const deleteSnapshot = async (snapshotId: string): Promise<void> => {
+    // Delete locally
+    try {
+      const raw = localStorage.getItem('wham_local_snapshots');
+      if (raw) {
+        const list = JSON.parse(raw);
+        if (Array.isArray(list)) {
+          const filtered = list.filter((item) => item.id !== snapshotId);
+          localStorage.setItem('wham_local_snapshots', JSON.stringify(filtered));
+        }
+      }
+    } catch (e) {}
+
+    setSnapshots((prev) => prev.filter((s) => s.id !== snapshotId));
+
+    // Delete in cloud
+    if (isSupabaseConfigured && supabase && !isDemoMode && !isDemoRequested()) {
+      try {
+        await supabase.from('safety_snapshots').delete().eq('id', snapshotId);
+      } catch (e) {
+        console.warn('Error deleting cloud snapshot:', e);
+      }
+    }
+  };
+
   const getSnapshotsList = (): LocalSnapshotMeta[] => {
-    return getLocalSnapshotsMeta();
+    return snapshots;
   };
 
   return (
@@ -2341,9 +2551,12 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         toggleFeatureUpvote,
         deleteFeatureRequest,
         restoreBackupData,
+        snapshots,
         createManualSnapshot,
         restoreSnapshotById,
-        getSnapshotsList
+        getSnapshotsList,
+        syncSnapshotsToCloud,
+        deleteSnapshot
       }}
     >
       {children}

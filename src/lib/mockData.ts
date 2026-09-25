@@ -3849,6 +3849,26 @@ export const INITIAL_FEATURE_REQUESTS: FeatureRequest[] = [
     status: 'shipped',
     upvotes: ['a0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000001'],
     created_at: '2026-09-24T18:00:00Z'
+  },
+  {
+    id: 'f0000000-0000-0000-0000-000000000003',
+    user_id: 'a0000000-0000-0000-0000-000000000002',
+    title: 'Storage tab says 0 photos',
+    description: 'When there’s at least one photo uploaded',
+    category: 'bug',
+    status: 'shipped',
+    upvotes: ['a0000000-0000-0000-0000-000000000002'],
+    created_at: '2026-09-25T11:00:00Z'
+  },
+  {
+    id: 'f0000000-0000-0000-0000-000000000004',
+    user_id: 'a0000000-0000-0000-0000-000000000002',
+    title: 'Backups not synced',
+    description: 'Should they be?',
+    category: 'bug',
+    status: 'shipped',
+    upvotes: ['a0000000-0000-0000-0000-000000000002'],
+    created_at: '2026-09-25T11:30:00Z'
   }
 ];
 

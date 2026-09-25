@@ -67,7 +67,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     restoreBackupData,
     createManualSnapshot,
     restoreSnapshotById,
-    getSnapshotsList
+    getSnapshotsList,
+    snapshots: gymSnapshots,
+    syncSnapshotsToCloud,
+    deleteSnapshot
   } = useGym();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -179,10 +182,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  const handleCreateSnapshot = () => {
-    createManualSnapshot();
-    setSnapshots(getSnapshotsList());
-    showSuccess('Safety snapshot created!');
+  const handleCreateSnapshot = async () => {
+    try {
+      await createManualSnapshot();
+      showSuccess('Safety snapshot saved and synced to cloud!');
+    } catch (e: any) {
+      showError(e?.message || 'Failed to create snapshot');
+    }
   };
 
   if (!isOpen) return null;
@@ -333,10 +339,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <BackupsSettingsTab
             boulders={boulders}
             attempts={attempts}
-            snapshots={snapshots}
+            snapshots={gymSnapshots && gymSnapshots.length > 0 ? gymSnapshots : snapshots}
+            climbers={climbers}
             onExportBackup={handleExportBackup}
             onRestoreSnapshot={handleRestoreSnapshot}
             onCreateSnapshot={handleCreateSnapshot}
+            onSyncToCloud={syncSnapshotsToCloud}
+            onDeleteSnapshot={deleteSnapshot}
             onFileSelected={handleFileSelected}
             fileInputRef={fileInputRef}
           />
@@ -345,7 +354,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         {/* TAB 4: PHOTO STORAGE MANAGER */}
         {activeTab === 'storage' && (
           <div className="flex flex-col gap-3 animate-in fade-in duration-150">
-            <PhotoStorageManager boulders={boulders} activeColor={activeColor} />
+            <PhotoStorageManager boulders={boulders} areas={areas} activeColor={activeColor} />
           </div>
         )}
       </div>
