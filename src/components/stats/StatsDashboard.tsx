@@ -179,8 +179,19 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
     const relevantAreas = areas.filter((a) => selectedGymId === 'all' || a.gym_id === selectedGymId);
     const targetId = selectedClimberId || currentUserId;
 
-    return relevantAreas.map((area) => {
+    // Group areas by gym name first so sectors from the same gym are together, then sort by sort_order
+    const sortedAreas = [...relevantAreas].sort((a, b) => {
+      if (a.gym_id !== b.gym_id) {
+        const gymA = gyms.find((g) => g.id === a.gym_id)?.name || '';
+        const gymB = gyms.find((g) => g.id === b.gym_id)?.name || '';
+        return gymA.localeCompare(gymB);
+      }
+      return a.sort_order - b.sort_order;
+    });
+
+    return sortedAreas.map((area) => {
       const areaBoulders = activeGymBoulders.filter((b) => b.area_id === area.id);
+      const gym = gyms.find((g) => g.id === area.gym_id);
       const sent = areaBoulders.filter((b) => {
         if (viewMode === 'my') {
           return filteredAttempts.some(
@@ -193,13 +204,14 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
       });
       return {
         area,
+        gym,
         total: areaBoulders.length,
         sent: sent.length,
         remaining: areaBoulders.length - sent.length,
         pct: areaBoulders.length > 0 ? Math.round((sent.length / areaBoulders.length) * 100) : 0
       };
     }).filter((ab) => ab.total > 0);
-  }, [areas, selectedGymId, activeGymBoulders, filteredAttempts, viewMode, currentUserId, selectedClimberId]);
+  }, [areas, selectedGymId, activeGymBoulders, filteredAttempts, viewMode, currentUserId, selectedClimberId, gyms]);
 
   // Battle Data
   const battleData = useMemo((): BattleData | null => {
@@ -586,6 +598,8 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           userSentActiveBouldersCount={userSentActiveBoulders.length}
           reviews={reviews}
           onSelectBoulder={onSelectBoulder}
+          gyms={gyms}
+          selectedGymId={selectedGymId}
         />
       )}
 

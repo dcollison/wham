@@ -15,9 +15,10 @@ import {
   Scale,
   Sparkles,
   MessageSquareHeart,
-  ChevronRight
+  ChevronRight,
+  MapPin
 } from 'lucide-react';
-import { Profile, GymArea, Boulder, BoulderReview } from '../../types';
+import { Profile, GymArea, Boulder, BoulderReview, Gym } from '../../types';
 import { ClimberAvatar } from '../ClimberAvatar';
 import { ClimberStatsData, AccoladeItem } from '../../lib/statsEngine';
 import { computeReviewAnalytics } from '../../lib/reviews';
@@ -25,6 +26,7 @@ import { HoldBadge } from '../boulders/HoldBadge';
 
 export interface AreaBreakdownItem {
   area: GymArea;
+  gym?: Gym;
   total: number;
   sent: number;
   remaining: number;
@@ -49,6 +51,8 @@ interface StatsOverviewProps {
   userSentActiveBouldersCount: number;
   reviews?: BoulderReview[];
   onSelectBoulder?: (boulder: Boulder) => void;
+  gyms?: Gym[];
+  selectedGymId?: string;
 }
 
 const getAccoladeIcon = (id: string, color?: string) => {
@@ -87,7 +91,9 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
   completionPct,
   userSentActiveBouldersCount,
   reviews = [],
-  onSelectBoulder
+  onSelectBoulder,
+  gyms = [],
+  selectedGymId = 'all'
 }) => {
   const reviewStats = useMemo(() => {
     return computeReviewAnalytics(
@@ -103,10 +109,26 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
   const areaNameMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const item of areaBreakdown) {
-      map.set(item.area.id, item.area.name);
+      const gymName = item.gym?.name || gyms.find((g) => g.id === item.area.gym_id)?.name;
+      const label = gymName ? `${gymName} • ${item.area.name}` : item.area.name;
+      map.set(item.area.id, label);
     }
     return map;
-  }, [areaBreakdown]);
+  }, [areaBreakdown, gyms]);
+
+  // Group area breakdown items by gym
+  const gymGroups = useMemo(() => {
+    const map = new Map<string, { gym: Gym | undefined; items: AreaBreakdownItem[] }>();
+    for (const item of areaBreakdown) {
+      const gymId = item.area.gym_id || 'unknown';
+      if (!map.has(gymId)) {
+        const matchedGym = item.gym || gyms.find((g) => g.id === gymId);
+        map.set(gymId, { gym: matchedGym, items: [] });
+      }
+      map.get(gymId)!.items.push(item);
+    }
+    return Array.from(map.values());
+  }, [areaBreakdown, gyms]);
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-200">
@@ -262,9 +284,15 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {/* Donut Chart: Gym Topped Percentage */}
         <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col items-center justify-between gap-4">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-400 self-start">
-            {viewMode === 'group' ? 'Crew Gym Coverage' : 'Gym Completion Rate'}
-          </span>
+          <div className="flex items-center justify-between w-full">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              {viewMode === 'group' ? 'Crew Gym Coverage' : 'Gym Completion Rate'}
+            </span>
+            <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300">
+              <MapPin className="w-2.5 h-2.5 text-amber-400" />
+              <span>{selectedGymId === 'all' ? 'All Gyms' : gyms.find((g) => g.id === selectedGymId)?.name || 'Gym'}</span>
+            </span>
+          </div>
 
           <div className="relative flex items-center justify-center">
             <svg className="w-36 h-36 -rotate-90 transform" viewBox="0 0 100 100">
@@ -295,40 +323,92 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
               ? `${userSentActiveBouldersCount} of ${activeGymBoulders.length} active boulders topped by the crew (${
                   activeGymBoulders.length - userSentActiveBouldersCount
                 } unclimbed)`
-              : `${activeGymBoulders.length - userSentActiveBouldersCount} active boulders left to send`}
+              : `${activeGymBoulders.length - userSentActiveBouldersCount} active boulders left to send across ${
+                  selectedGymId === 'all'
+                    ? 'all gyms'
+                    : gyms.find((g) => g.id === selectedGymId)?.name || 'the gym'
+                }`}
           </p>
         </div>
 
         {/* Breakdown of Active Climbs Remaining Per Area */}
-        <div className="md:col-span-2 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              {viewMode === 'group' ? 'Crew Area Coverage' : 'Area Completion & Remaining Climbs'}
-            </span>
-            <span className="text-[11px] font-mono" style={{ color: activeColor }}>
-              {viewMode === 'group' ? 'Team Progress' : 'Clockwise Sectors'}
+        <div className="md:col-span-2 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between gap-4">
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
+            <div className="flex flex-col">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                {viewMode === 'group' ? 'Crew Area Coverage' : 'Area Completion & Remaining Climbs'}
+              </span>
+              <span className="text-[11px] text-slate-400">
+                Clockwise sector ticklists organized by climbing gym
+              </span>
+            </div>
+            <span className="text-[11px] font-mono font-bold" style={{ color: activeColor }}>
+              {selectedGymId && selectedGymId !== 'all'
+                ? `${gyms.find((g) => g.id === selectedGymId)?.name || 'Selected Gym'} Sectors`
+                : `${gymGroups.length} ${gymGroups.length === 1 ? 'Gym' : 'Gyms'} • All Sectors`}
             </span>
           </div>
 
-          <div className="space-y-3">
-            {areaBreakdown.map((item) => (
-              <div key={item.area.id} className="space-y-1">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-medium text-slate-200">{item.area.name}</span>
-                  <span className="font-mono text-[11px] text-slate-400">
-                    <strong className="text-emerald-400">{item.sent}</strong> / {item.total}{' '}
-                    {viewMode === 'group' ? 'topped by crew' : 'sent'} ({item.remaining} left)
-                  </span>
-                </div>
-                <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden flex">
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${item.pct}%`, backgroundColor: activeColor }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+          {areaBreakdown.length === 0 ? (
+            <div className="p-6 text-center text-xs text-slate-500 font-mono bg-slate-850/40 rounded-xl border border-slate-800">
+              No active boulders or wall sectors found.
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {gymGroups.map((group, groupIdx) => {
+                const totalGymSent = group.items.reduce((acc, i) => acc + i.sent, 0);
+                const totalGymTotal = group.items.reduce((acc, i) => acc + i.total, 0);
+                const gymPct = totalGymTotal > 0 ? Math.round((totalGymSent / totalGymTotal) * 100) : 0;
+                const gymName = group.gym?.name || 'Gym';
+
+                return (
+                  <div key={group.gym?.id || groupIdx} className="space-y-3">
+                    {/* Gym Section Header */}
+                    <div className="flex items-center justify-between gap-2 pt-2 first:pt-0 pb-1.5 border-b border-slate-800">
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-300 shadow-xs">
+                        <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        <span className="font-mono text-xs font-bold uppercase tracking-wider">
+                          {gymName}
+                        </span>
+                      </div>
+                      <span className="font-mono text-[11px] text-slate-400">
+                        <strong className="text-slate-200">{group.items.length}</strong> {group.items.length === 1 ? 'sector' : 'sectors'} •{' '}
+                        <strong className="text-emerald-400">{totalGymSent}</strong>/{totalGymTotal} ({gymPct}%)
+                      </span>
+                    </div>
+
+                    {/* Sectors inside this Gym */}
+                    <div className="space-y-3 pl-0.5">
+                      {group.items.map((item) => (
+                        <div key={item.area.id} className="space-y-1">
+                          <div className="flex items-center justify-between text-xs gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="font-medium text-slate-200 truncate">
+                                {item.area.name}
+                              </span>
+                              <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-800 text-amber-400/90 border border-slate-700/60 shrink-0 uppercase tracking-wider">
+                                {gymName}
+                              </span>
+                            </div>
+                            <span className="font-mono text-[11px] text-slate-400 shrink-0">
+                              <strong className="text-emerald-400">{item.sent}</strong> / {item.total}{' '}
+                              {viewMode === 'group' ? 'topped by crew' : 'sent'} ({item.remaining} left)
+                            </span>
+                          </div>
+                          <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden flex">
+                            <div
+                              className="h-full rounded-full transition-all duration-500"
+                              style={{ width: `${item.pct}%`, backgroundColor: activeColor }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
