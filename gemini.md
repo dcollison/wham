@@ -239,6 +239,12 @@ BEGIN
   END IF;
 END $$;
 
+-- Comp wall columns migration
+ALTER TABLE public.gym_areas ADD COLUMN IF NOT EXISTS is_comp_wall BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE public.boulders ADD COLUMN IF NOT EXISTS is_comp BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE public.boulders ADD COLUMN IF NOT EXISTS comp_number INT;
+CREATE INDEX IF NOT EXISTS idx_boulders_comp_number ON public.boulders(area_id, comp_number) WHERE is_comp = true;
+
 -- Send Props table for cross-device reaction sync
 CREATE TABLE IF NOT EXISTS public.send_props (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

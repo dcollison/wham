@@ -44,6 +44,9 @@ CREATE TABLE IF NOT EXISTS public.gym_areas (
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
+-- Idempotent column migrations for gym_areas
+ALTER TABLE public.gym_areas ADD COLUMN IF NOT EXISTS is_comp_wall BOOLEAN NOT NULL DEFAULT false;
+
 -- 1.4 Boulders table (Problems)
 CREATE TABLE IF NOT EXISTS public.boulders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -62,6 +65,11 @@ CREATE TABLE IF NOT EXISTS public.boulders (
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     CONSTRAINT valid_grade CHECK (grade IN ('VB', 'V0', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9', 'V10+'))
 );
+
+-- Idempotent column migrations for boulders
+ALTER TABLE public.boulders ADD COLUMN IF NOT EXISTS is_comp BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE public.boulders ADD COLUMN IF NOT EXISTS comp_number INT;
+CREATE INDEX IF NOT EXISTS idx_boulders_comp_number ON public.boulders(area_id, comp_number) WHERE is_comp = true;
 
 -- 1.5 Attempts table (Cumulative attempt / send status per climber)
 CREATE TABLE IF NOT EXISTS public.attempts (
@@ -507,4 +515,8 @@ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.safety_snapshots;
   END IF;
 END $$;
+
+-- Reload PostgREST API schema cache
+NOTIFY pgrst, 'reload schema';
+
 
