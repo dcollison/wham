@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Attempt, Boulder, Profile, Gym, GymArea, Grade } from '../../types';
 import { HoldBadge } from '../boulders/HoldBadge';
 import { ClimberAvatar } from '../ClimberAvatar';
@@ -88,6 +88,15 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
     }
   };
 
+  // Periodic ticker to refresh relative time labels every 30 seconds
+  const [, setTick] = useState<number>(0);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTick((t) => t + 1);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Helper relative time formatter
   const formatRelativeTime = (dateString: string): string => {
     const date = new Date(dateString);
@@ -100,6 +109,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
     const diffHours = Math.floor(diffMin / 60);
     const diffDays = Math.floor(diffHours / 24);
 
+    // Within the last minute (or slight device clock skew)
     if (diffSec < 60) return 'Just now';
     if (diffMin < 60) return `${diffMin}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;

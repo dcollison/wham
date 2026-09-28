@@ -61,7 +61,17 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
   areas
 }) => {
   const { areas: contextAreas, comments, reviews, saveReview, deleteReview } = useGym();
-  const getTodayIsoDate = () => new Date().toISOString().split('T')[0];
+  const getTodayIsoDate = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const getLocalDateFromIso = (isoString?: string): string => {
+    if (!isoString) return getTodayIsoDate();
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return getTodayIsoDate();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
 
   // Active target climber for this log
   const [selectedUserId, setSelectedUserId] = useState<string>(() => {
@@ -166,7 +176,14 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
     if (selectedAttempt) {
       setIsSent(selectedAttempt.status === 'flashed' || selectedAttempt.status === 'sent');
       setAttemptCount(selectedAttempt.attempt_count);
-      setLogDate(selectedAttempt.logged_at ? selectedAttempt.logged_at.split('T')[0] : getTodayIsoDate());
+      // If it was already sent/flashed in the past, display the date it was sent.
+      // If it was an unfinished project ('attempted') from a past session, default session date to today
+      // because the climber is continuing or sending the project in their current gym session.
+      if (selectedAttempt.status === 'flashed' || selectedAttempt.status === 'sent') {
+        setLogDate(getLocalDateFromIso(selectedAttempt.logged_at));
+      } else {
+        setLogDate(getTodayIsoDate());
+      }
     } else {
       // Default for a fresh log: sent on 1st try (Flash) on today's date
       setIsSent(true);
@@ -217,16 +234,32 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
     setAttemptCount((prev) => Math.max(prev - 1, 1));
   };
 
+  const computeLoggedAt = (): string => {
+    const todayStr = getTodayIsoDate();
+    if (logDate === todayStr) {
+      // Real-time log today at the gym: record the exact current timestamp
+      return new Date().toISOString();
+    }
+    if (selectedAttempt?.logged_at && getLocalDateFromIso(selectedAttempt.logged_at) === logDate) {
+      // Editing an existing log on that specific past day: retain original time
+      return selectedAttempt.logged_at;
+    }
+    // Explicitly logging for a past date (e.g. yesterday or custom past session):
+    // Set to 19:00 in the user's LOCAL time (not UTC 'Z'), ensuring the date doesn't drift across timezones
+    const [y, m, d] = logDate.split('-').map(Number);
+    const targetDate = new Date(y, (m || 1) - 1, d || 1, 19, 0, 0);
+    return isNaN(targetDate.getTime()) ? new Date().toISOString() : targetDate.toISOString();
+  };
+
   const handleSaveAttempt = async (closeAfter: boolean = true) => {
     if (!boulder || !selectedClimber) return;
     setSaving(true);
     try {
-      const dateObj = new Date(logDate + 'T19:00:00Z');
       await onSave({
         boulderId: boulder.id,
         status: computedStatus,
         attemptCount,
-        loggedAt: isNaN(dateObj.getTime()) ? new Date().toISOString() : dateObj.toISOString(),
+        loggedAt: computeLoggedAt(),
         userId: selectedClimber.id
       });
 
@@ -261,12 +294,11 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
     const targetNext = nextBoulder;
     setSaving(true);
     try {
-      const dateObj = new Date(logDate + 'T19:00:00Z');
       await onSave({
         boulderId: boulder.id,
         status: computedStatus,
         attemptCount,
-        loggedAt: isNaN(dateObj.getTime()) ? new Date().toISOString() : dateObj.toISOString(),
+        loggedAt: computeLoggedAt(),
         userId: selectedClimber.id
       });
 
@@ -746,7 +778,8 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                   onClick={() => {
                     const yesterday = new Date();
                     yesterday.setDate(yesterday.getDate() - 1);
-                    setLogDate(yesterday.toISOString().split('T')[0]);
+                    const yestStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+                    setLogDate(yestStr);
                     setShowDatePicker(false);
                   }}
                   className="px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-800 text-slate-300 hover:text-white transition-colors active-press"

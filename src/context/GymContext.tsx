@@ -980,13 +980,15 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       (a) => a.boulder_id === boulderId && a.user_id === targetUserId
     );
 
+    const effectiveLoggedAt = loggedAt || new Date().toISOString();
+
     const newAttempt: Attempt = {
       id: existingAttempt?.id || `att-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       boulder_id: boulderId,
       user_id: targetUserId,
       status,
       attempt_count: attemptCount,
-      logged_at: loggedAt || existingAttempt?.logged_at || new Date().toISOString(),
+      logged_at: effectiveLoggedAt,
       profile: targetClimber || currentUser || undefined
     };
 
@@ -1005,7 +1007,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           user_id: targetUserId,
           status,
           attempt_count: attemptCount,
-          logged_at: loggedAt || new Date().toISOString()
+          logged_at: effectiveLoggedAt
         }, { onConflict: 'boulder_id,user_id' });
 
         if (error) {
