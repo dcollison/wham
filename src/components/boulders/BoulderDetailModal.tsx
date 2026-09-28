@@ -391,7 +391,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
             />
             <span
               className={`font-mono text-xs font-bold px-2.5 py-0.5 rounded-full shrink-0 tabular-nums ${
-                (isEditing ? editIsComp : boulder.is_comp)
+                (isEditing ? editIsComp && editCompNumber != null : boulder.is_comp && boulder.comp_number != null)
                   ? 'text-amber-300 bg-amber-500/10 border border-amber-500/30'
                   : 'text-slate-300 bg-slate-800/90 border border-slate-700/60'
               }`}
@@ -832,15 +832,15 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
               <div className="mt-1">
                 {userAttempt?.status === 'flashed' ? (
                   <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
-                    <Zap className="w-3.5 h-3.5 fill-current" /> Flashed (1 try{boulder.is_comp ? ' • 10 pts' : ''})
+                    <Zap className="w-3.5 h-3.5 fill-current" /> Flashed (1 try{(boulder.is_comp && boulder.comp_number != null) ? ' • 10 pts' : ''})
                   </span>
                 ) : userAttempt?.status === 'sent' ? (
                   <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                    <Check className="w-3.5 h-3.5 stroke-[3]" /> Sent ({userAttempt.attempt_count} {userAttempt.attempt_count === 1 ? 'try' : 'tries'}{boulder.is_comp ? ` • ${userAttempt.attempt_count === 2 ? '7' : '4'} pts` : ''})
+                    <Check className="w-3.5 h-3.5 stroke-[3]" /> Sent ({userAttempt.attempt_count} {userAttempt.attempt_count === 1 ? 'try' : 'tries'}{(boulder.is_comp && boulder.comp_number != null) ? ` • ${userAttempt.attempt_count === 2 ? '7' : '4'} pts` : ''})
                   </span>
                 ) : userAttempt?.status === 'attempted' ? (
                   <span className="text-xs font-bold text-blue-400 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5" /> Projecting ({userAttempt.attempt_count} {userAttempt.attempt_count === 1 ? 'try' : 'tries'}{boulder.is_comp ? ' • 0 pts' : ''})
+                    <Clock className="w-3.5 h-3.5" /> Projecting ({userAttempt.attempt_count} {userAttempt.attempt_count === 1 ? 'try' : 'tries'}{(boulder.is_comp && boulder.comp_number != null) ? ' • 0 pts' : ''})
                   </span>
                 ) : (
                   <span className="text-xs text-slate-400">Not logged yet</span>

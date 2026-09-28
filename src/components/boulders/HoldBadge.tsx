@@ -6,7 +6,7 @@ interface HoldBadgeProps {
   color: string;
   grade?: Grade;
   isComp?: boolean;
-  compNumber?: number;
+  compNumber?: number | null;
   size?: 'sm' | 'md' | 'lg';
   showGrade?: boolean;
 }
@@ -27,7 +27,9 @@ export const HoldBadge: React.FC<HoldBadgeProps> = ({
     lg: 'text-base px-4 py-2 gap-2.5'
   };
 
-  const isNumberedComp = isComp || compNumber !== undefined;
+  const hasCompNumber = compNumber !== undefined && compNumber !== null;
+  const isNumberedComp = hasCompNumber && Boolean(isComp || !grade);
+  const isUngradedCompWithoutNum = Boolean(isComp) && !hasCompNumber && !grade;
 
   return (
     <div
@@ -52,7 +54,14 @@ export const HoldBadge: React.FC<HoldBadgeProps> = ({
           <>
             <span className="text-slate-500/80 text-[10px]">•</span>
             <span className="font-mono font-black tracking-tight text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-500/50 text-[11px] leading-tight shadow-xs">
-              #{compNumber ?? '?'}
+              #{compNumber}
+            </span>
+          </>
+        ) : isUngradedCompWithoutNum ? (
+          <>
+            <span className="text-slate-500/80 text-[10px]">•</span>
+            <span className="font-mono font-black tracking-tight text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-500/50 text-[11px] leading-tight shadow-xs">
+              #?
             </span>
           </>
         ) : grade ? (

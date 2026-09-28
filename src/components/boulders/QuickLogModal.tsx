@@ -349,7 +349,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
               />
               <span
                 className={`font-mono text-xs font-bold shrink-0 tabular-nums px-2.5 py-0.5 rounded-full ${
-                  boulder.is_comp
+                  boulder.is_comp && boulder.comp_number != null
                     ? 'text-amber-300 bg-amber-500/10 border border-amber-500/30'
                     : 'text-slate-300 bg-slate-800/90 border border-slate-700/60'
                 }`}
@@ -620,7 +620,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
             </div>
 
             {/* Comp points or status pill preview */}
-            {boulder.is_comp && (
+            {(boulder.is_comp && boulder.comp_number != null) && (
               <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono font-bold mt-1 animate-in fade-in">
                 <Trophy className="w-3.5 h-3.5" />
                 <span>

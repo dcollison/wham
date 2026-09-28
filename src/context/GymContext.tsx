@@ -904,10 +904,10 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const sortB = areaMap.get(b.area_id)?.sort_order ?? 0;
         return sortA - sortB;
       }
-      const isAComp = a.is_comp || areaMap.get(a.area_id)?.is_comp_wall;
-      const isBComp = b.is_comp || areaMap.get(b.area_id)?.is_comp_wall;
-      if (isAComp && isBComp && a.comp_number !== undefined && b.comp_number !== undefined) {
-        return a.comp_number - b.comp_number;
+      const isAComp = Boolean(a.is_comp || areaMap.get(a.area_id)?.is_comp_wall) && a.comp_number != null;
+      const isBComp = Boolean(b.is_comp || areaMap.get(b.area_id)?.is_comp_wall) && b.comp_number != null;
+      if (isAComp && isBComp) {
+        return (a.comp_number ?? 0) - (b.comp_number ?? 0);
       }
       return a.position_order - b.position_order;
     });
