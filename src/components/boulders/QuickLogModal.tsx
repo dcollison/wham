@@ -255,28 +255,34 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
     if (!boulder || !selectedClimber) return;
     setSaving(true);
     try {
-      await onSave({
-        boulderId: boulder.id,
-        status: computedStatus,
-        attemptCount,
-        loggedAt: computeLoggedAt(),
-        userId: selectedClimber.id
-      });
+      // Execute save and review update with a safety timeout to guarantee zero modal freeze
+      await Promise.race([
+        (async () => {
+          await onSave({
+            boulderId: boulder.id,
+            status: computedStatus,
+            attemptCount,
+            loggedAt: computeLoggedAt(),
+            userId: selectedClimber.id
+          });
 
-      // Save/update review if user provided rating or grade feel
-      if (selectedRating !== null || selectedGradeOpinion !== null) {
-        await saveReview({
-          boulderId: boulder.id,
-          userId: selectedClimber.id,
-          rating: selectedRating,
-          gradeOpinion: selectedGradeOpinion
-        });
-      } else {
-        const hadReview = reviews.some(r => r.boulder_id === boulder.id && r.user_id === selectedClimber.id);
-        if (hadReview) {
-          await deleteReview(boulder.id, selectedClimber.id);
-        }
-      }
+          // Save/update review if user provided rating or grade feel
+          if (selectedRating !== null || selectedGradeOpinion !== null) {
+            await saveReview({
+              boulderId: boulder.id,
+              userId: selectedClimber.id,
+              rating: selectedRating,
+              gradeOpinion: selectedGradeOpinion
+            });
+          } else {
+            const hadReview = reviews.some(r => r.boulder_id === boulder.id && r.user_id === selectedClimber.id);
+            if (hadReview) {
+              await deleteReview(boulder.id, selectedClimber.id);
+            }
+          }
+        })(),
+        new Promise((resolve) => setTimeout(resolve, 2000))
+      ]);
 
       if (closeAfter) {
         onClose();
@@ -284,6 +290,9 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
         setJustSavedName(selectedClimber.display_name);
         setTimeout(() => setJustSavedName(null), 3000);
       }
+    } catch (err) {
+      console.warn('QuickLog save handled with fallback:', err);
+      if (closeAfter) onClose();
     } finally {
       setSaving(false);
     }
@@ -294,29 +303,39 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
     const targetNext = nextBoulder;
     setSaving(true);
     try {
-      await onSave({
-        boulderId: boulder.id,
-        status: computedStatus,
-        attemptCount,
-        loggedAt: computeLoggedAt(),
-        userId: selectedClimber.id
-      });
+      await Promise.race([
+        (async () => {
+          await onSave({
+            boulderId: boulder.id,
+            status: computedStatus,
+            attemptCount,
+            loggedAt: computeLoggedAt(),
+            userId: selectedClimber.id
+          });
 
-      // Save/update review if user provided rating or grade feel
-      if (selectedRating !== null || selectedGradeOpinion !== null) {
-        await saveReview({
-          boulderId: boulder.id,
-          userId: selectedClimber.id,
-          rating: selectedRating,
-          gradeOpinion: selectedGradeOpinion
-        });
-      } else {
-        const hadReview = reviews.some(r => r.boulder_id === boulder.id && r.user_id === selectedClimber.id);
-        if (hadReview) {
-          await deleteReview(boulder.id, selectedClimber.id);
-        }
+          // Save/update review if user provided rating or grade feel
+          if (selectedRating !== null || selectedGradeOpinion !== null) {
+            await saveReview({
+              boulderId: boulder.id,
+              userId: selectedClimber.id,
+              rating: selectedRating,
+              gradeOpinion: selectedGradeOpinion
+            });
+          } else {
+            const hadReview = reviews.some(r => r.boulder_id === boulder.id && r.user_id === selectedClimber.id);
+            if (hadReview) {
+              await deleteReview(boulder.id, selectedClimber.id);
+            }
+          }
+        })(),
+        new Promise((resolve) => setTimeout(resolve, 2000))
+      ]);
+
+      if (onNavigateBoulder) {
+        onNavigateBoulder(targetNext);
       }
-
+    } catch (err) {
+      console.warn('QuickLog save and next handled with fallback:', err);
       if (onNavigateBoulder) {
         onNavigateBoulder(targetNext);
       }
@@ -330,10 +349,18 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
     if (window.confirm(`Clear logged attempt on this climb for ${selectedClimber.display_name}?`)) {
       setSaving(true);
       try {
-        await onDelete(boulder.id, selectedClimber.id);
-        if (reviews.some(r => r.boulder_id === boulder.id && r.user_id === selectedClimber.id)) {
-          await deleteReview(boulder.id, selectedClimber.id);
-        }
+        await Promise.race([
+          (async () => {
+            await onDelete(boulder.id, selectedClimber.id);
+            if (reviews.some(r => r.boulder_id === boulder.id && r.user_id === selectedClimber.id)) {
+              await deleteReview(boulder.id, selectedClimber.id);
+            }
+          })(),
+          new Promise((resolve) => setTimeout(resolve, 2000))
+        ]);
+        onClose();
+      } catch (err) {
+        console.warn('QuickLog delete handled with fallback:', err);
         onClose();
       } finally {
         setSaving(false);

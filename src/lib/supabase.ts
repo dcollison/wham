@@ -2,9 +2,14 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Retrieve from Vite environment variables or localStorage overrides
 const getEnvSupabase = () => {
-  const url = import.meta.env.VITE_SUPABASE_URL || localStorage.getItem('wham_supabase_url') || '';
-  const key = import.meta.env.VITE_SUPABASE_ANON_KEY || localStorage.getItem('wham_supabase_key') || '';
-  return { url: url.trim(), key: key.trim() };
+  const g = typeof globalThis !== 'undefined' ? (globalThis as any) : undefined;
+  const envUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) ||
+    g?.process?.env?.VITE_SUPABASE_URL ||
+    (typeof localStorage !== 'undefined' ? localStorage.getItem('wham_supabase_url') : '') || '';
+  const envKey = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY) ||
+    g?.process?.env?.VITE_SUPABASE_ANON_KEY ||
+    (typeof localStorage !== 'undefined' ? localStorage.getItem('wham_supabase_key') : '') || '';
+  return { url: envUrl.trim(), key: envKey.trim() };
 };
 
 export const isDemoRequested = (): boolean => {
@@ -184,5 +189,26 @@ export async function deleteStoragePhotos(urlsOrPaths: string[]): Promise<number
     console.error('Exception deleting storage photos:', e);
     return 0;
   }
+}
+
+/**
+ * Race a promise against a timeout to prevent stalled network requests
+ * from hanging the client or freezing modal saving states.
+ */
+export async function withTimeout<T = any>(
+  promiseLike: any,
+  timeoutMs = 7000,
+  timeoutErrorMsg = 'Network request timed out'
+): Promise<T> {
+  let timeoutHandle: any;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutHandle = setTimeout(() => {
+      reject(new Error(timeoutErrorMsg));
+    }, timeoutMs);
+  });
+  return Promise.race([
+    Promise.resolve(promiseLike).finally(() => clearTimeout(timeoutHandle)),
+    timeoutPromise
+  ]);
 }
 

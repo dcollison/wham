@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useMemo, useRef } from 'react';
-import { supabase, isSupabaseConfigured, isDemoRequested, uploadBoulderPhoto, uploadAreaPhoto, deleteStoragePhotos } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, isDemoRequested, uploadBoulderPhoto, uploadAreaPhoto, deleteStoragePhotos, withTimeout } from '../lib/supabase';
 import { Boulder, Attempt, Comment, Gym, GymArea, Grade, AttemptStatus, BulkAddBoulderItem, BulkAddBouldersParams, FeatureRequest, FeatureCategory, FeatureStatus, BoulderReview, SmileyRating, GradeOpinion } from '../types';
 import {
   INITIAL_GYMS,
@@ -21,6 +21,14 @@ import {
   getLocalSnapshotData,
   mergeSnapshotMetas
 } from '../lib/backup';
+import {
+  STORAGE_KEYS,
+  getStorageJson,
+  setStorageJson,
+  PendingAttempt,
+  PendingReview,
+  PendingDelete
+} from '../lib/storage';
 
 interface LogAttemptParams {
   boulderId: string;
@@ -318,6 +326,124 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     climbersRef.current = climbers;
   }, [climbers]);
 
+  const isFlushingPendingRef = useRef(false);
+
+  // Background retry queue for offline or stalled writes
+  const flushPendingQueue = async () => {
+    if (isFlushingPendingRef.current) return;
+    if (!isSupabaseConfigured || !supabase || isDemoMode || isDemoRequested()) return;
+    if (typeof window !== 'undefined' && !navigator.onLine) return;
+
+    isFlushingPendingRef.current = true;
+    try {
+      // 1. Process pending deletes first
+      const pendingDeletes = getStorageJson<PendingDelete[]>(STORAGE_KEYS.PENDING_DELETES, []);
+      if (pendingDeletes.length > 0) {
+        const remainingDeletes: PendingDelete[] = [];
+        for (const item of pendingDeletes) {
+          try {
+            if (item.type === 'attempt') {
+              const { error } = await withTimeout(
+                supabase.from('attempts').delete().match({ boulder_id: item.boulder_id, user_id: item.user_id }),
+                6000,
+                'Sync delete attempt timed out'
+              );
+              if (error) remainingDeletes.push(item);
+            } else if (item.type === 'review') {
+              const { error } = await withTimeout(
+                supabase.from('boulder_reviews').delete().match({ boulder_id: item.boulder_id, user_id: item.user_id }),
+                6000,
+                'Sync delete review timed out'
+              );
+              if (error) remainingDeletes.push(item);
+            }
+          } catch {
+            remainingDeletes.push(item);
+          }
+        }
+        setStorageJson(STORAGE_KEYS.PENDING_DELETES, remainingDeletes);
+      }
+
+      // 2. Process pending attempts
+      const pendingAttempts = getStorageJson<PendingAttempt[]>(STORAGE_KEYS.PENDING_ATTEMPTS, []);
+      if (pendingAttempts.length > 0) {
+        const remainingAttempts: PendingAttempt[] = [];
+        for (const item of pendingAttempts) {
+          try {
+            const { error } = await withTimeout(
+              supabase.from('attempts').upsert({
+                boulder_id: item.boulder_id,
+                user_id: item.user_id,
+                status: item.status,
+                attempt_count: item.attempt_count,
+                logged_at: item.logged_at
+              }, { onConflict: 'boulder_id,user_id' }),
+              6000,
+              'Sync attempt timed out'
+            );
+            if (error) {
+              console.warn('Pending attempt sync error:', error.message);
+              remainingAttempts.push({ ...item, retry_count: item.retry_count + 1 });
+            }
+          } catch (e) {
+            remainingAttempts.push({ ...item, retry_count: item.retry_count + 1 });
+          }
+        }
+        setStorageJson(STORAGE_KEYS.PENDING_ATTEMPTS, remainingAttempts);
+      }
+
+      // 3. Process pending reviews
+      const pendingReviews = getStorageJson<PendingReview[]>(STORAGE_KEYS.PENDING_REVIEWS, []);
+      if (pendingReviews.length > 0) {
+        const remainingReviews: PendingReview[] = [];
+        for (const item of pendingReviews) {
+          try {
+            const { error } = await withTimeout(
+              supabase.from('boulder_reviews').upsert({
+                boulder_id: item.boulder_id,
+                user_id: item.user_id,
+                rating: item.rating,
+                grade_opinion: item.grade_opinion,
+                comment: item.comment,
+                updated_at: item.updated_at
+              }, { onConflict: 'boulder_id,user_id' }),
+              6000,
+              'Sync review timed out'
+            );
+            if (error) {
+              remainingReviews.push({ ...item, retry_count: item.retry_count + 1 });
+            }
+          } catch {
+            remainingReviews.push({ ...item, retry_count: item.retry_count + 1 });
+          }
+        }
+        setStorageJson(STORAGE_KEYS.PENDING_REVIEWS, remainingReviews);
+      }
+    } finally {
+      isFlushingPendingRef.current = false;
+    }
+  };
+
+  // Re-sync pending offline queue when online or periodically every 30s
+  useEffect(() => {
+    const handleOnline = () => {
+      flushPendingQueue();
+    };
+    window.addEventListener('online', handleOnline);
+    const interval = setInterval(() => {
+      const pendingAttempts = getStorageJson<PendingAttempt[]>(STORAGE_KEYS.PENDING_ATTEMPTS, []);
+      const pendingReviews = getStorageJson<PendingReview[]>(STORAGE_KEYS.PENDING_REVIEWS, []);
+      const pendingDeletes = getStorageJson<PendingDelete[]>(STORAGE_KEYS.PENDING_DELETES, []);
+      if (pendingAttempts.length > 0 || pendingReviews.length > 0 || pendingDeletes.length > 0) {
+        flushPendingQueue();
+      }
+    }, 30000);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      clearInterval(interval);
+    };
+  }, []);
+
   // Sync with Supabase or fallback to LocalStorage
   useEffect(() => {
     let channel: any = null;
@@ -372,14 +498,66 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           });
         }
         if (bouldersRes.data && bouldersRes.data.length > 0) setBoulders(bouldersRes.data);
-        if (attemptsRes.data && attemptsRes.data.length > 0) setAttempts(attemptsRes.data);
+        if (attemptsRes.data && attemptsRes.data.length > 0) {
+          // Resiliently merge remote attempts with pending attempts so offline/recent sends are never wiped
+          const pendingAttempts = getStorageJson<PendingAttempt[]>(STORAGE_KEYS.PENDING_ATTEMPTS, []);
+          const pendingDeletes = getStorageJson<PendingDelete[]>(STORAGE_KEYS.PENDING_DELETES, []);
+
+          let mergedAttempts: Attempt[] = attemptsRes.data.filter((remote: Attempt) => {
+            return !pendingDeletes.some(d => d.type === 'attempt' && d.boulder_id === remote.boulder_id && d.user_id === remote.user_id);
+          });
+
+          for (const pending of pendingAttempts) {
+            const climber = climbersRef.current.find(c => c.id === pending.user_id);
+            const enriched: Attempt = {
+              id: pending.id,
+              boulder_id: pending.boulder_id,
+              user_id: pending.user_id,
+              status: pending.status as AttemptStatus,
+              attempt_count: pending.attempt_count,
+              logged_at: pending.logged_at,
+              profile: climber || undefined
+            };
+            mergedAttempts = mergedAttempts.filter(a => !(a.boulder_id === pending.boulder_id && a.user_id === pending.user_id));
+            mergedAttempts.push(enriched);
+          }
+
+          setAttempts(mergedAttempts);
+        }
         if (commentsRes.data && commentsRes.data.length > 0) setComments(commentsRes.data);
         if (reviewsRes && !reviewsRes.error && Array.isArray(reviewsRes.data)) {
-          setReviews(reviewsRes.data);
+          const pendingReviews = getStorageJson<PendingReview[]>(STORAGE_KEYS.PENDING_REVIEWS, []);
+          const pendingDeletes = getStorageJson<PendingDelete[]>(STORAGE_KEYS.PENDING_DELETES, []);
+
+          let mergedReviews: BoulderReview[] = reviewsRes.data.filter((remote: BoulderReview) => {
+            return !pendingDeletes.some(d => d.type === 'review' && d.boulder_id === remote.boulder_id && d.user_id === remote.user_id);
+          });
+
+          for (const pending of pendingReviews) {
+            const author = climbersRef.current.find(c => c.id === pending.user_id);
+            const enriched: BoulderReview = {
+              id: `rev-${pending.timestamp}`,
+              boulder_id: pending.boulder_id,
+              user_id: pending.user_id,
+              rating: pending.rating as any,
+              grade_opinion: pending.grade_opinion as any,
+              comment: pending.comment || null,
+              created_at: pending.updated_at,
+              updated_at: pending.updated_at,
+              profile: author || undefined
+            };
+            mergedReviews = mergedReviews.filter(r => !(r.boulder_id === pending.boulder_id && r.user_id === pending.user_id));
+            mergedReviews.push(enriched);
+          }
+
+          setReviews(mergedReviews);
           try {
-            localStorage.setItem('wham_boulder_reviews', JSON.stringify(reviewsRes.data));
+            localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(mergedReviews));
           } catch (e) {}
         }
+
+        // Trigger background flush of any pending queue
+        flushPendingQueue();
         if (!featureRequestsRes.error && Array.isArray(featureRequestsRes.data)) {
           const cleanRequests = featureRequestsRes.data
             .map((r: FeatureRequest) => {
@@ -992,33 +1170,69 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       profile: targetClimber || currentUser || undefined
     };
 
-    // Optimistically update state
+    // Optimistically update state and persist immediately to localStorage
     setAttempts(prev => {
       const filtered = prev.filter(
         a => !(a.boulder_id === boulderId && a.user_id === targetUserId)
       );
-      return [...filtered, newAttempt];
+      const updated = [...filtered, newAttempt];
+      try {
+        localStorage.setItem(STORAGE_KEYS.ATTEMPTS, JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
     });
 
+    // Enqueue in offline pending queue & remove any pending delete for this climb
+    const pendingDeletes = getStorageJson<PendingDelete[]>(STORAGE_KEYS.PENDING_DELETES, []);
+    setStorageJson(
+      STORAGE_KEYS.PENDING_DELETES,
+      pendingDeletes.filter(d => !(d.type === 'attempt' && d.boulder_id === boulderId && d.user_id === targetUserId))
+    );
+
+    const pendingAttempts = getStorageJson<PendingAttempt[]>(STORAGE_KEYS.PENDING_ATTEMPTS, []);
+    const filteredPending = pendingAttempts.filter(
+      p => !(p.boulder_id === boulderId && p.user_id === targetUserId)
+    );
+    const newPending: PendingAttempt = {
+      id: newAttempt.id,
+      boulder_id: boulderId,
+      user_id: targetUserId,
+      status,
+      attempt_count: attemptCount,
+      logged_at: effectiveLoggedAt,
+      timestamp: Date.now(),
+      retry_count: 0
+    };
+    setStorageJson(STORAGE_KEYS.PENDING_ATTEMPTS, [...filteredPending, newPending]);
+
+    // Dispatch background sync with network timeout (non-blocking so modal closes instantly)
     if (isSupabaseConfigured && supabase) {
-      try {
-        const { error } = await supabase.from('attempts').upsert({
+      withTimeout(
+        supabase.from('attempts').upsert({
           boulder_id: boulderId,
           user_id: targetUserId,
           status,
           attempt_count: attemptCount,
           logged_at: effectiveLoggedAt
-        }, { onConflict: 'boulder_id,user_id' });
-
-        if (error) {
-          console.error('Failed to log attempt to Supabase:', error);
-          if (error.code === '42501' || error.message?.includes('row-level security')) {
-            console.warn('⚠️ Supabase Row-Level Security policy blocked writing attempt. To resolve, ensure public access is enabled for public.attempts in supabase_schema.sql.');
+        }, { onConflict: 'boulder_id,user_id' }),
+        7000,
+        'Attempt upsert timed out'
+      )
+        .then(({ error }) => {
+          if (error) {
+            console.warn('Supabase attempt upsert note (queued offline):', error.message);
+          } else {
+            // Success: remove from pending queue
+            const currentPending = getStorageJson<PendingAttempt[]>(STORAGE_KEYS.PENDING_ATTEMPTS, []);
+            const remaining = currentPending.filter(
+              p => !(p.boulder_id === boulderId && p.user_id === targetUserId && p.logged_at === effectiveLoggedAt)
+            );
+            setStorageJson(STORAGE_KEYS.PENDING_ATTEMPTS, remaining);
           }
-        }
-      } catch (err) {
-        console.error('Failed to log attempt to Supabase:', err);
-      }
+        })
+        .catch(err => {
+          console.warn('Network timeout or error writing attempt to Supabase (preserved offline):', err);
+        });
     }
   };
 
@@ -1027,19 +1241,49 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const targetUserId = userId || currentUser?.id;
     if (!targetUserId) return;
 
-    setAttempts(prev =>
-      prev.filter(a => !(a.boulder_id === boulderId && a.user_id === targetUserId))
+    setAttempts(prev => {
+      const filtered = prev.filter(a => !(a.boulder_id === boulderId && a.user_id === targetUserId));
+      try {
+        localStorage.setItem(STORAGE_KEYS.ATTEMPTS, JSON.stringify(filtered));
+      } catch (e) {}
+      return filtered;
+    });
+
+    // Remove from pending attempts & record pending delete
+    const pendingAttempts = getStorageJson<PendingAttempt[]>(STORAGE_KEYS.PENDING_ATTEMPTS, []);
+    setStorageJson(
+      STORAGE_KEYS.PENDING_ATTEMPTS,
+      pendingAttempts.filter(p => !(p.boulder_id === boulderId && p.user_id === targetUserId))
     );
 
+    const pendingDeletes = getStorageJson<PendingDelete[]>(STORAGE_KEYS.PENDING_DELETES, []);
+    const newDeletes = [
+      ...pendingDeletes.filter(d => !(d.type === 'attempt' && d.boulder_id === boulderId && d.user_id === targetUserId)),
+      { type: 'attempt' as const, boulder_id: boulderId, user_id: targetUserId, timestamp: Date.now() }
+    ];
+    setStorageJson(STORAGE_KEYS.PENDING_DELETES, newDeletes);
+
     if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase
+      withTimeout(
+        supabase
           .from('attempts')
           .delete()
-          .match({ boulder_id: boulderId, user_id: targetUserId });
-      } catch (err) {
-        console.error('Failed to delete attempt from Supabase:', err);
-      }
+          .match({ boulder_id: boulderId, user_id: targetUserId }),
+        7000,
+        'Delete attempt timed out'
+      )
+        .then(({ error }) => {
+          if (!error) {
+            const currentDeletes = getStorageJson<PendingDelete[]>(STORAGE_KEYS.PENDING_DELETES, []);
+            setStorageJson(
+              STORAGE_KEYS.PENDING_DELETES,
+              currentDeletes.filter(d => !(d.type === 'attempt' && d.boulder_id === boulderId && d.user_id === targetUserId))
+            );
+          }
+        })
+        .catch(err => {
+          console.warn('Failed to delete attempt from Supabase (queued offline):', err);
+        });
     }
   };
 
@@ -1851,27 +2095,65 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setReviews(updatedReviews);
     try {
-      localStorage.setItem('wham_boulder_reviews', JSON.stringify(updatedReviews));
+      localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(updatedReviews));
     } catch (e) {
       console.warn('Failed to cache boulder reviews to localStorage:', e);
     }
 
+    // Clear any pending delete for this review
+    const pendingDeletes = getStorageJson<PendingDelete[]>(STORAGE_KEYS.PENDING_DELETES, []);
+    setStorageJson(
+      STORAGE_KEYS.PENDING_DELETES,
+      pendingDeletes.filter(d => !(d.type === 'review' && d.boulder_id === boulderId && d.user_id === userId))
+    );
+
+    // Queue in offline pending reviews
+    const pendingReviews = getStorageJson<PendingReview[]>(STORAGE_KEYS.PENDING_REVIEWS, []);
+    const filteredPending = pendingReviews.filter(
+      r => !(r.boulder_id === boulderId && r.user_id === userId)
+    );
+    const newPendingReview: PendingReview = {
+      boulder_id: boulderId,
+      user_id: userId,
+      rating: rating || null,
+      grade_opinion: gradeOpinion || null,
+      comment: comment || null,
+      updated_at: now,
+      timestamp: Date.now(),
+      retry_count: 0
+    };
+    setStorageJson(STORAGE_KEYS.PENDING_REVIEWS, [...filteredPending, newPendingReview]);
+
     if (isSupabaseConfigured && supabase) {
-      try {
-        const payload = {
-          boulder_id: boulderId,
-          user_id: userId,
-          rating: rating || null,
-          grade_opinion: gradeOpinion || null,
-          comment: comment || null,
-          updated_at: now
-        };
-        await supabase
+      const payload = {
+        boulder_id: boulderId,
+        user_id: userId,
+        rating: rating || null,
+        grade_opinion: gradeOpinion || null,
+        comment: comment || null,
+        updated_at: now
+      };
+      withTimeout(
+        supabase
           .from('boulder_reviews')
-          .upsert(payload, { onConflict: 'boulder_id,user_id' });
-      } catch (err) {
-        console.warn('Supabase boulder_reviews upsert note:', err);
-      }
+          .upsert(payload, { onConflict: 'boulder_id,user_id' }),
+        7000,
+        'Review upsert timed out'
+      )
+        .then(({ error }) => {
+          if (!error) {
+            const currentPending = getStorageJson<PendingReview[]>(STORAGE_KEYS.PENDING_REVIEWS, []);
+            setStorageJson(
+              STORAGE_KEYS.PENDING_REVIEWS,
+              currentPending.filter(r => !(r.boulder_id === boulderId && r.user_id === userId && r.updated_at === now))
+            );
+          } else {
+            console.warn('Supabase review upsert note (queued offline):', error.message);
+          }
+        })
+        .catch(err => {
+          console.warn('Network timeout or error saving review to Supabase (preserved offline):', err);
+        });
     }
   };
 
@@ -1881,20 +2163,47 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
     setReviews(updatedReviews);
     try {
-      localStorage.setItem('wham_boulder_reviews', JSON.stringify(updatedReviews));
+      localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(updatedReviews));
     } catch (e) {
       console.warn('Failed to cache reviews to localStorage:', e);
     }
 
+    // Remove from pending reviews
+    const pendingReviews = getStorageJson<PendingReview[]>(STORAGE_KEYS.PENDING_REVIEWS, []);
+    setStorageJson(
+      STORAGE_KEYS.PENDING_REVIEWS,
+      pendingReviews.filter(r => !(r.boulder_id === boulderId && r.user_id === userId))
+    );
+
+    // Record pending delete
+    const pendingDeletes = getStorageJson<PendingDelete[]>(STORAGE_KEYS.PENDING_DELETES, []);
+    const newDeletes = [
+      ...pendingDeletes.filter(d => !(d.type === 'review' && d.boulder_id === boulderId && d.user_id === userId)),
+      { type: 'review' as const, boulder_id: boulderId, user_id: userId, timestamp: Date.now() }
+    ];
+    setStorageJson(STORAGE_KEYS.PENDING_DELETES, newDeletes);
+
     if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase
+      withTimeout(
+        supabase
           .from('boulder_reviews')
           .delete()
-          .match({ boulder_id: boulderId, user_id: userId });
-      } catch (err) {
-        console.warn('Supabase boulder_reviews delete note:', err);
-      }
+          .match({ boulder_id: boulderId, user_id: userId }),
+        7000,
+        'Delete review timed out'
+      )
+        .then(({ error }) => {
+          if (!error) {
+            const currentDeletes = getStorageJson<PendingDelete[]>(STORAGE_KEYS.PENDING_DELETES, []);
+            setStorageJson(
+              STORAGE_KEYS.PENDING_DELETES,
+              currentDeletes.filter(d => !(d.type === 'review' && d.boulder_id === boulderId && d.user_id === userId))
+            );
+          }
+        })
+        .catch(err => {
+          console.warn('Supabase boulder_reviews delete note (queued offline):', err);
+        });
     }
   };
 

@@ -15,8 +15,41 @@ export const STORAGE_KEYS = {
   SHOW_ACCOLADES: 'wham_show_accolades',
   SNAPSHOTS_META: 'wham_snapshots_meta',
   LAST_VIEWED_FEED: 'wham_last_viewed_feed_time',
-  FEATURE_REQUESTS: 'wham_feature_requests'
+  FEATURE_REQUESTS: 'wham_feature_requests',
+  REVIEWS: 'wham_boulder_reviews',
+  PENDING_ATTEMPTS: 'wham_pending_attempts',
+  PENDING_REVIEWS: 'wham_pending_reviews',
+  PENDING_DELETES: 'wham_pending_deletes'
 } as const;
+
+export interface PendingAttempt {
+  id: string;
+  boulder_id: string;
+  user_id: string;
+  status: 'attempted' | 'sent' | 'flashed';
+  attempt_count: number;
+  logged_at: string;
+  timestamp: number;
+  retry_count: number;
+}
+
+export interface PendingReview {
+  boulder_id: string;
+  user_id: string;
+  rating: string | null;
+  grade_opinion: string | null;
+  comment?: string | null;
+  updated_at: string;
+  timestamp: number;
+  retry_count: number;
+}
+
+export interface PendingDelete {
+  type: 'attempt' | 'review';
+  boulder_id: string;
+  user_id: string;
+  timestamp: number;
+}
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS] | string;
 
