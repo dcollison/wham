@@ -1075,19 +1075,14 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const areaMap = new Map(areas.map(a => [a.id, a]));
 
-    // Sort: If all areas are displayed, sort by area sort_order first, then position_order (or comp_number if comp wall)
+    // Sort: If all areas are displayed, sort by area sort_order first, then physical clockwise sequence (position_order)
     filtered.sort((a, b) => {
       if (!currentArea && a.area_id !== b.area_id) {
         const sortA = areaMap.get(a.area_id)?.sort_order ?? 0;
         const sortB = areaMap.get(b.area_id)?.sort_order ?? 0;
         return sortA - sortB;
       }
-      const isAComp = Boolean(a.is_comp || areaMap.get(a.area_id)?.is_comp_wall) && a.comp_number != null;
-      const isBComp = Boolean(b.is_comp || areaMap.get(b.area_id)?.is_comp_wall) && b.comp_number != null;
-      if (isAComp && isBComp) {
-        return (a.comp_number ?? 0) - (b.comp_number ?? 0);
-      }
-      return a.position_order - b.position_order;
+      return (a.position_order - b.position_order) || ((a.comp_number ?? 0) - (b.comp_number ?? 0));
     });
 
     // Calculate sequential 1-based order within each area and adjacent indicators

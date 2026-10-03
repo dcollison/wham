@@ -408,15 +408,11 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                 compNumber={boulder.comp_number}
                 size="md"
               />
-              <span
-                className={`font-mono text-xs font-bold shrink-0 tabular-nums px-2.5 py-0.5 rounded-full ${
-                  boulder.is_comp && boulder.comp_number != null
-                    ? 'text-amber-300 bg-amber-500/10 border border-amber-500/30'
-                    : 'text-slate-300 bg-slate-800/90 border border-slate-700/60'
-                }`}
-              >
-                #{boulder.comp_number ?? boulder.display_order ?? Math.round(boulder.position_order)}
-              </span>
+              {!(boulder.is_comp && boulder.comp_number != null) && (
+                <span className="font-mono text-xs font-bold shrink-0 tabular-nums px-2.5 py-0.5 rounded-full text-slate-300 bg-slate-800/90 border border-slate-700/60">
+                  #{boulder.display_order ?? Math.round(boulder.position_order)}
+                </span>
+              )}
             </div>
 
             {/* Right: Stepper with adjacent hold swatches + Close button */}

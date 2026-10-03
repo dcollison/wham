@@ -136,6 +136,7 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
             grade={boulder.grade}
             isComp={boulder.is_comp}
             compNumber={boulder.comp_number}
+            showGrade={!boulder.is_comp || boulder.comp_number == null}
             size="md"
           />
         </div>

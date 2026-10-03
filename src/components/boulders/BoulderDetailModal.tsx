@@ -389,15 +389,11 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
               compNumber={isEditing ? editCompNumber : boulder.comp_number}
               size="md"
             />
-            <span
-              className={`font-mono text-xs font-bold px-2.5 py-0.5 rounded-full shrink-0 tabular-nums ${
-                (isEditing ? editIsComp && editCompNumber != null : boulder.is_comp && boulder.comp_number != null)
-                  ? 'text-amber-300 bg-amber-500/10 border border-amber-500/30'
-                  : 'text-slate-300 bg-slate-800/90 border border-slate-700/60'
-              }`}
-            >
-              #{(isEditing ? editCompNumber : boulder.comp_number) ?? boulder.display_order ?? Math.round(boulder.position_order)}
-            </span>
+            {!(isEditing ? editIsComp && editCompNumber != null : boulder.is_comp && boulder.comp_number != null) && (
+              <span className="font-mono text-xs font-bold px-2.5 py-0.5 rounded-full shrink-0 tabular-nums text-slate-300 bg-slate-800/90 border border-slate-700/60">
+                #{boulder.display_order ?? Math.round(boulder.position_order)}
+              </span>
+            )}
             {resolvedAreaName && (
               <span
                 className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-slate-300 bg-slate-800/90 px-3 py-1 rounded-full border border-slate-700/70 truncate max-w-[120px] sm:max-w-[180px]"
