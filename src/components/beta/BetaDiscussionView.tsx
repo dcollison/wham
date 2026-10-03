@@ -118,7 +118,7 @@ export const BetaDiscussionView: React.FC<BetaDiscussionViewProps> = ({
       </div>
 
       {/* Post Beta Quick Form */}
-      <form onSubmit={handleSubmit} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col gap-3 shadow">
+      <form onSubmit={handleSubmit} className="bg-surface border border-white/[0.08] rounded-2xl p-4 flex flex-col gap-3 shadow-xs">
         <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
           Start a Discussion on a Boulder
         </span>
@@ -126,20 +126,20 @@ export const BetaDiscussionView: React.FC<BetaDiscussionViewProps> = ({
         <select
           value={selectedBoulderId}
           onChange={(e) => setSelectedBoulderId(e.target.value)}
-          className="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-xl p-2.5 outline-none focus:border-slate-500"
+          className="bg-surface-elevated border border-white/[0.08] text-slate-200 text-xs rounded-xl p-2.5 outline-none focus:border-white/[0.2]"
         >
           <option value="">Select a Boulder to discuss...</option>
           {groupedBoulders.map(group => (
             <optgroup
               key={group.areaId}
               label={`${group.gymName} • ${group.areaName}`}
-              className="bg-slate-900 text-slate-400 font-bold"
+              className="bg-surface text-slate-400 font-bold"
             >
               {group.boulders.map(b => (
                 <option
                   key={b.id}
                   value={b.id}
-                  className="bg-slate-800 text-slate-200 font-normal py-1"
+                  className="bg-surface-elevated text-slate-200 font-normal py-1"
                 >
                   #{Math.round(b.position_order)} • {b.hold_colour} {b.grade}{b.notes ? ` (${b.notes})` : ''}
                 </option>
@@ -154,12 +154,12 @@ export const BetaDiscussionView: React.FC<BetaDiscussionViewProps> = ({
             value={newContent}
             onChange={(e) => setNewContent(e.target.value)}
             placeholder="Share a thought, beta, or gym banter..."
-            className="flex-1 bg-slate-800 border border-slate-700 text-slate-100 placeholder:text-slate-500 text-xs rounded-xl px-3.5 py-2.5 outline-none focus:border-slate-500"
+            className="flex-1 bg-surface-elevated border border-white/[0.08] text-slate-100 placeholder:text-slate-500 text-xs rounded-xl px-3.5 py-2.5 outline-none focus:border-white/[0.2]"
           />
           <button
             type="submit"
             disabled={!selectedBoulderId || !newContent.trim() || submitting}
-            className="p-2.5 rounded-xl text-black active-press transition-colors disabled:opacity-30 font-semibold"
+            className="p-2.5 rounded-xl text-slate-950 active-press transition-colors disabled:opacity-30 font-semibold"
             style={{ backgroundColor: activeColor }}
           >
             <Send className="w-4 h-4" />
@@ -178,10 +178,10 @@ export const BetaDiscussionView: React.FC<BetaDiscussionViewProps> = ({
           return (
             <div
               key={comment.id}
-              className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col gap-2.5 hover:border-slate-700 transition-colors shadow-sm"
+              className="bg-surface/90 border border-white/[0.06] hover:border-white/[0.12] rounded-2xl p-4 flex flex-col gap-2.5 transition-colors shadow-xs"
             >
               {/* Header with Boulder info */}
-              <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+              <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
                 {boulder && (
                   <button
                     type="button"
@@ -207,7 +207,7 @@ export const BetaDiscussionView: React.FC<BetaDiscussionViewProps> = ({
                           onDeleteComment(comment.id);
                         }
                       }}
-                      className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors"
+                      className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-surface-elevated transition-colors"
                       title="Delete comment"
                     >
                       <Trash2 className="w-3.5 h-3.5" />

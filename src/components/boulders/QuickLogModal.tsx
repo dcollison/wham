@@ -23,7 +23,9 @@ import {
   MapPin,
   FileText,
   Trophy,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Camera,
+  MessageSquare
 } from 'lucide-react';
 import { useGym } from '../../context/GymContext';
 
@@ -530,9 +532,9 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                         {climberAttempt?.status === 'flashed'
                           ? 'Flash'
                           : climberAttempt?.status === 'sent'
-                          ? `Sent (${climberAttempt.attempt_count}t)`
+                          ? `Sent ${climberAttempt.attempt_count}`
                           : climberAttempt?.status === 'attempted'
-                          ? `Proj (${climberAttempt.attempt_count}t)`
+                          ? `Proj ${climberAttempt.attempt_count}`
                           : 'Untried'}
                       </span>
                     </div>
@@ -561,7 +563,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                 <span className="text-slate-400 text-[11px]">
                   Previous log:{' '}
                   <strong className="uppercase font-mono text-slate-200">
-                    {selectedAttempt.status} ({selectedAttempt.attempt_count}t)
+                    {selectedAttempt.status} {selectedAttempt.attempt_count}
                   </strong>
                 </span>
               ) : (
@@ -673,7 +675,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                       : 'bg-slate-800/90 text-slate-300 hover:bg-slate-750 border border-slate-750'
                   }`}
                 >
-                  {num === 1 ? '1st try' : `${num}t`}
+                  {num === 1 ? (isSent ? '1 (Flash)' : '1 try') : `${num}t`}
                 </button>
               ))}
             </div>
@@ -684,12 +686,12 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                 <Trophy className="w-3.5 h-3.5" />
                 <span>
                   {computedStatus === 'flashed'
-                    ? '⚡ Flashed: +10 Comp Points'
+                    ? 'Flashed: +10 Comp Points'
                     : computedStatus === 'sent'
                     ? attemptCount === 2
-                      ? '✅ 2nd Try Send: +7 Comp Points'
-                      : `✅ Send (${attemptCount} tries): +4 Comp Points`
-                    : '⏳ Project: 0 Comp Points'}
+                      ? '2nd Try Send: +7 Comp Points'
+                      : `Send (${attemptCount} tries): +4 Comp Points`
+                    : 'Project: 0 Comp Points'}
                 </span>
               </div>
             )}
@@ -856,10 +858,15 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                   <FileText className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                   <span>Details &amp; Beta</span>
                   {(boulder.notes || boulderCommentsCount > 0 || boulder.image_url) && (
-                    <span className="flex items-center gap-1 text-[10px] font-mono text-amber-300/90 bg-amber-400/15 px-1.5 py-0.2 rounded-full">
-                      {boulder.image_url && '📷'}
-                      {boulder.notes && '📝'}
-                      {boulderCommentsCount > 0 && `💬${boulderCommentsCount}`}
+                    <span className="flex items-center gap-1.5 text-[10px] font-mono text-amber-300/90 bg-amber-400/15 px-2 py-0.5 rounded-full">
+                      {boulder.image_url && <Camera className="w-3 h-3 text-amber-400" />}
+                      {boulder.notes && <FileText className="w-3 h-3 text-amber-400" />}
+                      {boulderCommentsCount > 0 && (
+                        <span className="flex items-center gap-0.5">
+                          <MessageSquare className="w-3 h-3 text-amber-400" />
+                          <span>{boulderCommentsCount}</span>
+                        </span>
+                      )}
                     </span>
                   )}
                   <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />

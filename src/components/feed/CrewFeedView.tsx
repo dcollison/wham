@@ -34,7 +34,7 @@ export const CrewFeedView: React.FC<CrewFeedViewProps> = ({
   // Determine default active sub-tab from hash if present
   const [activeSubTab, setActiveSubTab] = useState<'sends' | 'discussion'>(() => {
     const h = window.location.hash.toLowerCase();
-    if (h.includes('discussion') || h.includes('beta')) return 'discussion';
+    if (h.includes('discussion') || h.includes('comments')) return 'discussion';
     return 'sends';
   });
 
@@ -42,9 +42,9 @@ export const CrewFeedView: React.FC<CrewFeedViewProps> = ({
   useEffect(() => {
     const handleHash = () => {
       const h = window.location.hash.toLowerCase();
-      if (h.includes('discussion') || h.includes('beta')) {
+      if (h.includes('discussion') || h.includes('comments')) {
         setActiveSubTab('discussion');
-      } else if (h.includes('sends') || h.includes('feed')) {
+      } else if (h.includes('sends') || h.includes('feed') || h.includes('activity')) {
         setActiveSubTab('sends');
       }
     };
@@ -56,30 +56,30 @@ export const CrewFeedView: React.FC<CrewFeedViewProps> = ({
   const totalSendsCount = attempts.filter(a => a.status === 'sent' || a.status === 'flashed').length;
 
   const activeClimber = climbers.find((c) => c.id === currentUserId);
-  const activeColor = activeClimber?.accent_color || '#3B82F6';
+  const activeColor = activeClimber?.accent_color || '#F59E0B';
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-200">
+    <div className="flex flex-col gap-5 animate-in fade-in duration-200">
       {/* Top Segmented Sub-Tab Switcher */}
-      <div className="flex items-center justify-center p-1 rounded-full bg-surface border border-slate-800/80 shadow-sm max-w-sm mx-auto w-full">
+      <div className="flex items-center justify-center p-1 rounded-full bg-surface border border-white/[0.08] shadow-xs max-w-sm mx-auto w-full">
         <button
           type="button"
           onClick={() => {
             setActiveSubTab('sends');
-            window.location.hash = '#/sends';
+            window.location.hash = '#/feed';
           }}
           style={activeSubTab === 'sends' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
           className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-full text-xs font-bold transition-all active-press ${
             activeSubTab === 'sends'
-              ? 'shadow-sm'
+              ? 'shadow-xs font-extrabold'
               : 'text-slate-400 hover:text-white'
           }`}
         >
           <Zap className="w-3.5 h-3.5" />
-          <span>Sends Feed</span>
+          <span>Sends</span>
           <span
-            className={`text-[10px] px-2 py-0.2 rounded-full font-mono font-bold ${
-              activeSubTab === 'sends' ? 'bg-black/20 text-black' : 'bg-slate-800 text-slate-300'
+            className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+              activeSubTab === 'sends' ? 'bg-black/20 text-black' : 'bg-surface-elevated text-slate-300'
             }`}
           >
             {totalSendsCount}
@@ -90,20 +90,20 @@ export const CrewFeedView: React.FC<CrewFeedViewProps> = ({
           type="button"
           onClick={() => {
             setActiveSubTab('discussion');
-            window.location.hash = '#/discussion';
+            window.location.hash = '#/feed/discussion';
           }}
           style={activeSubTab === 'discussion' ? { backgroundColor: activeColor, color: '#000000' } : undefined}
           className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-full text-xs font-bold transition-all active-press ${
             activeSubTab === 'discussion'
-              ? 'shadow-sm'
+              ? 'shadow-xs font-extrabold'
               : 'text-slate-400 hover:text-white'
           }`}
         >
           <MessageSquare className="w-3.5 h-3.5" />
           <span>Discussion</span>
           <span
-            className={`text-[10px] px-2 py-0.2 rounded-full font-mono font-bold ${
-              activeSubTab === 'discussion' ? 'bg-black/20 text-black' : 'bg-slate-800 text-slate-300'
+            className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+              activeSubTab === 'discussion' ? 'bg-black/20 text-black' : 'bg-surface-elevated text-slate-300'
             }`}
           >
             {comments.length}

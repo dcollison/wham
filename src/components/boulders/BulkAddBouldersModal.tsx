@@ -786,9 +786,9 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                 }`}
               >
                 {pasteFeedback.success > 0 && (
-                  <p className="font-bold">
-                    ✓ Successfully parsed and added {pasteFeedback.success} climb
-                    {pasteFeedback.success === 1 ? '' : 's'} to the queue!
+                  <p className="font-bold flex items-center gap-1.5">
+                    <Check className="w-4 h-4 text-emerald-400 stroke-[3]" />
+                    <span>Successfully parsed and added {pasteFeedback.success} climb{pasteFeedback.success === 1 ? '' : 's'} to the queue!</span>
                   </p>
                 )}
                 {pasteFeedback.warnings.length > 0 && (

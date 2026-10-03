@@ -1,9 +1,9 @@
-import React from 'react';
-import { Boulder, Attempt, Profile, HOLD_COLORS, getHoldCardStyle } from '../../types';
+import React, { useState } from 'react';
+import { Boulder, Attempt, Profile, getHoldCardStyle } from '../../types';
 import { HoldBadge } from './HoldBadge';
 import { HoldSwatch } from './HoldSwatch';
 import { ClimberStatusPills } from './ClimberStatusPills';
-import { Zap, Check, Clock, MessageSquare, ChevronRight, Image as ImageIcon, FileText, Sparkles } from 'lucide-react';
+import { Zap, Check, Clock, MessageSquare, Camera, FileText, Plus } from 'lucide-react';
 import { getBoulderAgeInfo } from '../../lib/resetStatus';
 import { useGym } from '../../context/GymContext';
 import { calcBoulderReviewSummary, GRADE_OPINION_CONFIG, REVIEW_RATING_CONFIG } from '../../lib/reviews';
@@ -29,7 +29,9 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
   onQuickLog,
   onOpenDetails
 }) => {
-  const { reviews } = useGym();
+  const { reviews, logAttempt } = useGym();
+  const [isLoggingInstant, setIsLoggingInstant] = useState(false);
+
   const boulderReviews = reviews.filter(r => r.boulder_id === boulder.id);
   const reviewSummary = calcBoulderReviewSummary(boulderReviews);
 
@@ -39,65 +41,92 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
 
   const isFlash = userAttempt?.status === 'flashed';
   const isSent = userAttempt?.status === 'sent';
+  const isProject = userAttempt?.status === 'attempted';
+  const isUntried = !userAttempt;
 
-  let borderShadowClass = 'border-white/[0.06] hover:border-white/[0.14] surface-card';
+  let borderShadowClass = 'border-white/[0.06] hover:border-white/[0.12] surface-card';
   if (isFlash) {
-    borderShadowClass = 'border-amber-400/40 shadow-[0_4px_28px_-4px_rgba(245,158,11,0.22)]';
+    borderShadowClass = 'border-amber-400/40 shadow-glow-flash';
   } else if (isSent) {
-    borderShadowClass = 'border-emerald-500/35 shadow-[0_4px_28px_-4px_rgba(66,156,122,0.2)]';
+    borderShadowClass = 'border-emerald-500/35 shadow-glow-sent';
+  } else if (isProject) {
+    borderShadowClass = 'border-sky-500/35 shadow-glow-project';
   }
 
-  let statusBadge = (
-    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 bg-slate-800/80 hover:bg-slate-750 px-3 py-1 rounded-full border border-white/[0.07] transition-colors shrink-0 whitespace-nowrap active-press">
-      Untried
-    </span>
-  );
+  // 1-Tap Quick "+" Increment: adds 1 attempt (falls off without sending)
+  const handleQuickIncrement = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!currentUserId || isLoggingInstant) return;
+    setIsLoggingInstant(true);
+    try {
+      const nextCount = userAttempt ? userAttempt.attempt_count + 1 : 1;
+      await logAttempt({
+        boulderId: boulder.id,
+        status: 'attempted',
+        attemptCount: nextCount,
+        loggedAt: new Date().toISOString(),
+        userId: currentUserId
+      });
+    } finally {
+      setIsLoggingInstant(false);
+    }
+  };
 
-  if (userAttempt?.status === 'flashed') {
-    statusBadge = (
-      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 px-3.5 py-1 rounded-full border border-amber-500/35 transition-colors shrink-0 whitespace-nowrap active-press shadow-xs">
-        <Zap className="w-3.5 h-3.5 fill-amber-300" /> Flash
-      </span>
-    );
-  } else if (userAttempt?.status === 'sent') {
-    statusBadge = (
-      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/25 px-3.5 py-1 rounded-full border border-emerald-500/35 transition-colors shrink-0 whitespace-nowrap active-press shadow-xs">
-        <Check className="w-3.5 h-3.5 stroke-[3]" /> Sent (<span className="tabular-nums">{userAttempt.attempt_count}t</span>)
-      </span>
-    );
-  } else if (userAttempt?.status === 'attempted') {
-    statusBadge = (
-      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-300 bg-cyan-500/15 hover:bg-cyan-500/25 px-3.5 py-1 rounded-full border border-cyan-500/35 transition-colors shrink-0 whitespace-nowrap active-press shadow-xs">
-        <Clock className="w-3.5 h-3.5" /> Project (<span className="tabular-nums">{userAttempt.attempt_count}t</span>)
-      </span>
-    );
-  }
-
-  const isCompletedByActiveUser = isFlash || isSent;
+  // 1-Tap Quick Send:
+  // - On untried boulder: records 1st-try send as a FLASH (status: 'flashed', 1 try)
+  // - On projecting boulder: increments tries (attempt_count + 1) and records send (status: 'sent')
+  const handleQuickSend = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!currentUserId || isLoggingInstant) return;
+    setIsLoggingInstant(true);
+    try {
+      if (!userAttempt) {
+        await logAttempt({
+          boulderId: boulder.id,
+          status: 'flashed',
+          attemptCount: 1,
+          loggedAt: new Date().toISOString(),
+          userId: currentUserId
+        });
+      } else {
+        const sendCount = userAttempt.attempt_count + 1;
+        await logAttempt({
+          boulderId: boulder.id,
+          status: 'sent',
+          attemptCount: sendCount,
+          loggedAt: new Date().toISOString(),
+          userId: currentUserId
+        });
+      }
+    } finally {
+      setIsLoggingInstant(false);
+    }
+  };
 
   return (
     <div
       onClick={() => onQuickLog(boulder)}
-      className={`group relative bg-slate-900/90 hover:bg-slate-850/95 border rounded-3xl p-5 sm:p-6 transition-all duration-200 cursor-pointer flex flex-col gap-3.5 overflow-hidden ${borderShadowClass}`}
+      className={`group relative bg-carbon-surface/95 hover:bg-carbon-elevated/95 border rounded-3xl p-4 sm:p-5 transition-all duration-200 cursor-pointer flex flex-col gap-3 overflow-hidden ${borderShadowClass}`}
       style={{
         background: cardStyle.gradientBackground
       }}
     >
-      {/* Left colored accent bar (solid color or half yellow / half black for Bee) */}
+      {/* Left colored accent bar */}
       <div
-        className="absolute left-0 top-0 bottom-0 w-[5px] z-10"
+        className="absolute left-0 top-0 bottom-0 w-[4px] z-10"
         style={{
           background: cardStyle.accentBarBackground
         }}
       />
-      {/* Top row: Order #, Hold Color & Grade, Current User Status */}
-      <div className="flex items-center justify-between gap-3">
+
+      {/* TIER 1: Order #, Hold Badge, and Direct Action Strip */}
+      <div className="flex items-center justify-between gap-2.5">
         <div className="flex items-center gap-2 min-w-0">
           <span
-            className={`font-mono text-xs font-bold px-3 py-1 rounded-full border shrink-0 tabular-nums ${
+            className={`font-mono text-xs font-bold px-2.5 py-1 rounded-full border shrink-0 tabular-nums ${
               boulder.is_comp && boulder.comp_number != null
                 ? 'text-amber-300 bg-amber-500/15 border-amber-500/30'
-                : 'text-slate-300 bg-slate-800/90 border-white/[0.08]'
+                : 'text-slate-300 bg-surface border-white/[0.08]'
             }`}
           >
             #{boulder.comp_number ?? boulder.display_order ?? Math.round(boulder.position_order)}
@@ -111,199 +140,215 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
           />
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          {/* User Status Badge / Quick Log Trigger */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onQuickLog(boulder);
-            }}
-            className="transition-transform active:scale-95 focus:outline-none shrink-0"
-            title="Log attempt or update status"
-          >
-            {statusBadge}
-          </button>
+        {/* Direct Action Strip on the Card */}
+        <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+          {isFlash ? (
+            /* COMPLETED: Solid Gold Flashed Pill */
+            <button
+              type="button"
+              onClick={() => onQuickLog(boulder, currentUserId)}
+              className="inline-flex items-center gap-1.5 text-xs font-heading font-black text-slate-950 bg-amber-400 hover:bg-amber-300 px-3 py-1.5 rounded-full border border-amber-300 transition-all active-press shadow-glow-flash"
+              title="Flashed on 1st attempt. Tap to view or edit."
+            >
+              <Zap className="w-3.5 h-3.5 fill-current" />
+              <span>FLASHED</span>
+            </button>
+          ) : isSent ? (
+            /* COMPLETED: Solid Emerald Sent Pill with number of tries (no parentheses or t) */
+            <button
+              type="button"
+              onClick={() => onQuickLog(boulder, currentUserId)}
+              className="inline-flex items-center gap-1.5 text-xs font-heading font-black text-slate-950 bg-emerald-400 hover:bg-emerald-300 px-3 py-1.5 rounded-full border border-emerald-300 transition-all active-press shadow-glow-sent"
+              title={`Sent in ${userAttempt.attempt_count} tries. Tap to view or edit.`}
+            >
+              <Check className="w-3.5 h-3.5 stroke-[3]" />
+              <span>SENT {userAttempt.attempt_count}</span>
+            </button>
+          ) : isProject ? (
+            /* PROJECTING: [ PROJ N ] | [ + ] | [ SENT ] (Order: Status -> Quick Increment -> Quick Send) */
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => onQuickLog(boulder, currentUserId)}
+                className="inline-flex items-center gap-1 text-xs font-mono font-bold text-sky-300 bg-sky-500/15 hover:bg-sky-500/25 px-2.5 py-1.5 rounded-full border border-sky-500/35 transition-all active-press"
+                title={`Projecting with ${userAttempt.attempt_count} tries. Tap to view details.`}
+              >
+                <Clock className="w-3.5 h-3.5 text-sky-400" />
+                <span>PROJ {userAttempt.attempt_count}</span>
+              </button>
+
+              {/* Position 2: Quick '+' increment attempt */}
+              <button
+                type="button"
+                onClick={handleQuickIncrement}
+                disabled={isLoggingInstant}
+                className="w-7 h-7 rounded-full bg-surface hover:bg-surface-elevated border border-white/[0.08] hover:border-white/[0.16] text-slate-300 hover:text-white flex items-center justify-center transition-all active-press"
+                title={`Add 1 try (now ${userAttempt.attempt_count + 1})`}
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+              </button>
+
+              {/* Position 3: Quick Sent action (increments tries and logs send) */}
+              <button
+                type="button"
+                onClick={handleQuickSend}
+                disabled={isLoggingInstant}
+                className="inline-flex items-center gap-1 text-xs font-heading font-semibold text-slate-300 hover:text-emerald-300 bg-surface hover:bg-emerald-500/15 border border-white/[0.08] hover:border-emerald-400/40 px-2.5 py-1.5 rounded-full transition-all active-press"
+                title={`Send on try ${userAttempt.attempt_count + 1}`}
+              >
+                <Check className="w-3.5 h-3.5 stroke-[2.5] text-emerald-400" />
+                <span>SENT</span>
+              </button>
+            </div>
+          ) : (
+            /* UNTRIED: [ + ] | [ SENT ] (Order is identical: Quick Increment -> Quick Send) */
+            <div className="flex items-center gap-1.5">
+              {/* Position 1: Quick '+' to record 1st attempt as a project (PROJ 1) */}
+              <button
+                type="button"
+                onClick={handleQuickIncrement}
+                disabled={isLoggingInstant}
+                className="w-7 h-7 rounded-full bg-surface hover:bg-surface-elevated border border-white/[0.08] hover:border-white/[0.16] text-slate-300 hover:text-white flex items-center justify-center transition-all active-press"
+                title="Record 1st try (fall off / project)"
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+              </button>
+
+              {/* Position 2: Quick Sent action (1st try send = Flash!) */}
+              <button
+                type="button"
+                onClick={handleQuickSend}
+                disabled={isLoggingInstant}
+                className="inline-flex items-center gap-1 text-xs font-heading font-semibold text-slate-300 hover:text-emerald-300 bg-surface hover:bg-emerald-500/15 border border-white/[0.08] hover:border-emerald-400/40 px-2.5 py-1.5 rounded-full transition-all active-press"
+                title="Send on 1st try (Flash)"
+              >
+                <Check className="w-3.5 h-3.5 stroke-[2.5] text-emerald-400" />
+                <span>SENT</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Tier 2: Metadata Sub-line (Area Name, Reset Status & Review Consensus) */}
-      {(areaName || resetInfo.isDueForReset || reviewSummary.consensusGrade || reviewSummary.dominantRating) && (
-        <div className="flex items-center gap-2 text-xs text-slate-400 font-medium pl-0.5 flex-wrap">
-          {areaName && (
-            <span className="text-slate-400 truncate max-w-[180px]">
-              {areaName}
-            </span>
-          )}
-          {areaName && (resetInfo.isDueForReset || reviewSummary.consensusGrade || reviewSummary.dominantRating) && (
-            <span className="text-slate-600 font-bold">•</span>
-          )}
-          {reviewSummary.consensusGrade && (() => {
-            const gradeCfg = GRADE_OPINION_CONFIG[reviewSummary.consensusGrade];
-            const GradeIcon = gradeCfg.icon;
-            return (
-              <span
-                className={`inline-flex items-center gap-1 font-mono text-[10px] font-bold px-2 py-0.5 rounded-full select-none border ${gradeCfg.badgeBg} ${gradeCfg.badgeBorder} ${gradeCfg.badgeText}`}
-                title={`${gradeCfg.label} (${reviewSummary.consensusCount}/${reviewSummary.totalGradeOpinions} votes)`}
-              >
-                <GradeIcon className="w-2.5 h-2.5" />
-                <span>{gradeCfg.shortLabel}</span>
+      {/* TIER 2: Spatial Cues & Metadata Subline */}
+      <div className="flex items-center justify-between gap-2.5 flex-wrap text-xs text-slate-400">
+        {/* Clockwise Spatial Sequence Indicators */}
+        <div className="flex items-center gap-1.5 text-xs font-mono min-w-0 bg-carbon/70 border border-white/[0.04] px-2.5 py-1 rounded-full">
+          {boulder.adjacent_prev ? (
+            <span className="inline-flex items-center gap-1 text-slate-300 truncate max-w-[130px] sm:max-w-[160px]">
+              <span className="text-slate-500">←</span>
+              <HoldSwatch color={boulder.adjacent_prev.hold_colour} size="xs" />
+              <span className="text-slate-200 font-semibold font-mono text-[11px]">
+                {boulder.adjacent_prev.comp_number != null
+                  ? `#${boulder.adjacent_prev.comp_number}`
+                  : boulder.adjacent_prev.grade}
               </span>
-            );
-          })()}
-          {reviewSummary.dominantRating && !reviewSummary.consensusGrade && (() => {
+            </span>
+          ) : (
+            <span className="text-slate-600 text-[10px]">Start</span>
+          )}
+
+          <span className="text-slate-600">•</span>
+
+          {boulder.adjacent_next ? (
+            <span className="inline-flex items-center gap-1 text-slate-300 truncate max-w-[130px] sm:max-w-[160px]">
+              <span className="text-slate-200 font-semibold font-mono text-[11px]">
+                {boulder.adjacent_next.comp_number != null
+                  ? `#${boulder.adjacent_next.comp_number}`
+                  : boulder.adjacent_next.grade}
+              </span>
+              <HoldSwatch color={boulder.adjacent_next.hold_colour} size="xs" />
+              <span className="text-slate-500">→</span>
+            </span>
+          ) : (
+            <span className="text-slate-600 text-[10px]">End</span>
+          )}
+        </div>
+
+        {/* Right side: Review Kaomojis, Beta Note, Photo & Comments */}
+        <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+          {reviewSummary.dominantRating && (() => {
             const ratingCfg = REVIEW_RATING_CONFIG[reviewSummary.dominantRating];
             return (
               <span
-                className={`inline-flex items-center gap-1 font-mono text-[10px] font-bold px-2 py-0.5 rounded-full select-none border ${ratingCfg.badgeBg} ${ratingCfg.badgeBorder} ${ratingCfg.badgeText}`}
-                title={`${reviewSummary.totalRatings} ratings`}
+                className={`inline-flex items-center gap-1 font-mono text-[10px] font-bold px-2 py-0.5 rounded-full border ${ratingCfg.badgeBg} ${ratingCfg.badgeBorder} ${ratingCfg.badgeText}`}
+                title={`Climb rating: ${ratingCfg.label}`}
               >
                 <span>{ratingCfg.kaomoji}</span>
                 <span>{ratingCfg.shortLabel}</span>
               </span>
             );
           })()}
+
+          {reviewSummary.consensusGrade && (() => {
+            const gradeCfg = GRADE_OPINION_CONFIG[reviewSummary.consensusGrade];
+            const GradeIcon = gradeCfg.icon;
+            return (
+              <span
+                className={`inline-flex items-center gap-1 font-mono text-[10px] font-bold px-2 py-0.5 rounded-full border ${gradeCfg.badgeBg} ${gradeCfg.badgeBorder} ${gradeCfg.badgeText}`}
+                title={`Grade consensus: ${gradeCfg.label}`}
+              >
+                <GradeIcon className="w-2.5 h-2.5" />
+                <span>{gradeCfg.shortLabel}</span>
+              </span>
+            );
+          })()}
+
           {resetInfo.isDueForReset && (
             <span
-              className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold text-amber-300 bg-amber-400/10 border border-amber-400/25 px-2.5 py-0.5 rounded-full shrink-0 select-none"
-              title={`Set ${resetInfo.weeksOld} weeks ago (${boulder.date_added}) – this climb is due for a reset`}
+              className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold text-amber-300 bg-amber-400/10 border border-amber-400/25 px-2 py-0.5 rounded-full"
+              title={`Set ${resetInfo.weeksOld} weeks ago – sector is due for a reset`}
             >
               <Clock className="w-2.5 h-2.5 text-amber-400 shrink-0" />
               <span>Reset soon ({resetInfo.weeksOld}w)</span>
             </span>
           )}
-        </div>
-      )}
 
-      {/* Middle row: Clockwise Sequence Indicators & Photo Thumbnail Preview */}
-      {(boulder.adjacent_prev || boulder.adjacent_next || boulder.image_url) && (
-        <div className="flex items-center justify-between gap-3">
-          {/* Adjacent Indicators (Clockwise Sequence) */}
-          <div className="flex items-center gap-2 text-xs text-slate-300 font-mono flex-wrap min-w-0 flex-1 bg-slate-950/40 border border-white/[0.04] px-3 py-1.5 rounded-2xl">
-            {boulder.adjacent_prev && (
-              <span className="inline-flex items-center gap-1.5 text-slate-300 truncate max-w-[140px] sm:max-w-[180px]">
-                <span className="text-slate-500">←</span>
-                <HoldSwatch color={boulder.adjacent_prev.hold_colour} size="sm" />
-                <span className="text-slate-200 font-semibold">
-                  {boulder.adjacent_prev.hold_colour}{' '}
-                  {boulder.adjacent_prev.comp_number != null
-                    ? `#${boulder.adjacent_prev.comp_number}`
-                    : boulder.adjacent_prev.grade}
-                </span>
-              </span>
-            )}
-            {boulder.adjacent_prev && boulder.adjacent_next && (
-              <span className="text-slate-600">•</span>
-            )}
-            {boulder.adjacent_next && (
-              <span className="inline-flex items-center gap-1.5 text-slate-300 truncate max-w-[140px] sm:max-w-[180px]">
-                <HoldSwatch color={boulder.adjacent_next.hold_colour} size="sm" />
-                <span className="text-slate-200 font-semibold">
-                  {boulder.adjacent_next.hold_colour}{' '}
-                  {boulder.adjacent_next.comp_number != null
-                    ? `#${boulder.adjacent_next.comp_number}`
-                    : boulder.adjacent_next.grade}
-                </span>
-                <span className="text-slate-500">→</span>
-              </span>
-            )}
-          </div>
-
-          {/* Thumbnail Preview if photo exists */}
-          {boulder.image_url ? (
-            <div
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenDetails(boulder);
-              }}
-              className="w-12 h-12 rounded-2xl overflow-hidden border border-white/[0.08] bg-slate-800 shrink-0 relative group/thumb shadow-xs"
+          {boulder.image_url && (
+            <button
+              type="button"
+              onClick={() => onOpenDetails(boulder)}
+              className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-surface transition-colors active-press"
+              title="Climb has photo - Click to view"
             >
-              <img
-                src={boulder.image_url}
-                alt={`${boulder.hold_colour} ${boulder.grade}`}
-                className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform"
-                loading="lazy"
-              />
-            </div>
-          ) : null}
-        </div>
-      )}
+              <Camera className="w-3.5 h-3.5" />
+            </button>
+          )}
 
-      {/* Bottom row: Climber chips & quick actions */}
-      <div className="flex items-center justify-between border-t border-white/[0.06] pt-3 mt-1 gap-2.5">
-        <div className="min-w-0 flex-1">
-          <ClimberStatusPills
-            climbers={climbers}
-            attempts={attempts}
-            currentUserId={currentUserId}
-            size="sm"
-            onClimberClick={(climberId) => onQuickLog(boulder, climberId)}
-          />
-        </div>
-
-        <div className="flex items-center gap-1.5 text-slate-400 shrink-0">
           {boulder.notes && (
             <button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenDetails(boulder);
-              }}
-              className="p-1.5 rounded-full text-slate-400 hover:text-amber-300 hover:bg-slate-800/80 transition-colors active-press"
-              title="Has Beta Notes – Click to view details"
+              onClick={() => onOpenDetails(boulder)}
+              className="p-1 rounded-full text-slate-400 hover:text-amber-300 hover:bg-surface transition-colors active-press"
+              title="Climb has beta notes - Click to view"
             >
               <FileText className="w-3.5 h-3.5" />
             </button>
           )}
 
-          {boulderReviews.length > 0 && (() => {
-            const dominantCfg = reviewSummary.dominantRating ? REVIEW_RATING_CONFIG[reviewSummary.dominantRating] : null;
-            return (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenDetails(boulder);
-                }}
-                className="flex items-center gap-1 text-xs text-slate-300 hover:text-white font-mono font-medium px-2 py-1 rounded-full hover:bg-slate-800/80 transition-colors active-press"
-                title="Crew Reviews"
-              >
-                <span className={`text-[11px] font-bold ${dominantCfg ? dominantCfg.activeText : 'text-slate-400'}`}>
-                  {dominantCfg?.kaomoji || '(•‿•)'}
-                </span>
-                <span className="tabular-nums">{boulderReviews.length}</span>
-              </button>
-            );
-          })()}
-
           {commentCount > 0 && (
             <button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenDetails(boulder);
-              }}
-              className="flex items-center gap-1 text-xs text-slate-300 hover:text-white font-mono font-medium px-2 py-1 rounded-full hover:bg-slate-800/80 transition-colors active-press"
-              title="Crew Comments"
+              onClick={() => onOpenDetails(boulder)}
+              className="inline-flex items-center gap-1 text-[11px] font-mono font-medium text-slate-400 hover:text-white px-1.5 py-0.5 rounded-full hover:bg-surface transition-colors active-press"
+              title={`${commentCount} beta comments - Click to view`}
             >
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span className="tabular-nums">{commentCount}</span>
+              <MessageSquare className="w-3 h-3 text-slate-400" />
+              <span>{commentCount}</span>
             </button>
           )}
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenDetails(boulder);
-            }}
-            className="inline-flex items-center justify-center h-7 px-3 text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-750 rounded-full border border-white/[0.07] active-press transition-all shadow-xs gap-1 shrink-0"
-            title="View Beta Notes, Photos & Comments"
-          >
-            <span className="hidden sm:inline text-[11px] font-semibold">Details</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
         </div>
+      </div>
+
+      {/* TIER 3: Crew Status Strip */}
+      <div className="border-t border-white/[0.05] pt-2.5 mt-0.5">
+        <ClimberStatusPills
+          climbers={climbers}
+          attempts={attempts}
+          currentUserId={currentUserId}
+          size="sm"
+          onClimberClick={(climberId) => onQuickLog(boulder, climberId)}
+        />
       </div>
     </div>
   );

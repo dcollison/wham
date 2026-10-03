@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Attempt, Boulder, Profile, Gym, GymArea, Grade } from '../../types';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Attempt, Boulder, Profile, Gym, GymArea } from '../../types';
 import { HoldBadge } from '../boulders/HoldBadge';
 import { ClimberAvatar } from '../ClimberAvatar';
 import {
@@ -7,16 +7,10 @@ import {
   Check,
   Clock,
   ChevronRight,
-  Filter,
-  Flame,
   Trophy,
-  Sparkles,
   Calendar,
-  Layers,
   Search
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
-import { useGym } from '../../context/GymContext';
 
 interface RecentSendsFeedProps {
   attempts: Attempt[];
@@ -43,50 +37,9 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
   const [selectedClimberId, setSelectedClimberId] = useState<string>('all');
   const [sendTypeFilter, setSendTypeFilter] = useState<'all' | 'flashes' | 'sends' | 'projects'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [floatingPropAttemptId, setFloatingPropAttemptId] = useState<string | null>(null);
-  const lastTapRef = useRef<{ [attemptId: string]: number }>({});
 
   const activeClimber = climbers.find((c) => c.id === currentUserId);
-  const activeColor = activeClimber?.accent_color || '#3B82F6';
-
-  // Props / reactions state provided by GymContext (synced via Supabase Realtime & Broadcast)
-  const { propsMap, toggleProp } = useGym();
-
-  const handleGiveProps = async (attemptId: string) => {
-    const userId = currentUserId || 'local-climber';
-    const currentList = Array.isArray(propsMap[attemptId]) ? propsMap[attemptId] : [];
-    const hasPropped = currentList.includes(userId);
-    if (!hasPropped) {
-      // Celebration confetti only when giving props
-      confetti({
-        particleCount: 25,
-        spread: 45,
-        origin: { y: 0.8 },
-        colors: [activeColor, '#E5B83B', '#D85454']
-      });
-    }
-    await toggleProp(attemptId, userId);
-  };
-
-  const handleCardDoubleTap = (attemptId: string) => {
-    const now = Date.now();
-    const lastTime = lastTapRef.current[attemptId] || 0;
-    if (now - lastTime < 350) {
-      // Double tap detected!
-      const userId = currentUserId || 'local-climber';
-      const currentList = Array.isArray(propsMap[attemptId]) ? propsMap[attemptId] : [];
-      if (!currentList.includes(userId)) {
-        handleGiveProps(attemptId);
-      }
-      setFloatingPropAttemptId(attemptId);
-      setTimeout(() => {
-        setFloatingPropAttemptId(prev => (prev === attemptId ? null : prev));
-      }, 850);
-      lastTapRef.current[attemptId] = 0;
-    } else {
-      lastTapRef.current[attemptId] = now;
-    }
-  };
+  const activeColor = activeClimber?.accent_color || '#F59E0B';
 
   // Periodic ticker to refresh relative time labels every 30 seconds
   const [, setTick] = useState<number>(0);
@@ -109,7 +62,6 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
     const diffHours = Math.floor(diffMin / 60);
     const diffDays = Math.floor(diffHours / 24);
 
-    // Within the last minute (or slight device clock skew)
     if (diffSec < 60) return 'Just now';
     if (diffMin < 60) return `${diffMin}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
@@ -134,8 +86,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
 
   // Process & filter all sends
   const { filteredSends, stats } = useMemo(() => {
-    // We care about attempts that are flashed or sent by default, or projects if selected
-    let raw = attempts.map((att) => {
+    const raw = attempts.map((att) => {
       const boulder = boulders.find((b) => b.id === att.boulder_id);
       const climber = climbers.find((c) => c.id === att.user_id) || att.profile;
       const area = boulder ? areas.find((a) => a.id === boulder.area_id) : null;
@@ -150,14 +101,11 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
       };
     });
 
-    // Valid items with existing boulder
     const valid = raw.filter((item) => item.boulder !== undefined);
 
-    // Global stats across valid attempts
     const totalCrewSends = valid.filter((i) => i.attempt.status === 'sent' || i.attempt.status === 'flashed').length;
     const totalCrewFlashes = valid.filter((i) => i.attempt.status === 'flashed').length;
 
-    // Filter by send type
     let filtered = valid;
     if (sendTypeFilter === 'all') {
       filtered = filtered.filter((i) => i.attempt.status === 'sent' || i.attempt.status === 'flashed');
@@ -169,12 +117,10 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
       filtered = filtered.filter((i) => i.attempt.status === 'attempted');
     }
 
-    // Filter by climber
     if (selectedClimberId !== 'all') {
       filtered = filtered.filter((i) => i.attempt.user_id === selectedClimberId);
     }
 
-    // Search query (grade, hold colour, notes, climber name)
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       filtered = filtered.filter((i) => {
@@ -193,7 +139,6 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
       });
     }
 
-    // Sort descending by loggedAt
     filtered.sort((a, b) => b.loggedAt - a.loggedAt);
 
     return {
@@ -218,25 +163,25 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
 
   return (
     <div className="flex flex-col gap-4 pb-20 animate-in fade-in duration-300">
-      {/* Header & Stats Banner */}
+      {/* Header & Stats Strip */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <h2 className="text-lg font-heading font-bold text-white flex items-center gap-2">
               <Zap className="w-5 h-5 text-amber-400 fill-amber-400" />
               Recent Sends
             </h2>
             <p className="text-xs text-slate-400">
-              Live crew tops, flashes, and gym sends stream
+              Live crew activity stream
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+            <span className="text-xs font-mono font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-3 py-1 rounded-full flex items-center gap-1.5 tabular-nums">
               <Zap className="w-3.5 h-3.5 fill-amber-400" />
               <span>{stats.totalCrewFlashes} Flashes</span>
             </span>
-            <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+            <span className="text-xs font-mono font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 rounded-full flex items-center gap-1.5 tabular-nums">
               <Check className="w-3.5 h-3.5 stroke-[3]" />
               <span>{stats.totalCrewSends} Sends</span>
             </span>
@@ -250,10 +195,9 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
             onClick={() => setSelectedClimberId('all')}
             className={`px-3.5 py-1.5 rounded-full text-xs font-bold shrink-0 transition-all active-press ${
               selectedClimberId === 'all'
-                ? 'text-black shadow'
-                : 'bg-slate-800/80 text-slate-400 hover:text-white border border-slate-700/80'
+                ? 'bg-white text-slate-950 shadow-xs'
+                : 'bg-surface hover:bg-surface-elevated text-slate-400 hover:text-white border border-white/[0.08]'
             }`}
-            style={selectedClimberId === 'all' ? { backgroundColor: activeColor, color: '#000' } : undefined}
           >
             All Crew
           </button>
@@ -269,17 +213,17 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                 key={c.id}
                 type="button"
                 onClick={() => setSelectedClimberId(c.id)}
-                style={isSelected ? { borderColor: c.accent_color || activeColor, boxShadow: `0 0 0 1px ${(c.accent_color || activeColor)}80` } : undefined}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all active-press border ${
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold shrink-0 transition-all active-press border ${
                   isSelected
-                    ? 'bg-slate-800 text-white shadow'
-                    : 'bg-slate-850/70 border-slate-800 text-slate-400 hover:text-slate-200'
+                    ? 'bg-surface-elevated text-white border-white/[0.25] shadow-xs'
+                    : 'bg-surface hover:bg-surface-elevated text-slate-400 hover:text-slate-200 border-white/[0.08]'
                 }`}
+                style={isSelected ? { borderColor: c.accent_color || activeColor } : undefined}
               >
                 <ClimberAvatar profile={c} size="xs" />
                 <span>{c.display_name}</span>
-                <span className="font-mono text-[10px] opacity-75 font-bold">
-                  ({climberSendsCount})
+                <span className="font-mono text-[10px] opacity-75 font-bold tabular-nums">
+                  {climberSendsCount}
                 </span>
               </button>
             );
@@ -287,13 +231,13 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
         </div>
 
         {/* Subfilters: Send Type Toggle & Search */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
-          <div className="flex items-center gap-1 bg-surface border border-slate-800/80 p-1 rounded-full overflow-x-auto no-scrollbar shadow-xs">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-0.5">
+          <div className="flex items-center gap-1 bg-surface border border-white/[0.08] p-1 rounded-full overflow-x-auto no-scrollbar shadow-xs">
             <button
               type="button"
               onClick={() => setSendTypeFilter('all')}
               className={`px-3 py-1 rounded-full text-xs font-semibold transition-all active-press ${
-                sendTypeFilter === 'all' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
+                sendTypeFilter === 'all' ? 'bg-surface-elevated text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               All Sends
@@ -306,7 +250,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
               }`}
             >
               <Zap className="w-3 h-3 fill-amber-400 text-amber-400" />
-              Flashes
+              <span>Flashes</span>
             </button>
             <button
               type="button"
@@ -316,17 +260,17 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
               }`}
             >
               <Check className="w-3 h-3 stroke-[3] text-emerald-400" />
-              Sends Only
+              <span>Sends Only</span>
             </button>
             <button
               type="button"
               onClick={() => setSendTypeFilter('projects')}
               className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 transition-all active-press ${
-                sendTypeFilter === 'projects' ? 'bg-blue-500/20 text-blue-300 font-bold' : 'text-slate-400 hover:text-slate-200'
+                sendTypeFilter === 'projects' ? 'bg-sky-500/20 text-sky-300 font-bold' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <Clock className="w-3 h-3 text-blue-400" />
-              Working
+              <Clock className="w-3 h-3 text-sky-400" />
+              <span>Working</span>
             </button>
           </div>
 
@@ -337,141 +281,125 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search climber, grade, hold..."
-              className="w-full bg-slate-900 border border-slate-800 text-slate-100 placeholder:text-slate-500 text-xs rounded-full pl-9 pr-4 py-2 outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-700 transition-all shadow-xs"
+              className="w-full bg-surface border border-white/[0.08] text-slate-100 placeholder:text-slate-500 text-xs rounded-full pl-9 pr-4 py-1.5 outline-none focus:border-white/[0.2] focus:ring-1 focus:ring-white/[0.1] transition-all"
             />
           </div>
         </div>
       </div>
 
-      {/* Feed Stream */}
+      {/* Condensed Send List */}
       {filteredSends.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-8 bg-slate-900/60 border border-slate-800 rounded-2xl text-center gap-3 my-6">
-          <div className="p-3 bg-slate-800 rounded-2xl" style={{ color: activeColor }}>
+        <div className="flex flex-col items-center justify-center p-8 bg-surface border border-white/[0.08] rounded-2xl text-center gap-3 my-6">
+          <div className="p-3 bg-surface-elevated rounded-2xl" style={{ color: activeColor }}>
             <Trophy className="w-6 h-6 opacity-60" />
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-200">No sends found</h3>
             <p className="text-xs text-slate-400 max-w-xs mt-1">
-              No logged climbs match your current filters. Try selecting "All Crew" or clearing the search.
+              No logged climbs match your current filters. Try selecting "All Crew" or clearing your search.
             </p>
           </div>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-5">
           {Object.entries(groupedSends).map(([dateLabel, items]) => (
-            <div key={dateLabel} className="space-y-3">
+            <div key={dateLabel} className="space-y-2">
               {/* Date Group Header */}
-              <div className="flex items-center gap-2 px-1">
-                <Calendar className="w-3.5 h-3.5" style={{ color: activeColor }} />
+              <div className="flex items-center gap-2 px-1 pt-1">
+                <Calendar className="w-3.5 h-3.5 text-slate-400" />
                 <span className="text-xs font-bold text-slate-300 tracking-wide uppercase">
                   {dateLabel}
                 </span>
-                <span className="text-[11px] font-mono text-slate-400">
-                  ({items.length} {items.length === 1 ? 'climb' : 'climbs'})
+                <span className="text-[11px] font-mono text-slate-500 tabular-nums">
+                  {items.length} {items.length === 1 ? 'send' : 'sends'}
                 </span>
-                <div className="flex-1 h-px bg-slate-800/80 ml-2" />
+                <div className="flex-1 h-px bg-white/[0.06] ml-2" />
               </div>
 
-              {/* Items for this date */}
-              <div className="space-y-3">
+              {/* Condensed Items List */}
+              <div className="flex flex-col gap-1.5">
                 {items.map(({ attempt, boulder, climber, area, gym }) => {
                   if (!boulder) return null;
 
                   const isFlash = attempt.status === 'flashed';
                   const isSent = attempt.status === 'sent';
                   const isYou = climber?.id === currentUserId;
-                  const proppedUserIds = Array.isArray(propsMap[attempt.id]) ? propsMap[attempt.id] : [];
-                  const propsCount = proppedUserIds.length;
-                  const isProppedByMe = currentUserId ? proppedUserIds.includes(currentUserId) : false;
 
                   return (
                     <div
                       key={attempt.id}
-                      onClick={() => handleCardDoubleTap(attempt.id)}
-                      className="relative bg-surface/90 hover:bg-slate-900 border border-slate-800/80 hover:border-slate-700/80 rounded-3xl p-5 flex flex-col gap-3.5 transition-all shadow-md active-press surface-elevated overflow-hidden select-none"
+                      onClick={() => onSelectBoulder(boulder)}
+                      className="group flex items-center justify-between gap-3 p-2.5 sm:px-3.5 sm:py-2.5 rounded-2xl bg-surface/90 hover:bg-surface-elevated border border-white/[0.06] hover:border-white/[0.14] transition-all cursor-pointer active-press"
                     >
-                      {/* Floating Double-Tap Prop Burst */}
-                      {floatingPropAttemptId === attempt.id && (
-                        <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
-                          <div className="animate-float-up text-5xl select-none drop-shadow-[0_4px_16px_rgba(0,0,0,0.8)]">
-                            👊
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Top row: Climber Avatar & Name, Status Badge, Relative Time */}
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <ClimberAvatar profile={climber} size="sm" showBorderRing />
-                          <div className="flex flex-col min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-bold text-white truncate">
-                                {climber?.display_name || 'Climber'}
+                      {/* Left: Climber & Action info */}
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <ClimberAvatar profile={climber} size="xs" showBorderRing />
+                        
+                        <div className="flex flex-col min-w-0">
+                          {/* Row 1: Climber Name + Status Pill */}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-bold text-white truncate">
+                              {climber?.display_name || 'Climber'}
+                            </span>
+                            {isYou && (
+                              <span
+                                className="text-[9px] font-semibold px-1.5 py-0.2 rounded-full"
+                                style={{ backgroundColor: `${activeColor}20`, color: activeColor }}
+                              >
+                                You
                               </span>
-                              {isYou && (
-                                <span
-                                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0"
-                                  style={{ backgroundColor: `${activeColor}20`, color: activeColor }}
-                                >
-                                  You
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-[11px] text-slate-400 tabular-nums">
-                              {formatRelativeTime(attempt.logged_at)}
-                            </span>
-                          </div>
-                        </div>
+                            )}
 
-                        {/* Send Status Badge */}
-                        <div className="shrink-0">
-                          {isFlash ? (
-                            <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-300 bg-amber-500/15 border border-amber-500/40 px-3 py-1 rounded-full shadow-sm whitespace-nowrap">
-                              <Zap className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                              Flash (<span className="tabular-nums">1 try</span>)
+                            {/* Status badge: Short form "F", "S 2", "P 2" */}
+                            {isFlash ? (
+                              <span
+                                className="inline-flex items-center gap-1 text-[10px] font-heading font-black text-slate-950 bg-amber-400 px-2 py-0.5 rounded-full shadow-xs"
+                                title="Flashed on 1st try"
+                              >
+                                <Zap className="w-3 h-3 fill-current" />
+                                <span>F</span>
+                              </span>
+                            ) : isSent ? (
+                              <span
+                                className="inline-flex items-center gap-1 text-[10px] font-heading font-black text-slate-950 bg-emerald-400 px-2 py-0.5 rounded-full shadow-xs"
+                                title={`Sent on try ${attempt.attempt_count}`}
+                              >
+                                <Check className="w-3 h-3 stroke-[3]" />
+                                <span>S {attempt.attempt_count}</span>
+                              </span>
+                            ) : (
+                              <span
+                                className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-sky-300 bg-sky-500/15 border border-sky-500/35 px-2 py-0.5 rounded-full"
+                                title={`Projecting on try ${attempt.attempt_count}`}
+                              >
+                                <Clock className="w-3 h-3 text-sky-400" />
+                                <span>P {attempt.attempt_count}</span>
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Row 2: Boulder details (position, hold badge, area) */}
+                          <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-1 min-w-0">
+                            <span className="font-mono text-[10px] text-slate-400 font-semibold tabular-nums">
+                              #{boulder.comp_number ?? Math.round(boulder.position_order)}
                             </span>
-                          ) : isSent ? (
-                            <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/40 px-3 py-1 rounded-full shadow-sm whitespace-nowrap">
-                              <Check className="w-3.5 h-3.5 stroke-[3] text-emerald-400" />
-                              Sent (<span className="tabular-nums">{attempt.attempt_count}t</span>)
+                            <HoldBadge color={boulder.hold_colour} grade={boulder.grade} size="sm" />
+                            <span className="truncate text-slate-400 text-[11px]">
+                              {area?.name || 'Wall'}{gym ? ` • ${gym.name}` : ''}
                             </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-300 bg-blue-500/15 border border-blue-500/30 px-3 py-1 rounded-full shadow-sm whitespace-nowrap">
-                              <Clock className="w-3.5 h-3.5 text-blue-400" />
-                              Project (<span className="tabular-nums">{attempt.attempt_count}t</span>)
-                            </span>
-                          )}
+                            {boulder.notes && (
+                              <span className="hidden sm:inline text-[11px] text-slate-500 truncate max-w-xs italic">
+                                "{boulder.notes}"
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 
-                      {/* Middle row: Boulder Details Card */}
-                      <div
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSelectBoulder(boulder);
-                        }}
-                        className="flex items-start justify-between gap-3 p-3.5 rounded-2xl bg-slate-850/60 border border-slate-800 hover:border-slate-700/80 cursor-pointer transition-colors"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-mono text-xs font-bold text-slate-300 bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-700 shrink-0 tabular-nums">
-                              #{Math.round(boulder.position_order)}
-                            </span>
-                            <HoldBadge color={boulder.hold_colour} grade={boulder.grade} size="sm" />
-                            <span className="text-[11px] font-medium text-slate-400 truncate">
-                              {gym?.name} • {area?.name}
-                            </span>
-                          </div>
-
-                          {boulder.notes && (
-                            <p className="text-xs text-slate-300 line-clamp-1 mt-1.5 italic">
-                              "{boulder.notes}"
-                            </p>
-                          )}
-                        </div>
-
+                      {/* Right: Photo thumbnail, Timestamp, Chevron */}
+                      <div className="flex items-center gap-2 shrink-0">
                         {boulder.image_url && (
-                          <div className="w-12 h-12 rounded-xl overflow-hidden border border-slate-700/80 bg-slate-800 shrink-0 shadow">
+                          <div className="w-8 h-8 rounded-lg overflow-hidden border border-white/[0.08] bg-carbon shrink-0">
                             <img
                               src={boulder.image_url}
                               alt={`${boulder.hold_colour} ${boulder.grade}`}
@@ -480,71 +408,10 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                             />
                           </div>
                         )}
-                      </div>
-
-                      {/* Bottom action row: Props, Quick Log, and View Details */}
-                      <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-xs">
-                        {/* Props / Hype Button (Limited to 1 per user, toggles) */}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleGiveProps(attempt.id);
-                          }}
-                          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border transition-all active-press ${
-                            isProppedByMe
-                              ? 'text-white shadow-sm ring-1'
-                              : propsCount > 0
-                              ? 'bg-slate-800 border-slate-700 text-slate-300'
-                              : 'bg-slate-800/60 border-slate-700/70 text-slate-400 hover:text-slate-200'
-                          }`}
-                          style={isProppedByMe ? {
-                            backgroundColor: `${activeColor}20`,
-                            borderColor: activeColor,
-                            color: activeColor
-                          } : undefined}
-                          title={isProppedByMe ? 'You gave props! Tap to remove' : 'Give props (limit 1 per climber)'}
-                        >
-                          <Flame
-                            className={`w-3.5 h-3.5 ${isProppedByMe ? 'fill-current' : propsCount > 0 ? 'fill-current' : 'text-slate-400'}`}
-                            style={!isProppedByMe && propsCount > 0 ? { color: activeColor } : undefined}
-                          />
-                          <span className="font-semibold text-xs">{isProppedByMe ? 'Propped' : 'Props'}</span>
-                          {propsCount > 0 && (
-                            <span
-                              className="font-mono text-xs font-bold px-1.5 py-0.2 rounded-full tabular-nums"
-                              style={isProppedByMe ? { backgroundColor: `${activeColor}30`, color: activeColor } : { backgroundColor: '#334155', color: '#f1f5f9' }}
-                            >
-                              {propsCount}
-                            </span>
-                          )}
-                        </button>
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onQuickLog(boulder, currentUserId);
-                            }}
-                            className="text-xs font-semibold text-slate-400 hover:text-white px-3 py-1.5 rounded-full hover:bg-slate-800 transition-colors active-press"
-                          >
-                            Log Send
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onSelectBoulder(boulder);
-                            }}
-                            style={{ color: activeColor }}
-                            className="text-xs font-bold flex items-center gap-0.5 px-3 py-1.5 rounded-full hover:bg-slate-800/60 transition-all active-press"
-                          >
-                            <span>Details</span>
-                            <ChevronRight className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                        <span className="text-[11px] font-mono text-slate-400 tabular-nums">
+                          {formatRelativeTime(attempt.logged_at)}
+                        </span>
+                        <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-slate-300 transition-colors" />
                       </div>
                     </div>
                   );

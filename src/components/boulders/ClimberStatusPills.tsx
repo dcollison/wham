@@ -37,11 +37,11 @@ export const ClimberStatusPills: React.FC<ClimberStatusPillsProps> = ({
         } else if (attempt?.status === 'sent') {
           badgeBg = 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 font-semibold';
           icon = <Check className="w-2.5 h-2.5 text-emerald-400 stroke-[3] shrink-0" />;
-          detail = `S${attempt.attempt_count}`;
+          detail = `S ${attempt.attempt_count}`;
         } else if (attempt?.status === 'attempted') {
           badgeBg = 'bg-blue-500/15 border-blue-500/40 text-blue-300 font-medium';
           icon = <Clock className="w-2.5 h-2.5 text-blue-400 shrink-0" />;
-          detail = `P${attempt.attempt_count}`;
+          detail = `P ${attempt.attempt_count}`;
         }
 
         const statusText = attempt?.status === 'flashed'

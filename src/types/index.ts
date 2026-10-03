@@ -228,7 +228,7 @@ export function getHoldCardStyle(colorName: string): {
   if (isBee) {
     return {
       accentBarBackground: 'linear-gradient(180deg, #DDA82B 0%, #DDA82B 50%, #27272A 50%, #27272A 100%)',
-      gradientBackground: 'linear-gradient(90deg, rgba(221, 168, 43, 0.18) 0%, rgba(39, 39, 42, 0.4) 14%, rgba(15, 23, 42, 0.95) 26%, rgba(15, 23, 42, 0.92) 100%)',
+      gradientBackground: 'linear-gradient(90deg, rgba(221, 168, 43, 0.16) 0%, rgba(39, 39, 42, 0.35) 14%, rgba(17, 20, 29, 0.98) 26%, rgba(17, 20, 29, 0.95) 100%)',
       borderLeftColor: '#DDA82B',
       badgeBackground: 'linear-gradient(135deg, rgba(221, 168, 43, 0.25) 0%, rgba(221, 168, 43, 0.25) 50%, rgba(39, 39, 42, 0.6) 50%, rgba(39, 39, 42, 0.6) 100%)',
       badgeBorderColor: '#DDA82B',
@@ -240,10 +240,10 @@ export function getHoldCardStyle(colorName: string): {
   const hex = config.hex;
   return {
     accentBarBackground: hex,
-    gradientBackground: `linear-gradient(90deg, ${hex}14 0%, rgba(15, 23, 42, 0.95) 26%, rgba(15, 23, 42, 0.92) 100%)`,
+    gradientBackground: `linear-gradient(90deg, ${hex}15 0%, rgba(17, 20, 29, 0.98) 26%, rgba(17, 20, 29, 0.95) 100%)`,
     borderLeftColor: hex,
-    badgeBackground: `${hex}12`,
-    badgeBorderColor: `${hex}40`,
+    badgeBackground: `${hex}14`,
+    badgeBorderColor: `${hex}35`,
     hex
   };
 }

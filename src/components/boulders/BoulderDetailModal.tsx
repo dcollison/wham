@@ -502,7 +502,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                     This will permanently remove <span className="font-bold text-white">{boulder.hold_colour} {boulder.grade}</span> from the gym wall, including all logged attempts, flashes, and beta comments.
                   </p>
                   <p className="text-[11px] text-rose-400 font-semibold mt-1">
-                    ⚠️ This action cannot be undone.
+                    This action cannot be undone.
                   </p>
                 </div>
               </div>

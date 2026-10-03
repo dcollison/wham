@@ -334,7 +334,9 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                     <div className="flex items-center gap-2.5 mt-1">
                       <div className="relative shrink-0">
                         <ClimberAvatar profile={entry.champion.climber} size="sm" />
-                        <span className="absolute -bottom-1 -right-1 text-xs">👑</span>
+                        <span className="absolute -bottom-1 -right-1 p-0.5 rounded-full bg-surface-high border border-amber-400/50 shadow-xs">
+                          <Crown className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+                        </span>
                       </div>
                       <div className="min-w-0 flex-1">
                         <span className="text-xs font-bold text-white truncate block">
@@ -373,7 +375,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
               </span>
             </div>
           </div>
-          <span className="text-2xl shrink-0">🏆</span>
+          <Trophy className="w-6 h-6 text-amber-400 shrink-0" />
         </div>
       )}
 

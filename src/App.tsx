@@ -10,6 +10,7 @@ import { BulkAddBouldersModal } from './components/boulders/BulkAddBouldersModal
 import { BoulderDetailModal } from './components/boulders/BoulderDetailModal';
 import { AreaResetModal } from './components/boulders/AreaResetModal';
 import { StatsDashboard } from './components/stats/StatsDashboard';
+import { CompLeaderboard } from './components/leaderboard/CompLeaderboard';
 import { CompLeaderboardModal } from './components/leaderboard/CompLeaderboardModal';
 import { GymCompBanner } from './components/boulders/GymCompBanner';
 import { CompWallBanner } from './components/boulders/CompWallBanner';
@@ -84,21 +85,24 @@ export function App() {
   const activeColor = currentUser?.accent_color || '#3B82F6';
 
   // Hash-based routing for 100% static hosting on GitHub Pages
-  const [currentTab, setCurrentTab] = useState<'boulders' | 'beta' | 'stats' | 'settings'>('boulders');
-  const [statsInitialTab, setStatsInitialTab] = useState<
-    'overview' | 'leaderboard' | 'comparison' | 'timeline' | 'pyramid' | 'circuits'
-  >('overview');
+  const [currentTab, setCurrentTab] = useState<'boulders' | 'beta' | 'comp' | 'stats' | 'settings'>('boulders');
   const [settingsInitialTab, setSettingsInitialTab] = useState<'crew' | 'backups' | 'storage' | 'ideas'>('crew');
 
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.toLowerCase();
       if (hash.includes('leaderboard') || hash.includes('comp') || hash.includes('standings')) {
+        setCurrentTab('comp');
+      } else if (hash.includes('stats') || hash.includes('analytics')) {
         setCurrentTab('stats');
-        setStatsInitialTab('leaderboard');
-      } else if (hash.includes('stats')) {
-        setCurrentTab('stats');
-      } else if (hash.includes('beta') || hash.includes('feed') || hash.includes('sends') || hash.includes('activity')) {
+      } else if (
+        hash.includes('beta') ||
+        hash.includes('feed') ||
+        hash.includes('sends') ||
+        hash.includes('activity') ||
+        hash.includes('discussion') ||
+        hash.includes('comments')
+      ) {
         setCurrentTab('beta');
       } else if (hash.includes('ideas') || hash.includes('features') || hash.includes('roadmap') || hash.includes('requests')) {
         setSettingsInitialTab('ideas');
@@ -480,7 +484,7 @@ export function App() {
                       return (
                         <React.Fragment key={boulder.id}>
                           {isNewArea && (
-                            <div className="sticky top-[92px] sm:top-[96px] z-20 -mx-1 px-4 py-2.5 bg-slate-950/95 backdrop-blur-md border-y border-slate-800/80 rounded-2xl my-2 flex items-center justify-between shadow-sm">
+                            <div className="sticky top-[92px] sm:top-[96px] z-20 -mx-1 px-4 py-2.5 bg-carbon/95 backdrop-blur-md border-y border-white/[0.08] rounded-2xl my-2 flex items-center justify-between shadow-xs">
                               <div className="flex items-center gap-2">
                                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: activeColor }} />
                                 <span className="text-xs font-bold font-heading text-slate-200 uppercase tracking-wider">
@@ -496,7 +500,7 @@ export function App() {
                                   </span>
                                 )}
                               </div>
-                              <span className="text-[10px] font-mono font-medium text-slate-400 bg-slate-900 px-2.5 py-0.5 rounded-full border border-slate-800">
+                              <span className="text-[10px] font-mono font-medium text-slate-300 bg-surface px-2.5 py-0.5 rounded-full border border-white/[0.08]">
                                 {areaBouldersCount} {areaBouldersCount === 1 ? 'climb' : 'climbs'}
                               </span>
                             </div>
@@ -614,7 +618,21 @@ export function App() {
           />
         )}
 
-        {/* TAB 3: Analytics & Stats Dashboard */}
+        {/* TAB 3: Comp Leaderboard & Standings */}
+        {currentTab === 'comp' && (
+          <CompLeaderboard
+            boulders={boulders}
+            attempts={attempts}
+            climbers={climbers}
+            gyms={gyms}
+            initialGymId={currentGym?.id || 'all'}
+            currentUserId={currentUser?.id}
+            onSelectBoulder={(b) => setDetailBoulder(b)}
+            showGymSelector={true}
+          />
+        )}
+
+        {/* TAB 4: Analytics & Stats Dashboard */}
         {currentTab === 'stats' && (
           <StatsDashboard
             boulders={boulders}
@@ -623,7 +641,6 @@ export function App() {
             gyms={gyms}
             areas={areas}
             currentUserId={currentUser?.id}
-            initialTab={statsInitialTab}
             onSelectBoulder={(b) => setDetailBoulder(b)}
             reviews={reviews}
           />
@@ -764,9 +781,8 @@ export function App() {
         currentUserId={currentUser?.id}
         onSelectBoulder={(b) => setDetailBoulder(b)}
         onNavigateToStats={() => {
-          setCurrentTab('stats');
-          setStatsInitialTab('leaderboard');
-          window.location.hash = '#/leaderboard';
+          setCurrentTab('comp');
+          window.location.hash = '#/comp';
         }}
       />
 
