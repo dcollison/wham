@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { Boulder, Attempt, Profile, getHoldCardStyle } from '../../types';
+import React, { useState, useMemo } from 'react';
+import { Boulder, Attempt, Profile, getHoldCardStyle, LogAttemptParams } from '../../types';
 import { HoldBadge } from './HoldBadge';
 import { HoldSwatch } from './HoldSwatch';
 import { ClimberStatusPills } from './ClimberStatusPills';
 import { Zap, Check, Clock, MessageSquare, Camera, FileText, Plus } from 'lucide-react';
 import { getBoulderAgeInfo } from '../../lib/resetStatus';
 import { useGym } from '../../context/GymContext';
-import { calcBoulderReviewSummary, GRADE_OPINION_CONFIG, REVIEW_RATING_CONFIG } from '../../lib/reviews';
+import { calcBoulderReviewSummary, GRADE_OPINION_CONFIG, REVIEW_RATING_CONFIG, BoulderReviewSummary } from '../../lib/reviews';
 
 interface BoulderCardProps {
   boulder: Boulder;
@@ -14,26 +14,34 @@ interface BoulderCardProps {
   climbers: Profile[];
   currentUserId?: string;
   commentCount: number;
+  reviewSummary?: BoulderReviewSummary;
   areaName?: string;
   onQuickLog: (boulder: Boulder, targetUserId?: string) => void;
   onOpenDetails: (boulder: Boulder) => void;
+  onLogAttempt?: (params: LogAttemptParams) => Promise<void>;
 }
 
-export const BoulderCard: React.FC<BoulderCardProps> = ({
+const BoulderCardComponent: React.FC<BoulderCardProps> = ({
   boulder,
   attempts,
   climbers,
   currentUserId,
   commentCount,
+  reviewSummary: propReviewSummary,
   areaName,
   onQuickLog,
-  onOpenDetails
+  onOpenDetails,
+  onLogAttempt
 }) => {
-  const { reviews, logAttempt } = useGym();
+  const gymCtx = useGym();
+  const logAttempt = onLogAttempt || gymCtx.logAttempt;
   const [isLoggingInstant, setIsLoggingInstant] = useState(false);
 
-  const boulderReviews = reviews.filter(r => r.boulder_id === boulder.id);
-  const reviewSummary = calcBoulderReviewSummary(boulderReviews);
+  const reviewSummary = useMemo(() => {
+    if (propReviewSummary) return propReviewSummary;
+    const boulderReviews = gymCtx.reviews.filter(r => r.boulder_id === boulder.id);
+    return calcBoulderReviewSummary(boulderReviews);
+  }, [propReviewSummary, gymCtx.reviews, boulder.id]);
 
   const userAttempt = attempts.find(a => a.user_id === currentUserId);
   const cardStyle = getHoldCardStyle(boulder.hold_colour);
@@ -106,7 +114,7 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
   return (
     <div
       onClick={() => onQuickLog(boulder)}
-      className={`group relative bg-carbon-surface/95 hover:bg-carbon-elevated/95 border rounded-3xl p-4 sm:p-5 transition-all duration-200 cursor-pointer flex flex-col gap-3 overflow-hidden ${borderShadowClass}`}
+      className={`group relative bg-carbon-surface/95 hover:bg-carbon-elevated/95 border rounded-3xl p-4 sm:p-5 transition-[border-color,box-shadow,background-color] duration-150 cursor-pointer flex flex-col gap-3 overflow-hidden boulder-card-deferred ${borderShadowClass}`}
       style={{
         background: cardStyle.gradientBackground
       }}
@@ -354,3 +362,5 @@ export const BoulderCard: React.FC<BoulderCardProps> = ({
     </div>
   );
 };
+
+export const BoulderCard = React.memo(BoulderCardComponent);

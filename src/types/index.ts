@@ -136,6 +136,14 @@ export interface Attempt {
   profile?: Profile;
 }
 
+export interface LogAttemptParams {
+  boulderId: string;
+  status: AttemptStatus;
+  attemptCount: number;
+  loggedAt?: string;
+  userId?: string;
+}
+
 export interface Comment {
   id: string;
   boulder_id: string;

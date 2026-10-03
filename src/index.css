@@ -156,5 +156,8 @@
   animation: floatUp 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-
-
+/* Off-screen layout & paint optimization for boulder lists (deferred rendering) */
+.boulder-card-deferred {
+  content-visibility: auto;
+  contain-intrinsic-size: auto none auto 130px;
+}

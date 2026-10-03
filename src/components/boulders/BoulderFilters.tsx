@@ -46,7 +46,7 @@ const GRADE_PRESETS: { label: string; min: Grade | null; max: Grade | null; subt
   { label: 'V9+', min: 'V9', max: 'V10+', subtitle: 'Expert' }
 ];
 
-export const BoulderFilters: React.FC<BoulderFiltersProps> = ({
+const BoulderFiltersComponent: React.FC<BoulderFiltersProps> = ({
   filters,
   onUpdateFilters,
   onResetFilters,
@@ -658,3 +658,5 @@ export const BoulderFilters: React.FC<BoulderFiltersProps> = ({
     </div>
   );
 };
+
+export const BoulderFilters = React.memo(BoulderFiltersComponent);

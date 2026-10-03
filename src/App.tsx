@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from './context/AuthContext';
 import { useGym } from './context/GymContext';
 import { Header } from './components/Header';
@@ -19,12 +19,15 @@ import { CircleView } from './components/settings/CircleView';
 import { AreaPhotoBanner } from './components/boulders/AreaPhotoBanner';
 import { BoulderFilters, BoulderFiltersState } from './components/boulders/BoulderFilters';
 import { ClimberAvatar } from './components/ClimberAvatar';
-import { Boulder, GRADES } from './types';
+import { Boulder, Attempt, BoulderReview, GRADES } from './types';
 import { Plus, Compass, Sparkles, Filter, RotateCcw, Layers, Zap, ChevronRight, Clock } from 'lucide-react';
 import { WhamLogo, WhamBadge } from './components/WhamLogo';
 import { PasscodeGate } from './components/PasscodeGate';
 import { STORAGE_KEYS, getStorageString, setStorageString } from './lib/storage';
 import { getAreaResetInfo } from './lib/resetStatus';
+import { calcBoulderReviewSummary, BoulderReviewSummary } from './lib/reviews';
+
+const EMPTY_ATTEMPTS: Attempt[] = [];
 
 export function App() {
   const [isPasscodeUnlocked, setIsPasscodeUnlocked] = useState<boolean>(() => {
@@ -132,10 +135,14 @@ export function App() {
   const [detailBoulder, setDetailBoulder] = useState<Boulder | null>(null);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState<boolean>(false);
 
-  const handleOpenQuickLog = (boulder: Boulder, targetUserId?: string) => {
+  const handleOpenQuickLog = useCallback((boulder: Boulder, targetUserId?: string) => {
     setQuickLogBoulder(boulder);
     setQuickLogTargetUserId(targetUserId || currentUser?.id);
-  };
+  }, [currentUser?.id]);
+
+  const handleOpenDetails = useCallback((boulder: Boulder) => {
+    setDetailBoulder(boulder);
+  }, []);
 
   // Track last viewed feed time for unread comments notification badge
   const [lastViewedFeedTime, setLastViewedFeedTime] = useState<string>(() => {
@@ -337,6 +344,67 @@ export function App() {
     };
   }, [attempts, boulders, climbers]);
 
+  // Pre-index attempts by boulder ID for O(1) card lookups
+  const attemptsByBoulder = useMemo(() => {
+    const map = new Map<string, Attempt[]>();
+    for (const a of attempts) {
+      const list = map.get(a.boulder_id);
+      if (list) {
+        list.push(a);
+      } else {
+        map.set(a.boulder_id, [a]);
+      }
+    }
+    return map;
+  }, [attempts]);
+
+  // Pre-index comment counts by boulder ID for O(1) card lookups
+  const commentCountsByBoulder = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const c of comments) {
+      map.set(c.boulder_id, (map.get(c.boulder_id) || 0) + 1);
+    }
+    return map;
+  }, [comments]);
+
+  // Pre-calculate review summaries by boulder ID once
+  const reviewSummariesByBoulder = useMemo(() => {
+    const grouped = new Map<string, BoulderReview[]>();
+    for (const r of reviews) {
+      const list = grouped.get(r.boulder_id);
+      if (list) {
+        list.push(r);
+      } else {
+        grouped.set(r.boulder_id, [r]);
+      }
+    }
+    const summaryMap = new Map<string, BoulderReviewSummary>();
+    for (const [bId, revs] of grouped) {
+      summaryMap.set(bId, calcBoulderReviewSummary(revs));
+    }
+    return summaryMap;
+  }, [reviews]);
+
+  // Sector reset info map for All Areas view
+  const areaResetInfoMap = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof getAreaResetInfo>>();
+    for (const a of areas) {
+      map.set(a.id, getAreaResetInfo(a.id, boulders));
+    }
+    return map;
+  }, [areas, boulders]);
+
+  // Pre-calculate count of visible boulders per area for header counts
+  const areaCountsByAreaId = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const b of visibleBoulders) {
+      map.set(b.area_id, (map.get(b.area_id) || 0) + 1);
+    }
+    return map;
+  }, [visibleBoulders]);
+
+  const areaMap = useMemo(() => new Map(areas.map((a) => [a.id, a])), [areas]);
+
   // Private crew access passcode gate (PIN 2338)
   if (!isPasscodeUnlocked) {
     return <PasscodeGate onUnlock={() => setIsPasscodeUnlocked(true)} />;
@@ -475,11 +543,9 @@ export function App() {
                     return visibleBoulders.map((boulder) => {
                       const isNewArea = boulder.area_id !== lastAreaId;
                       lastAreaId = boulder.area_id;
-                      const boulderArea = areas.find((a) => a.id === boulder.area_id);
-                      const areaBouldersCount = visibleBoulders.filter((b) => b.area_id === boulder.area_id).length;
-                      const boulderAttempts = attempts.filter((a) => a.boulder_id === boulder.id);
-                      const boulderComments = comments.filter((c) => c.boulder_id === boulder.id);
-                      const sectorResetInfo = isNewArea && boulderArea ? getAreaResetInfo(boulderArea.id, boulders) : null;
+                      const boulderArea = areaMap.get(boulder.area_id);
+                      const areaBouldersCount = areaCountsByAreaId.get(boulder.area_id) || 0;
+                      const sectorResetInfo = isNewArea && boulderArea ? areaResetInfoMap.get(boulderArea.id) : null;
 
                       return (
                         <React.Fragment key={boulder.id}>
@@ -507,36 +573,35 @@ export function App() {
                           )}
                           <BoulderCard
                             boulder={boulder}
-                            attempts={boulderAttempts}
+                            attempts={attemptsByBoulder.get(boulder.id) || EMPTY_ATTEMPTS}
                             climbers={climbers}
                             currentUserId={currentUser?.id}
-                            commentCount={boulderComments.length}
+                            commentCount={commentCountsByBoulder.get(boulder.id) || 0}
+                            reviewSummary={reviewSummariesByBoulder.get(boulder.id)}
                             areaName={boulderArea?.name}
-                            onQuickLog={(b, targetUserId) => handleOpenQuickLog(b, targetUserId)}
-                            onOpenDetails={(b) => setDetailBoulder(b)}
+                            onQuickLog={handleOpenQuickLog}
+                            onOpenDetails={handleOpenDetails}
+                            onLogAttempt={logAttempt}
                           />
                         </React.Fragment>
                       );
                     });
                   })()
                 ) : (
-                  visibleBoulders.map((boulder) => {
-                    const boulderAttempts = attempts.filter((a) => a.boulder_id === boulder.id);
-                    const boulderComments = comments.filter((c) => c.boulder_id === boulder.id);
-
-                    return (
-                      <BoulderCard
-                        key={boulder.id}
-                        boulder={boulder}
-                        attempts={boulderAttempts}
-                        climbers={climbers}
-                        currentUserId={currentUser?.id}
-                        commentCount={boulderComments.length}
-                        onQuickLog={(b, targetUserId) => handleOpenQuickLog(b, targetUserId)}
-                        onOpenDetails={(b) => setDetailBoulder(b)}
-                      />
-                    );
-                  })
+                  visibleBoulders.map((boulder) => (
+                    <BoulderCard
+                      key={boulder.id}
+                      boulder={boulder}
+                      attempts={attemptsByBoulder.get(boulder.id) || EMPTY_ATTEMPTS}
+                      climbers={climbers}
+                      currentUserId={currentUser?.id}
+                      commentCount={commentCountsByBoulder.get(boulder.id) || 0}
+                      reviewSummary={reviewSummariesByBoulder.get(boulder.id)}
+                      onQuickLog={handleOpenQuickLog}
+                      onOpenDetails={handleOpenDetails}
+                      onLogAttempt={logAttempt}
+                    />
+                  ))
                 )}
               </div>
             ) : orderedActiveBouldersInCurrentArea.length > 0 ? (

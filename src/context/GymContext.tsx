@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useMemo, useRef } from 'react';
 import { supabase, isSupabaseConfigured, isDemoRequested, uploadBoulderPhoto, uploadAreaPhoto, deleteStoragePhotos, withTimeout } from '../lib/supabase';
-import { Boulder, Attempt, Comment, Gym, GymArea, Grade, AttemptStatus, BulkAddBoulderItem, BulkAddBouldersParams, FeatureRequest, FeatureCategory, FeatureStatus, BoulderReview, SmileyRating, GradeOpinion } from '../types';
+import { Boulder, Attempt, Comment, Gym, GymArea, Grade, AttemptStatus, LogAttemptParams, BulkAddBoulderItem, BulkAddBouldersParams, FeatureRequest, FeatureCategory, FeatureStatus, BoulderReview, SmileyRating, GradeOpinion } from '../types';
 import {
   INITIAL_GYMS,
   INITIAL_AREAS,
@@ -29,14 +29,6 @@ import {
   PendingReview,
   PendingDelete
 } from '../lib/storage';
-
-interface LogAttemptParams {
-  boulderId: string;
-  status: AttemptStatus;
-  attemptCount: number;
-  loggedAt?: string;
-  userId?: string;
-}
 
 interface AddBoulderParams {
   gymId: string;
@@ -997,11 +989,50 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             return incoming;
           });
         }
-        if (!attRes.error && attRes.data && attRes.data.length > 0) {
-          setAttempts(attRes.data);
+        if (!attRes.error && Array.isArray(attRes.data)) {
+          setAttempts(prev => {
+            const incoming = attRes.data;
+            if (prev.length === incoming.length) {
+              const isSame = prev.every((p, i) => {
+                const inc = incoming[i];
+                return (
+                  p.id === inc.id &&
+                  p.boulder_id === inc.boulder_id &&
+                  p.user_id === inc.user_id &&
+                  p.status === inc.status &&
+                  p.attempt_count === inc.attempt_count &&
+                  p.logged_at === inc.logged_at
+                );
+              });
+              if (isSame) return prev;
+            }
+            try {
+              localStorage.setItem('wham_attempts', JSON.stringify(incoming));
+            } catch (e) {}
+            return incoming;
+          });
         }
-        if (!commRes.error && commRes.data && commRes.data.length > 0) {
-          setComments(commRes.data);
+        if (!commRes.error && Array.isArray(commRes.data)) {
+          setComments(prev => {
+            const incoming = commRes.data;
+            if (prev.length === incoming.length) {
+              const isSame = prev.every((p, i) => {
+                const inc = incoming[i];
+                return (
+                  p.id === inc.id &&
+                  p.boulder_id === inc.boulder_id &&
+                  p.user_id === inc.user_id &&
+                  p.content === inc.content &&
+                  p.created_at === inc.created_at
+                );
+              });
+              if (isSame) return prev;
+            }
+            try {
+              localStorage.setItem('wham_comments', JSON.stringify(incoming));
+            } catch (e) {}
+            return incoming;
+          });
         }
         if (!propsRes.error && Array.isArray(propsRes.data)) {
           const remoteMap: Record<string, string[]> = {};
@@ -1011,7 +1042,22 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               remoteMap[row.attempt_id].push(row.user_id);
             }
           }
-          setPropsMap(remoteMap);
+          setPropsMap(prev => {
+            const prevKeys = Object.keys(prev);
+            const remoteKeys = Object.keys(remoteMap);
+            if (prevKeys.length === remoteKeys.length) {
+              const isSame = prevKeys.every(k => {
+                const prevList = prev[k] || [];
+                const remoteList = remoteMap[k] || [];
+                return (
+                  prevList.length === remoteList.length &&
+                  prevList.every((uid, idx) => uid === remoteList[idx])
+                );
+              });
+              if (isSame) return prev;
+            }
+            return remoteMap;
+          });
         }
       } catch (err) {
         console.warn('Silent sync poll warning:', err);
@@ -2809,62 +2855,78 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return snapshots;
   };
 
+  const contextValue = useMemo(() => ({
+    gyms,
+    currentGym,
+    setCurrentGym,
+    areas,
+    currentArea,
+    setCurrentArea,
+    toggleAreaCompWall,
+    boulders,
+    attempts,
+    comments,
+    propsMap,
+    toggleProp,
+    loading,
+    hideSent,
+    setHideSent,
+    showArchived,
+    setShowArchived,
+    logAttempt,
+    deleteAttempt,
+    addBoulder,
+    bulkAddBoulders,
+    archiveBoulder,
+    updateBoulder,
+    deleteBoulder,
+    moveBoulder,
+    archiveAreaBoulders,
+    updateAreaPhoto,
+    removeAreaPhoto,
+    pruneArchivedClimbPhotos,
+    addComment,
+    deleteComment,
+    getBoulderAttempts,
+    getBoulderComments,
+    getUserAttemptOnBoulder,
+    reviews,
+    saveReview,
+    deleteReview,
+    getBoulderReviews,
+    orderedActiveBouldersInCurrentArea,
+    featureRequests,
+    submitFeatureRequest,
+    updateFeatureStatus,
+    toggleFeatureUpvote,
+    deleteFeatureRequest,
+    restoreBackupData,
+    snapshots,
+    createManualSnapshot,
+    restoreSnapshotById,
+    getSnapshotsList,
+    syncSnapshotsToCloud,
+    deleteSnapshot
+  }), [
+    gyms,
+    currentGym,
+    areas,
+    currentArea,
+    boulders,
+    attempts,
+    comments,
+    propsMap,
+    loading,
+    hideSent,
+    showArchived,
+    reviews,
+    orderedActiveBouldersInCurrentArea,
+    featureRequests,
+    snapshots
+  ]);
+
   return (
-    <GymContext.Provider
-      value={{
-        gyms,
-        currentGym,
-        setCurrentGym,
-        areas,
-        currentArea,
-        setCurrentArea,
-        toggleAreaCompWall,
-        boulders,
-        attempts,
-        comments,
-        propsMap,
-        toggleProp,
-        loading,
-        hideSent,
-        setHideSent,
-        showArchived,
-        setShowArchived,
-        logAttempt,
-        deleteAttempt,
-        addBoulder,
-        bulkAddBoulders,
-        archiveBoulder,
-        updateBoulder,
-        deleteBoulder,
-        moveBoulder,
-        archiveAreaBoulders,
-        updateAreaPhoto,
-        removeAreaPhoto,
-        pruneArchivedClimbPhotos,
-        addComment,
-        deleteComment,
-        getBoulderAttempts,
-        getBoulderComments,
-        getUserAttemptOnBoulder,
-        reviews,
-        saveReview,
-        deleteReview,
-        getBoulderReviews,
-        orderedActiveBouldersInCurrentArea,
-        featureRequests,
-        submitFeatureRequest,
-        updateFeatureStatus,
-        toggleFeatureUpvote,
-        deleteFeatureRequest,
-        restoreBackupData,
-        snapshots,
-        createManualSnapshot,
-        restoreSnapshotById,
-        getSnapshotsList,
-        syncSnapshotsToCloud,
-        deleteSnapshot
-      }}
-    >
+    <GymContext.Provider value={contextValue}>
       {children}
     </GymContext.Provider>
   );

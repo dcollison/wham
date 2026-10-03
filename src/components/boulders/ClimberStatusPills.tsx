@@ -11,7 +11,7 @@ interface ClimberStatusPillsProps {
   onClimberClick?: (climberId: string) => void;
 }
 
-export const ClimberStatusPills: React.FC<ClimberStatusPillsProps> = ({
+const ClimberStatusPillsComponent: React.FC<ClimberStatusPillsProps> = ({
   climbers,
   attempts,
   currentUserId,
@@ -79,3 +79,5 @@ export const ClimberStatusPills: React.FC<ClimberStatusPillsProps> = ({
     </div>
   );
 };
+
+export const ClimberStatusPills = React.memo(ClimberStatusPillsComponent);

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { Profile, CLIMBER_ACCENT_PALETTE } from '../types';
 import { INITIAL_PROFILES } from '../lib/mockData';
@@ -620,27 +620,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCurrentUser(active);
   };
 
+  const contextValue = useMemo(() => ({
+    currentUser,
+    climbers,
+    isAuthenticated: Boolean(currentUser),
+    isDemoMode,
+    loading,
+    signInWithOtp,
+    signInWithOAuth,
+    signOut,
+    switchClimber,
+    updateDisplayName,
+    updateAccentColor,
+    updateAvatarIcon,
+    updateClimber,
+    addClimber,
+    removeClimber,
+    restoreProfilesFromBackup
+  }), [
+    currentUser,
+    climbers,
+    isDemoMode,
+    loading
+  ]);
+
   return (
-    <AuthContext.Provider
-      value={{
-        currentUser,
-        climbers,
-        isAuthenticated: Boolean(currentUser),
-        isDemoMode,
-        loading,
-        signInWithOtp,
-        signInWithOAuth,
-        signOut,
-        switchClimber,
-        updateDisplayName,
-        updateAccentColor,
-        updateAvatarIcon,
-        updateClimber,
-        addClimber,
-        removeClimber,
-        restoreProfilesFromBackup
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
