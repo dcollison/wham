@@ -17,22 +17,19 @@
     --wham-accent: #F59E0B;
   }
 
-  html, body {
-    overscroll-behavior-y: none;
+  html {
     background-color: var(--color-bg);
+    overflow-x: hidden;
   }
 
   body {
     background-color: var(--color-bg);
-    background-image: 
-      radial-gradient(ellipse 90% 45% at 50% -10%, rgba(35, 44, 62, 0.15), transparent),
-      radial-gradient(circle at 100% 100%, rgba(18, 23, 34, 0.2), transparent);
-    background-attachment: fixed;
     color: #f1f5f9;
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     -webkit-tap-highlight-color: transparent;
-    user-select: none;
-    -webkit-user-select: none;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+    overflow-x: hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -49,6 +46,18 @@
     background-color: var(--wham-accent, #F59E0B);
     color: #000000;
   }
+}
+
+/* Fixed GPU ambient lighting layer - decoupled from scroll repainting */
+.ambient-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -10;
+  background-image: 
+    radial-gradient(ellipse 90% 45% at 50% -10%, rgba(35, 44, 62, 0.15), transparent),
+    radial-gradient(circle at 100% 100%, rgba(18, 23, 34, 0.2), transparent);
+  transform: translateZ(0);
 }
 
 /* Custom modern scrollbars */
@@ -69,11 +78,10 @@
 
 /* Snappy tactile spring touch feedback (Linear / iOS haptic aesthetic) */
 .active-press {
-  transition: transform 0.16s cubic-bezier(0.2, 0, 0, 1), opacity 0.16s ease, filter 0.16s ease;
-  will-change: transform;
+  transition: transform 0.14s cubic-bezier(0.2, 0, 0, 1), opacity 0.14s ease;
 }
 .active-press:active {
-  transform: scale(0.96);
+  transform: scale(0.97);
   opacity: 0.92;
 }
 
@@ -156,8 +164,23 @@
   animation: floatUp 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Off-screen layout & paint optimization for boulder lists (deferred rendering) */
+/* Off-screen layout & paint optimization for lists & sections (deferred rendering) */
 .boulder-card-deferred {
   content-visibility: auto;
   contain-intrinsic-size: auto none auto 130px;
+}
+
+.feed-card-deferred {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 62px;
+}
+
+.stats-section-deferred {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 340px;
+}
+
+.comp-card-deferred {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 68px;
 }

@@ -85,23 +85,44 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
   };
 
   // Process & filter all sends
-  const { filteredSends, stats } = useMemo(() => {
-    const raw = attempts.map((att) => {
-      const boulder = boulders.find((b) => b.id === att.boulder_id);
-      const climber = climbers.find((c) => c.id === att.user_id) || att.profile;
-      const area = boulder ? areas.find((a) => a.id === boulder.area_id) : null;
-      const gym = boulder ? gyms.find((g) => g.id === boulder.gym_id) : null;
-      return {
+  const { filteredSends, stats, climberCounts } = useMemo(() => {
+    const boulderMap = new Map(boulders.map((b) => [b.id, b]));
+    const climberMap = new Map(climbers.map((c) => [c.id, c]));
+    const areaMap = new Map(areas.map((a) => [a.id, a]));
+    const gymMap = new Map(gyms.map((g) => [g.id, g]));
+
+    const climberSendCounts: Record<string, number> = {};
+    for (const att of attempts) {
+      if (att.status === 'sent' || att.status === 'flashed') {
+        climberSendCounts[att.user_id] = (climberSendCounts[att.user_id] || 0) + 1;
+      }
+    }
+
+    type SendItem = {
+      attempt: Attempt;
+      boulder: Boulder;
+      climber: Profile | undefined;
+      area: GymArea | null;
+      gym: Gym | null;
+      loggedAt: number;
+    };
+
+    const valid: SendItem[] = [];
+    for (const att of attempts) {
+      const boulder = boulderMap.get(att.boulder_id);
+      if (!boulder) continue;
+      const climber = climberMap.get(att.user_id) || att.profile;
+      const area = areaMap.get(boulder.area_id) || null;
+      const gym = boulder.gym_id ? gymMap.get(boulder.gym_id) || null : null;
+      valid.push({
         attempt: att,
         boulder,
         climber,
         area,
         gym,
         loggedAt: att.logged_at ? new Date(att.logged_at).getTime() : 0
-      };
-    });
-
-    const valid = raw.filter((item) => item.boulder !== undefined);
+      });
+    }
 
     const totalCrewSends = valid.filter((i) => i.attempt.status === 'sent' || i.attempt.status === 'flashed').length;
     const totalCrewFlashes = valid.filter((i) => i.attempt.status === 'flashed').length;
@@ -125,9 +146,9 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
       const q = searchQuery.toLowerCase().trim();
       filtered = filtered.filter((i) => {
         const climberName = i.climber?.display_name?.toLowerCase() || '';
-        const colour = i.boulder?.hold_colour?.toLowerCase() || '';
-        const grade = i.boulder?.grade?.toLowerCase() || '';
-        const notes = i.boulder?.notes?.toLowerCase() || '';
+        const colour = i.boulder.hold_colour.toLowerCase();
+        const grade = i.boulder.grade.toLowerCase();
+        const notes = i.boulder.notes?.toLowerCase() || '';
         const areaName = i.area?.name?.toLowerCase() || '';
         return (
           climberName.includes(q) ||
@@ -146,7 +167,8 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
       stats: {
         totalCrewSends,
         totalCrewFlashes
-      }
+      },
+      climberCounts: climberSendCounts
     };
   }, [attempts, boulders, climbers, gyms, areas, sendTypeFilter, selectedClimberId, searchQuery]);
 
@@ -204,9 +226,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
 
           {climbers.map((c) => {
             const isSelected = selectedClimberId === c.id;
-            const climberSendsCount = attempts.filter(
-              (a) => a.user_id === c.id && (a.status === 'sent' || a.status === 'flashed')
-            ).length;
+            const climberSendsCount = climberCounts[c.id] || 0;
 
             return (
               <button
@@ -329,7 +349,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                     <div
                       key={attempt.id}
                       onClick={() => onSelectBoulder(boulder)}
-                      className="group flex items-center justify-between gap-3 p-2.5 sm:px-3.5 sm:py-2.5 rounded-2xl bg-surface/90 hover:bg-surface-elevated border border-white/[0.06] hover:border-white/[0.14] transition-all cursor-pointer active-press"
+                      className="feed-card-deferred group flex items-center justify-between gap-3 p-2.5 sm:px-3.5 sm:py-2.5 rounded-2xl bg-surface/90 hover:bg-surface-elevated border border-white/[0.06] hover:border-white/[0.14] transition-all cursor-pointer active-press"
                     >
                       {/* Left: Climber & Action info */}
                       <div className="flex items-center gap-2.5 min-w-0">

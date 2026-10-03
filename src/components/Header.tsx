@@ -76,7 +76,7 @@ export const Header: React.FC<HeaderProps> = ({
     .sort((a, b) => a.sort_order - b.sort_order);
 
   return (
-    <header className="sticky top-0 z-30 bg-carbon/90 backdrop-blur-2xl border-b border-white/[0.07] px-4 pb-3 flex flex-col gap-3 pt-safe shadow-xs">
+    <header className="sticky top-0 z-30 bg-carbon/96 backdrop-blur-md border-b border-white/[0.07] px-4 pb-3 flex flex-col gap-3 pt-safe shadow-xs transform-gpu">
       {/* Top Bar: Brand, Gym Selector, Profile & Settings */}
       <div className="flex items-center justify-between gap-2.5">
         {/* Brand Logo & Demo Pill */}

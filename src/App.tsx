@@ -412,8 +412,8 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col relative">
-      {/* Subtle climbing gym chalk micro-grain texture overlay */}
-      <div className="chalk-grain-overlay" aria-hidden="true" />
+      {/* Decoupled GPU-accelerated ambient lighting layer (zero scroll repaints) */}
+      <div className="ambient-bg" aria-hidden="true" />
 
       {/* Persistent Header */}
       <Header

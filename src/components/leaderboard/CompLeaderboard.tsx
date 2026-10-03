@@ -621,7 +621,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                   borderColor: `${activeColor}80`,
                   boxShadow: `0 0 0 1px ${activeColor}40`
                 } : undefined}
-                className={`border rounded-xl transition-all overflow-hidden ${
+                className={`comp-card-deferred border rounded-xl transition-all overflow-hidden ${
                   isMe
                     ? 'bg-slate-850/90 shadow-sm'
                     : 'border-slate-800 bg-slate-900/50 hover:border-slate-700'

@@ -525,7 +525,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
       {/* SECTION: Visual Climbing Graphs (Grade Pyramid & Attempt Efficiency) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Graph 1: Grade Pyramid */}
-        <div className="lg:col-span-7 bg-surface border border-white/[0.08] rounded-3xl p-5 flex flex-col justify-between gap-4 shadow-xs">
+        <div className="stats-section-deferred lg:col-span-7 bg-surface border border-white/[0.08] rounded-3xl p-5 flex flex-col justify-between gap-4 shadow-xs">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Layers className="w-4 h-4 text-amber-400" />
@@ -621,7 +621,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
         </div>
 
         {/* Graph 2: Attempt Efficiency */}
-        <div className="lg:col-span-5 bg-surface border border-white/[0.08] rounded-3xl p-5 flex flex-col justify-between gap-4 shadow-xs">
+        <div className="stats-section-deferred lg:col-span-5 bg-surface border border-white/[0.08] rounded-3xl p-5 flex flex-col justify-between gap-4 shadow-xs">
           <div>
             <div className="flex items-center gap-2">
               <Target className="w-4 h-4 text-emerald-400" />
@@ -712,7 +712,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
       </div>
 
       {/* SECTION: Send % and Flash % Conversion Rates by Grade */}
-      <div className="bg-surface border border-white/[0.08] rounded-3xl p-5 flex flex-col gap-4 shadow-xs">
+      <div className="stats-section-deferred bg-surface border border-white/[0.08] rounded-3xl p-5 flex flex-col gap-4 shadow-xs">
         <div className="flex items-center justify-between flex-wrap gap-2.5">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400">
@@ -841,7 +841,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
       </div>
 
       {/* SECTION: Progress Over Time (Progression Chart & Session Log) */}
-      <div className="bg-surface border border-white/[0.08] rounded-3xl p-5 flex flex-col gap-5 shadow-xs">
+      <div className="stats-section-deferred bg-surface border border-white/[0.08] rounded-3xl p-5 flex flex-col gap-5 shadow-xs">
         {/* Section Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-2.5">
@@ -1418,7 +1418,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
       </div>
 
       {/* Active Gym Coverage & Sector Breakdown */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="stats-section-deferred grid grid-cols-1 md:grid-cols-3 gap-3">
         {/* Donut Chart: Gym Topped Percentage */}
         <div className="bg-surface border border-white/[0.08] rounded-3xl p-5 flex flex-col items-center justify-between gap-4 shadow-xs">
           <div className="flex items-center justify-between w-full">
@@ -1550,7 +1550,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
       </div>
 
       {/* Community Reviews & Grade Consensus Section */}
-      <div className="bg-surface border border-white/[0.08] rounded-3xl p-5 flex flex-col gap-5 shadow-xs">
+      <div className="stats-section-deferred bg-surface border border-white/[0.08] rounded-3xl p-5 flex flex-col gap-5 shadow-xs">
         {/* Section Header */}
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2.5">
