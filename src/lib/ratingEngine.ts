@@ -67,6 +67,7 @@ export interface ClimberRating {
   gradeEquivalent: string;
   subGradeDescription: string;
   percentile: number; // Estimated % of regular boulderers they climb better than
+  topPercentile: number; // Estimated top % of regular boulderers (e.g. 26.6% -> Top 26.6%)
   isProvisional: boolean; // True if fewer than 5 sends in last 60 days
   sendsCount: number; // Number of sends in last 60 days (up to 10 used)
   totalSendsInWindow: number;
@@ -74,66 +75,6 @@ export interface ClimberRating {
   hardestSendGrade: Grade | null;
   formStatus: 'peak' | 'active' | 'calibrating' | 'dormant';
 }
-
-export interface BenchmarkClimber {
-  name: string;
-  elo: number;
-  grade: string;
-  title: string;
-  category: 'pro' | 'setter' | 'gym' | 'crew';
-  tag: string;
-}
-
-export const WORLD_BENCHMARKS: BenchmarkClimber[] = [
-  {
-    name: 'Will Bosi',
-    elo: 2950,
-    grade: 'V17',
-    title: 'World Apex (Burden of Dreams, Alphane)',
-    category: 'pro',
-    tag: 'World Record'
-  },
-  {
-    name: 'Janja Garnbret',
-    elo: 2840,
-    grade: 'V15',
-    title: 'Olympic 2x Gold & Competition GOAT',
-    category: 'pro',
-    tag: 'Olympic Gold'
-  },
-  {
-    name: 'Toby Roberts',
-    elo: 2800,
-    grade: 'V15',
-    title: 'Olympic Gold Medalist & Outdoor Crusher',
-    category: 'pro',
-    tag: 'Olympic Gold'
-  },
-  {
-    name: 'Head Routesetter',
-    elo: 2100,
-    grade: 'V8–V10',
-    title: 'Commercial Chief Setter Tier',
-    category: 'setter',
-    tag: 'Setter Tier'
-  },
-  {
-    name: 'Local Gym Crusher',
-    elo: 1800,
-    grade: 'V6–V7',
-    title: 'Top 3% of regular gym climbers',
-    category: 'gym',
-    tag: 'Gym Crusher'
-  },
-  {
-    name: 'Median Regular Boulderer',
-    elo: 1350,
-    grade: 'V3',
-    title: 'Climbs 1–2x per week regularly',
-    category: 'gym',
-    tag: 'Gym Median'
-  }
-];
 
 /**
  * Translates an Elo number into an intuitive bouldering title and bracket.
@@ -324,6 +265,7 @@ export function computeClimberRating(
 
   const { title, gradeEquivalent, subGradeDescription } = getClimberTitleFromElo(calculatedElo);
   const percentile = calculateClimberPercentile(calculatedElo);
+  const topPercentile = Math.max(0.1, Math.round((100 - percentile) * 10) / 10);
 
   let formStatus: 'peak' | 'active' | 'calibrating' | 'dormant' = 'dormant';
   if (top10.length >= 8) {
@@ -344,6 +286,7 @@ export function computeClimberRating(
     gradeEquivalent,
     subGradeDescription,
     percentile,
+    topPercentile,
     isProvisional,
     sendsCount: top10.length,
     totalSendsInWindow,

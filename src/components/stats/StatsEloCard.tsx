@@ -21,7 +21,6 @@ import { HoldBadge } from '../boulders/HoldBadge';
 import {
   computeClimberRating,
   computeCrewRatings,
-  WORLD_BENCHMARKS,
   ClimberRating,
   ScorecardSendItem
 } from '../../lib/ratingEngine';
@@ -52,7 +51,6 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
   onSelectBoulder
 }) => {
   const [showScorecard, setShowScorecard] = useState(false);
-  const [showBenchmarks, setShowBenchmarks] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
 
   // Compute all crew ratings
@@ -212,10 +210,10 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
             <div className="flex items-center justify-between text-xs">
               <span className="font-semibold text-slate-300 flex items-center gap-1.5">
                 <Globe className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Regular Climber Percentile</span>
+                <span>Regular Climber Tier</span>
               </span>
               <span className="font-mono font-black text-amber-400">
-                Better than {activeRating.percentile}%
+                Top {activeRating.topPercentile}%
               </span>
             </div>
 
@@ -228,46 +226,28 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
             </div>
 
             <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5 font-mono">
-              <span>Beginner (VB)</span>
-              <span className="text-slate-400">Median V3 (50%)</span>
-              <span>Advanced (V6+)</span>
+              <span>Top 99% (Beginner)</span>
+              <span className="text-slate-400">Top 50% (Median V3)</span>
+              <span>Top 5% (Advanced)</span>
             </div>
           </div>
 
-          {/* Action Row: Toggle Top 10 Scorecard & World Benchmarks */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <button
-              type="button"
-              onClick={() => setShowScorecard(!showScorecard)}
-              className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-white/[0.06] text-xs font-semibold text-slate-200 transition-all active-press"
-            >
-              <div className="flex items-center gap-2">
-                <Target className="w-3.5 h-3.5 text-amber-400" />
-                <span>Top 10 Scorecard ({activeRating.topSends.length}/10)</span>
-              </div>
-              {showScorecard ? (
-                <ChevronUp className="w-4 h-4 text-slate-400" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-slate-400" />
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setShowBenchmarks(!showBenchmarks)}
-              className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-white/[0.06] text-xs font-semibold text-slate-200 transition-all active-press"
-            >
-              <div className="flex items-center gap-2">
-                <Award className="w-3.5 h-3.5 text-cyan-400" />
-                <span>World Benchmarks Ladder</span>
-              </div>
-              {showBenchmarks ? (
-                <ChevronUp className="w-4 h-4 text-slate-400" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-slate-400" />
-              )}
-            </button>
-          </div>
+          {/* Toggle Top 10 Scorecard */}
+          <button
+            type="button"
+            onClick={() => setShowScorecard(!showScorecard)}
+            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-white/[0.06] text-xs font-semibold text-slate-200 transition-all active-press"
+          >
+            <div className="flex items-center gap-2">
+              <Target className="w-3.5 h-3.5 text-amber-400" />
+              <span>Top 10 Scorecard ({activeRating.topSends.length}/10 active)</span>
+            </div>
+            {showScorecard ? (
+              <ChevronUp className="w-4 h-4 text-slate-400" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-slate-400" />
+            )}
+          </button>
 
           {/* EXPANDABLE: TOP 10 SCORECARD */}
           {showScorecard && (
@@ -358,90 +338,6 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
               )}
             </div>
           )}
-
-          {/* EXPANDABLE: WORLD BENCHMARKS LADDER */}
-          {showBenchmarks && (
-            <div className="space-y-2 pt-1 animate-in fade-in duration-200">
-              <div className="text-[11px] text-slate-400 px-1 font-semibold">
-                Global Reference Scale (Anchored to V17 World Peak)
-              </div>
-              <div className="space-y-1.5">
-                {WORLD_BENCHMARKS.map((bench) => {
-                  const isNearClimber = Math.abs(bench.elo - activeRating.elo) < 150;
-                  return (
-                    <div
-                      key={bench.name}
-                      className={`flex items-center justify-between p-2.5 rounded-xl border text-xs ${
-                        isNearClimber
-                          ? 'bg-amber-950/20 border-amber-500/30 text-white'
-                          : 'bg-slate-900/60 border-white/[0.05] text-slate-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <span
-                          className={`font-mono font-bold text-[10px] px-1.5 py-0.5 rounded-md ${
-                            bench.category === 'pro'
-                              ? 'bg-purple-900/60 text-purple-300 border border-purple-500/40'
-                              : bench.category === 'setter'
-                              ? 'bg-amber-900/60 text-amber-300 border border-amber-500/40'
-                              : 'bg-slate-800 text-slate-300'
-                          }`}
-                        >
-                          {bench.grade}
-                        </span>
-                        <div>
-                          <div className="font-bold flex items-center gap-1.5">
-                            <span>{bench.name}</span>
-                            <span className="text-[10px] font-normal text-slate-400">({bench.tag})</span>
-                          </div>
-                          <div className="text-[10px] text-slate-400">{bench.title}</div>
-                        </div>
-                      </div>
-
-                      <div className="font-mono font-black text-right text-xs">
-                        <span className={bench.category === 'pro' ? 'text-purple-300' : 'text-slate-200'}>
-                          {bench.elo.toLocaleString()}
-                        </span>
-                        <span className="text-[10px] text-slate-400 ml-1">Elo</span>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {/* Climber's position marker in the ladder */}
-                <div
-                  className="flex items-center justify-between p-2.5 rounded-xl border text-xs"
-                  style={{
-                    backgroundColor: `${activeColor}15`,
-                    borderColor: `${activeColor}40`
-                  }}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span
-                      className="font-mono font-black text-[10px] px-1.5 py-0.5 rounded-md text-black"
-                      style={{ backgroundColor: activeColor }}
-                    >
-                      {activeRating.gradeEquivalent}
-                    </span>
-                    <div>
-                      <div className="font-bold text-white flex items-center gap-1.5">
-                        <span>{activeClimber.display_name} (You)</span>
-                        <span className="text-[10px] font-mono text-emerald-400">
-                          Top {Math.max(1, Math.round(100 - activeRating.percentile))}%
-                        </span>
-                      </div>
-                      <div className="text-[10px] text-slate-300">{activeRating.title}</div>
-                    </div>
-                  </div>
-
-                  <div className="font-mono font-black text-right text-sm" style={{ color: activeColor }}>
-                    {activeRating.elo.toLocaleString()}
-                    <span className="text-[10px] text-slate-400 ml-1 font-normal">Elo</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       ) : (
         /* VIEW MODE 2: CREW LEADERBOARD */
@@ -509,7 +405,7 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
                         {rating.elo.toLocaleString()}
                       </div>
                       <div className="text-[10px] text-slate-400">
-                        Better than {rating.percentile}%
+                        Top {rating.topPercentile}%
                       </div>
                     </div>
 
