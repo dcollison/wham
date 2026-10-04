@@ -30,6 +30,7 @@ import { ClimberAvatar } from '../ClimberAvatar';
 import { ClimberStatsData, AccoladeItem } from '../../lib/statsEngine';
 import { computeReviewAnalytics } from '../../lib/reviews';
 import { HoldBadge } from '../boulders/HoldBadge';
+import { StatsEloCard } from './StatsEloCard';
 
 export interface AreaBreakdownItem {
   area: GymArea;
@@ -521,6 +522,20 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
           <span className="text-[10px] text-slate-400 mt-1">Attempts per send</span>
         </div>
       </div>
+
+      {/* SECTION: Tournament Elo Rating & Global Percentiles */}
+      <StatsEloCard
+        viewMode={viewMode}
+        selectedClimberId={selectedClimberId}
+        onSelectClimberId={onSelectClimberId}
+        onSetViewMode={onSetViewMode}
+        climbers={climbers}
+        currentUserId={currentUserId}
+        activeColor={activeColor}
+        attempts={filteredAttempts}
+        boulders={allBoulders}
+        onSelectBoulder={onSelectBoulder}
+      />
 
       {/* SECTION: Visual Climbing Graphs (Grade Pyramid & Attempt Efficiency) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
