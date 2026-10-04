@@ -24,11 +24,18 @@ export const GRADE_ELO_BASE: Record<Grade, number> = {
 };
 
 /**
- * Weights for top 10 sends in descending order of difficulty.
- * Gives higher weight to breakthrough sends while requiring depth.
+ * Weights for top 15 sends in descending order of difficulty.
+ * Gives higher weight to breakthrough sends while requiring depth across the pyramid.
  * Sum = 1.00
  */
-export const TOP_10_WEIGHTS = [0.18, 0.15, 0.13, 0.11, 0.10, 0.09, 0.08, 0.06, 0.05, 0.05];
+export const TOP_15_WEIGHTS = [
+  0.12, 0.10, 0.09, // Peak breakthrough sends (31%)
+  0.08, 0.08, 0.07, 0.07, // Upper consolidation sends (30%)
+  0.06, 0.06, 0.05, 0.05, // Bread & butter circuit sends (22%)
+  0.05, 0.04, 0.04, 0.04 // Base volume sends (17%)
+];
+
+export const TOP_10_WEIGHTS = TOP_15_WEIGHTS.slice(0, 10);
 
 /**
  * Bonus Elo awarded on each send based on attempt efficiency.
@@ -244,18 +251,18 @@ export function computeClimberRating(
   // Sort descending by send Elo (hardest/highest-scoring sends first)
   scoredSends.sort((a, b) => b.sendElo - a.sendElo);
 
-  const top10 = scoredSends.slice(0, 10);
+  const top15 = scoredSends.slice(0, 15);
   const totalSendsInWindow = scoredSends.length;
 
   let calculatedElo = 1000; // Default floor
-  const isProvisional = top10.length < 5;
+  const isProvisional = top15.length < 6;
 
-  if (top10.length > 0) {
+  if (top15.length > 0) {
     // Normalize weights for the actual number of sends available
-    const weightsSlice = TOP_10_WEIGHTS.slice(0, top10.length);
+    const weightsSlice = TOP_15_WEIGHTS.slice(0, top15.length);
     const weightSum = weightsSlice.reduce((sum, w) => sum + w, 0);
 
-    const weightedScore = top10.reduce((acc, item, idx) => {
+    const weightedScore = top15.reduce((acc, item, idx) => {
       const normalizedWeight = weightsSlice[idx] / weightSum;
       return acc + item.sendElo * normalizedWeight;
     }, 0);
@@ -268,15 +275,15 @@ export function computeClimberRating(
   const topPercentile = Math.max(0.1, Math.round((100 - percentile) * 10) / 10);
 
   let formStatus: 'peak' | 'active' | 'calibrating' | 'dormant' = 'dormant';
-  if (top10.length >= 8) {
+  if (top15.length >= 12) {
     formStatus = 'peak';
-  } else if (top10.length >= 5) {
+  } else if (top15.length >= 7) {
     formStatus = 'active';
-  } else if (top10.length > 0) {
+  } else if (top15.length > 0) {
     formStatus = 'calibrating';
   }
 
-  const hardestSendGrade = top10.length > 0 ? top10[0].grade : null;
+  const hardestSendGrade = top15.length > 0 ? top15[0].grade : null;
 
   return {
     userId,
@@ -288,9 +295,9 @@ export function computeClimberRating(
     percentile,
     topPercentile,
     isProvisional,
-    sendsCount: top10.length,
+    sendsCount: top15.length,
     totalSendsInWindow,
-    topSends: top10,
+    topSends: top15,
     hardestSendGrade,
     formStatus
   };

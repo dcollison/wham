@@ -75,27 +75,27 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Peak Form ({sendsCount}/10)
+            Peak Form ({sendsCount}/15)
           </span>
         );
       case 'active':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/15 text-cyan-400 border border-cyan-500/30">
             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-            Active Form ({sendsCount}/10)
+            Active Form ({sendsCount}/15)
           </span>
         );
       case 'calibrating':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-            Calibrating ({sendsCount}/10)
+            Calibrating ({sendsCount}/15)
           </span>
         );
       default:
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">
-            Dormant (0/10)
+            Dormant (0/15)
           </span>
         );
     }
@@ -131,7 +131,7 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
               </button>
             </div>
             <p className="text-[11px] text-slate-400">
-              60-day tournament-style rolling scorecard (Top 10 sends)
+              60-day tournament-style rolling scorecard (Top 15 sends)
             </p>
           </div>
         </div>
@@ -153,10 +153,10 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
             • <strong>No Project Penalty</strong>: Trying hard boulders and falling never lowers your rating. Only your sends count.
           </p>
           <p className="text-[11px] leading-relaxed text-slate-300">
-            • <strong>Top 10 in 60 Days</strong>: Your score is the weighted average of your best 10 sends over the last 60 days, rewarding flashes (⚡ +40) and quick sends.
+            • <strong>Top 15 in 60 Days</strong>: Your score is the weighted average of your best 15 sends over the last 60 days, rewarding flashes (⚡ +40) and quick sends.
           </p>
           <p className="text-[11px] leading-relaxed text-slate-300">
-            • <strong>Global Percentile</strong>: Calibrated against worldwide gym community data. The median regular gym climber is ~1,350 Elo (V3).
+            • <strong>Regular Climber Tier</strong>: Calibrated against worldwide gym community data. The median regular gym climber is ~1,350 Elo (V3).
           </p>
         </div>
       )}
@@ -232,7 +232,7 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
             </div>
           </div>
 
-          {/* Toggle Top 10 Scorecard */}
+          {/* Toggle Top 15 Scorecard */}
           <button
             type="button"
             onClick={() => setShowScorecard(!showScorecard)}
@@ -240,7 +240,7 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
           >
             <div className="flex items-center gap-2">
               <Target className="w-3.5 h-3.5 text-amber-400" />
-              <span>Top 10 Scorecard ({activeRating.topSends.length}/10 active)</span>
+              <span>Top 15 Scorecard ({activeRating.topSends.length}/15 active)</span>
             </div>
             {showScorecard ? (
               <ChevronUp className="w-4 h-4 text-slate-400" />
@@ -249,7 +249,7 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
             )}
           </button>
 
-          {/* EXPANDABLE: TOP 10 SCORECARD */}
+          {/* EXPANDABLE: TOP 15 SCORECARD */}
           {showScorecard && (
             <div className="space-y-2 pt-1 animate-in fade-in duration-200">
               <div className="flex items-center justify-between text-[11px] text-slate-400 px-1 font-semibold">
@@ -320,8 +320,8 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
                     </div>
                   ))}
 
-                  {/* Empty slots placeholders if fewer than 10 */}
-                  {Array.from({ length: Math.max(0, 10 - activeRating.topSends.length) }).map((_, i) => {
+                  {/* Empty slots placeholders if fewer than 15 */}
+                  {Array.from({ length: Math.max(0, 15 - activeRating.topSends.length) }).map((_, i) => {
                     const slotNum = activeRating.topSends.length + i + 1;
                     return (
                       <div
