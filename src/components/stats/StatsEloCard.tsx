@@ -7,12 +7,8 @@ import {
   Globe,
   ChevronDown,
   ChevronUp,
-  Activity,
-  Award,
   Sparkles,
   HelpCircle,
-  ExternalLink,
-  Flame,
   Target
 } from 'lucide-react';
 import { Boulder, Attempt, Profile, getClimberColor } from '../../types';
@@ -21,8 +17,7 @@ import { HoldBadge } from '../boulders/HoldBadge';
 import {
   computeClimberRating,
   computeCrewRatings,
-  ClimberRating,
-  ScorecardSendItem
+  ClimberRating
 } from '../../lib/ratingEngine';
 
 interface StatsEloCardProps {

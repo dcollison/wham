@@ -5,15 +5,13 @@ import {
   Check,
   ShieldCheck,
   HardDrive,
-  Lightbulb,
-  Sparkles
+  Lightbulb
 } from 'lucide-react';
 import { useGym } from '../../context/GymContext';
 import {
   createBackupPayload,
   downloadBackupFile,
-  validateAndParseBackup,
-  LocalSnapshotMeta
+  validateAndParseBackup
 } from '../../lib/backup';
 import { PhotoStorageManager } from './PhotoStorageManager';
 import { CrewSettingsTab } from './CrewSettingsTab';
@@ -55,7 +53,6 @@ export const CircleView: React.FC<CircleViewProps> = ({
     boulders,
     attempts,
     comments,
-    propsMap,
     reviews,
     featureRequests,
     submitFeatureRequest,
@@ -65,14 +62,12 @@ export const CircleView: React.FC<CircleViewProps> = ({
     restoreBackupData,
     createManualSnapshot,
     restoreSnapshotById,
-    getSnapshotsList,
     snapshots: gymSnapshots,
     syncSnapshotsToCloud,
     deleteSnapshot
   } = useGym();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [snapshots, setSnapshots] = useState<LocalSnapshotMeta[]>([]);
   const [activeTab, setActiveTab] = useState<'crew' | 'backups' | 'storage' | 'ideas'>(initialTab);
   const [isFeatureModalOpen, setIsFeatureModalOpen] = useState<boolean>(false);
   const [selectedClimberId, setSelectedClimberId] = useState<string>(
@@ -88,7 +83,6 @@ export const CircleView: React.FC<CircleViewProps> = ({
   }, [initialTab]);
 
   useEffect(() => {
-    setSnapshots(getSnapshotsList());
     if (currentUser?.id) {
       setSelectedClimberId(currentUser.id);
     }
@@ -118,7 +112,7 @@ export const CircleView: React.FC<CircleViewProps> = ({
         comments,
         profiles: climbers,
         boulderReviews: reviews,
-        propsMap
+        featureRequests
       });
       downloadBackupFile(payload);
       showSuccess(`Backup exported (${boulders.length} climbs, ${attempts.length} logs)!`);
@@ -147,7 +141,6 @@ export const CircleView: React.FC<CircleViewProps> = ({
         const res = await restoreBackupData(parsed.data);
         if (res.success) {
           showSuccess(res.message);
-          setSnapshots(getSnapshotsList());
         } else {
           showError(res.message);
         }
@@ -172,7 +165,6 @@ export const CircleView: React.FC<CircleViewProps> = ({
       const ok = await restoreSnapshotById(snapId);
       if (ok) {
         showSuccess(`Restored safety snapshot from ${timeFormatted}!`);
-        setSnapshots(getSnapshotsList());
       } else {
         showError('Failed to restore snapshot');
       }
@@ -347,7 +339,7 @@ export const CircleView: React.FC<CircleViewProps> = ({
           <BackupsSettingsTab
             boulders={boulders}
             attempts={attempts}
-            snapshots={gymSnapshots && gymSnapshots.length > 0 ? gymSnapshots : snapshots}
+            snapshots={gymSnapshots}
             climbers={climbers}
             onExportBackup={handleExportBackup}
             onRestoreSnapshot={handleRestoreSnapshot}

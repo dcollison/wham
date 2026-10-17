@@ -16,8 +16,7 @@ import {
   Sparkles,
   Zap,
   Palette,
-  Bug,
-  Filter
+  Bug
 } from 'lucide-react';
 
 interface RoadmapTabProps {

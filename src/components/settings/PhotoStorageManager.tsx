@@ -14,7 +14,7 @@ interface PhotoStorageManagerProps {
 export const PhotoStorageManager: React.FC<PhotoStorageManagerProps> = ({
   boulders,
   areas: propAreas,
-  activeColor
+  activeColor: _activeColor
 }) => {
   const { areas: contextAreas, pruneArchivedClimbPhotos, removeAreaPhoto } = useGym();
   const areas = propAreas || contextAreas || [];

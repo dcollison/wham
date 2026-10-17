@@ -1,4 +1,4 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RotateCcw } from 'lucide-react';
 
 interface Props {
@@ -30,6 +30,28 @@ export class ErrorBoundary extends Component<Props, State> {
     window.location.reload();
   };
 
+  public handleClearCacheAndReload = () => {
+    try {
+      const keysToPreserve = ['wham_safety_snapshots_v1'];
+      const preserved: Record<string, string> = {};
+      for (const k of keysToPreserve) {
+        const val = localStorage.getItem(k);
+        if (val) preserved[k] = val;
+      }
+      Object.keys(localStorage).forEach((k) => {
+        if (k.startsWith('wham_') && !keysToPreserve.includes(k)) {
+          localStorage.removeItem(k);
+        }
+      });
+      for (const [k, val] of Object.entries(preserved)) {
+        localStorage.setItem(k, val);
+      }
+    } catch (e) {
+      console.warn('Failed to clear cache in ErrorBoundary:', e);
+    }
+    window.location.reload();
+  };
+
   public render() {
     if (this.state.hasError) {
       return (
@@ -53,14 +75,23 @@ export class ErrorBoundary extends Component<Props, State> {
               )}
             </div>
 
-            <button
-              type="button"
-              onClick={this.handleReset}
-              className="w-full py-2.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 active-press transition-colors shadow"
-            >
-              <RotateCcw className="w-4 h-4" />
-              <span>Reload App</span>
-            </button>
+            <div className="w-full flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={this.handleReset}
+                className="w-full py-2.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 active-press transition-colors shadow"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Reload App</span>
+              </button>
+              <button
+                type="button"
+                onClick={this.handleClearCacheAndReload}
+                className="w-full py-2 px-4 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700 font-semibold text-xs flex items-center justify-center gap-2 active-press transition-colors"
+              >
+                <span>Clear Cache & Reload</span>
+              </button>
+            </div>
           </div>
         </div>
       );

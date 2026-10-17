@@ -53,7 +53,6 @@ export function createBackupPayload(params: {
   profiles: Profile[];
   boulderReviews?: BoulderReview[];
   featureRequests?: FeatureRequest[];
-  propsMap?: Record<string, string[]>;
 }): WhamBackupData {
   let climberCustomizations: Record<string, any> = {};
   try {
@@ -75,8 +74,7 @@ export function createBackupPayload(params: {
     profiles: params.profiles,
     boulderReviews: params.boulderReviews || [],
     featureRequests: params.featureRequests || [],
-    climberCustomizations,
-    sendsProps: params.propsMap || {}
+    climberCustomizations
   };
 }
 

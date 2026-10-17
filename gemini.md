@@ -158,19 +158,20 @@ wham-app/
         │   ├── AddBoulderModal.tsx       # Single boulder entry with photo upload
         │   ├── BulkAddBouldersModal.tsx  # Multi-climb bulk logger for resets
         │   ├── AreaResetModal.tsx        # Archive entire sector confirmation
-        │   ├── GymCompBanner.tsx         # Top comp podium preview banner
+        │   ├── CompWallBanner.tsx        # Comp wall sector leaderboard banner
         │   ├── HoldBadge.tsx             # Swatch and high-contrast grade pill
         │   └── ClimberStatusPills.tsx    # Small crew status chips
         ├── feed/
         │   ├── CrewFeedView.tsx          # Dual-tab view: Recent Sends & Beta Discussion
-        │   └── RecentSendsFeed.tsx       # Chronological send stream with props reactions
+        │   └── RecentSendsFeed.tsx       # Chronological send stream
         ├── leaderboard/
-        │   ├── CompLeaderboard.tsx       # Podium view, points breakdown, standings
-        │   └── CompLeaderboardModal.tsx  # Full-screen competition leaderboard modal
+        │   └── CompLeaderboard.tsx       # Podium view, points breakdown, standings
         ├── stats/
-        │   └── StatsDashboard.tsx        # Personal & group analytics, dynamic circuits, 1v1 battle
+        │   ├── StatsDashboard.tsx        # Personal & group analytics dashboard
+        │   ├── StatsOverview.tsx         # Progression charts, circuits, and review analytics
+        │   └── StatsEloCard.tsx          # Climber ELO rating card
         └── settings/
-            └── SettingsModal.tsx         # Crew profiles, accent colors, icons, Supabase config
+            └── CircleView.tsx            # Crew profiles, backups, storage manager, roadmap
 ```
 
 ---
@@ -328,6 +329,9 @@ CREATE POLICY "Public can update profiles" ON public.profiles FOR UPDATE TO publ
 DROP POLICY IF EXISTS "Users can insert their own profile" ON public.profiles;
 DROP POLICY IF EXISTS "Public can insert profiles" ON public.profiles;
 CREATE POLICY "Public can insert profiles" ON public.profiles FOR INSERT TO public WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public can delete profiles" ON public.profiles;
+CREATE POLICY "Public can delete profiles" ON public.profiles FOR DELETE TO public USING (true);
 
 -- Ensure boulders updates and archives work from shared devices
 DROP POLICY IF EXISTS "Authenticated users can update boulders" ON public.boulders;

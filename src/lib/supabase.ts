@@ -20,7 +20,9 @@ export const isDemoRequested = (): boolean => {
     return (
       search.includes('demo=true') ||
       search.includes('mode=demo') ||
-      hash.includes('demo') ||
+      hash === '#demo' ||
+      hash.startsWith('#demo&') ||
+      hash.includes('demo=true') ||
       localStorage.getItem('wham_force_demo') === 'true'
     );
   } catch {
@@ -38,7 +40,7 @@ export const isSupabaseConfigured = Boolean(
   !envUrl.includes('your-project')
 );
 
-export let supabase: SupabaseClient | null = isSupabaseConfigured
+export const supabase: SupabaseClient | null = isSupabaseConfigured
   ? createClient(envUrl, envKey, {
       auth: {
         persistSession: true,
@@ -46,28 +48,6 @@ export let supabase: SupabaseClient | null = isSupabaseConfigured
       }
     })
   : null;
-
-/**
- * Re-initialize supabase client if user configures it dynamically from the UI
- */
-export function reconfigureSupabase(url: string, key: string): boolean {
-  try {
-    if (url && key && url.startsWith('http')) {
-      localStorage.setItem('wham_supabase_url', url.trim());
-      localStorage.setItem('wham_supabase_key', key.trim());
-      supabase = createClient(url.trim(), key.trim(), {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true
-        }
-      });
-      return true;
-    }
-  } catch (e) {
-    console.error('Failed to configure Supabase:', e);
-  }
-  return false;
-}
 
 /**
  * Upload a compressed photo to the Supabase 'boulder-photos' bucket

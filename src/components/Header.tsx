@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Gym, GymArea, Profile, Boulder } from '../types';
 import { ClimberAvatar } from './ClimberAvatar';
-import { Zap, ChevronDown, Plus, Archive, Layers, Trophy, MoreHorizontal, Check, Eye, ShieldCheck, Clock, Lightbulb } from 'lucide-react';
-import { WhamLogo, WhamBadge } from './WhamLogo';
+import { ChevronDown, Plus, Archive, Layers, Trophy, MoreHorizontal, Eye, ShieldCheck, Clock, Lightbulb, Check } from 'lucide-react';
+import { WhamBadge } from './WhamLogo';
 import { getAreaResetInfo } from '../lib/resetStatus';
 
 interface HeaderProps {
@@ -14,10 +14,9 @@ interface HeaderProps {
   areas: GymArea[];
   onSelectArea: (area: GymArea | null) => void;
   currentUser: Profile | null;
-  climbers: Profile[];
+  climbers?: Profile[];
   boulders?: Boulder[];
   onOpenProfileSwitcher: () => void;
-  onOpenLeaderboard?: () => void;
   onOpenAddBoulder: () => void;
   onOpenBulkAdd?: () => void;
   onOpenAreaReset: () => void;
@@ -39,10 +38,8 @@ export const Header: React.FC<HeaderProps> = ({
   areas,
   onSelectArea,
   currentUser,
-  climbers,
   boulders = [],
   onOpenProfileSwitcher,
-  onOpenLeaderboard,
   onOpenAddBoulder,
   onOpenBulkAdd,
   onOpenAreaReset,
@@ -92,7 +89,11 @@ export const Header: React.FC<HeaderProps> = ({
               type="button"
               onClick={() => {
                 localStorage.removeItem('wham_force_demo');
-                window.location.href = window.location.pathname;
+                const cleanHash = window.location.hash
+                  .replace(/^#demo(&|$)/i, '#')
+                  .replace(/[?&]demo=true/gi, '');
+                window.location.href =
+                  window.location.pathname + (cleanHash && cleanHash !== '#' ? cleanHash : '');
               }}
               className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 transition-colors shadow-xs active-press cursor-pointer font-mono"
               title="Viewing Demo Mode. Tap to switch back to Live App"

@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Boulder, Attempt, Profile, Gym, HOLD_COLORS } from '../../types';
+import { Boulder, Attempt, Profile, Gym } from '../../types';
 import { ClimberAvatar } from '../ClimberAvatar';
+import { HoldBadge } from '../boulders/HoldBadge';
 import { useAuth } from '../../context/AuthContext';
 import {
   computeGymCompLeaderboard,
@@ -17,9 +18,7 @@ import {
   Zap,
   ChevronDown,
   ChevronUp,
-  Info,
   Sparkles,
-  Flame,
   CheckCircle2,
   HelpCircle,
   Layers,
@@ -82,7 +81,7 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
     return computeMonthlyHallOfFame(selectedGymId, gyms, boulders, attempts, climbers);
   }, [selectedGymId, gyms, boulders, attempts, climbers]);
 
-  const { standings, activeBouldersCount, totalPossiblePoints, totalBasePoints, gymName, monthInfo, isMonthly } =
+  const { standings, activeBouldersCount, gymName, monthInfo, isMonthly } =
     leaderboardData;
 
   const firstPlace = standings[0];
@@ -730,63 +729,43 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {standing.toppedBoulders.map((item) => {
-                          const colorCfg = HOLD_COLORS[item.boulder.hold_colour] || {
-                            bgClass: 'bg-slate-700',
-                            textClass: 'text-white',
-                            borderClass: 'border-slate-600',
-                            hex: '#94A3B8'
-                          };
-
-                          return (
-                            <div
-                              key={item.boulder.id}
-                              onClick={() => onSelectBoulder && onSelectBoulder(item.boulder)}
-                              className={`p-2 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-2 text-xs transition-colors ${
-                                onSelectBoulder ? 'hover:border-slate-700 cursor-pointer' : ''
-                              }`}
-                            >
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span
-                                  className={`px-2 py-0.5 rounded-md font-black text-[11px] border shrink-0 ${
-                                    item.boulder.hold_colour.toLowerCase() === 'bee'
-                                      ? 'text-white border-yellow-400'
-                                      : `${colorCfg.bgClass} ${colorCfg.textClass} ${colorCfg.borderClass}`
-                                  }`}
-                                  style={
-                                     item.boulder.hold_colour.toLowerCase() === 'bee'
-                                        ? {
-                                            background: 'linear-gradient(90deg, #DDA82B 0% 50%, #18181B 50% 100%)',
-                                            backgroundRepeat: 'no-repeat',
-                                            textShadow: '0 1px 2px rgba(0,0,0,0.9)'
-                                          }
-                                        : undefined
-                                  }
-                                >
-                                  {item.grade}
-                                </span>
-                                <span className="text-slate-200 font-medium truncate text-xs">
-                                  {item.boulder.hold_colour}
-                                </span>
-                              </div>
-
-                              <div className="flex items-center gap-2 shrink-0 font-mono">
-                                {item.isFlash ? (
-                                  <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-0.5">
-                                    <Zap className="w-2.5 h-2.5 fill-emerald-400" /> Flash
-                                  </span>
-                                ) : (
-                                  <span className="text-[10px] text-slate-400">
-                                    {item.attemptsCount} {item.attemptsCount === 1 ? 'try' : 'tries'}
-                                  </span>
-                                )}
-                                <span className="font-bold text-slate-200 text-xs">
-                                  +{item.totalPoints} pts
-                                </span>
-                              </div>
+                        {standing.toppedBoulders.map((item) => (
+                          <div
+                            key={item.boulder.id}
+                            onClick={() => onSelectBoulder && onSelectBoulder(item.boulder)}
+                            className={`p-2 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-2 text-xs transition-colors ${
+                              onSelectBoulder ? 'hover:border-slate-700 cursor-pointer' : ''
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <HoldBadge
+                                color={item.boulder.hold_colour}
+                                grade={item.grade}
+                                isComp={item.boulder.is_comp}
+                                compNumber={item.boulder.comp_number}
+                                size="sm"
+                              />
+                              <span className="text-slate-200 font-medium truncate text-xs">
+                                {item.boulder.hold_colour}
+                              </span>
                             </div>
-                          );
-                        })}
+
+                            <div className="flex items-center gap-2 shrink-0 font-mono">
+                              {item.isFlash ? (
+                                <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-0.5">
+                                  <Zap className="w-2.5 h-2.5 fill-emerald-400" /> Flash
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-slate-400">
+                                  {item.attemptsCount} {item.attemptsCount === 1 ? 'try' : 'tries'}
+                                </span>
+                              )}
+                              <span className="font-bold text-slate-200 text-xs">
+                                +{item.totalPoints} pts
+                              </span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Boulder, Grade, GRADES, HOLD_COLORS, GymArea, BulkAddBoulderItem, BulkAddBouldersParams, getHoldSwatchStyle } from '../../types';
+import { Boulder, Grade, GRADES, HOLD_COLORS, GymArea, BulkAddBoulderItem, BulkAddBouldersParams } from '../../types';
 import { compressImage } from '../../lib/imageCompressor';
 import { HoldSwatch } from './HoldSwatch';
 import {
@@ -139,7 +139,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
     const newItem: DraftBoulder = {
       id: `draft-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       holdColour: hold,
-      grade: isCompClimbs ? 'VB' : gr,
+      grade: gr || 'VB',
       isComp: isCompClimbs,
       compNumber: isCompClimbs ? chosenCompNum : undefined,
       notes: notes.trim() || undefined
@@ -341,7 +341,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
         areaId: effectiveAreaId,
         boulders: draftQueue.map(({ holdColour, grade, notes, imageFile, imageDataUrl, isComp: itemIsComp, compNumber }, idx) => ({
           holdColour,
-          grade: isCompClimbs ? 'VB' : grade,
+          grade: grade || 'VB',
           isComp: isCompClimbs || itemIsComp,
           compNumber: isCompClimbs || itemIsComp ? (compNumber ?? startNum + idx) : undefined,
           notes,
@@ -871,7 +871,6 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                 const colorConfig = HOLD_COLORS[item.holdColour] || HOLD_COLORS.Yellow;
                 const fileInputId = `bulk-photo-${item.id}`;
                 const startNum = archiveExisting ? 1 : existingActiveInArea.length + 1;
-                const itemCompNumber = item.compNumber ?? (startNum + idx);
 
                 return (
                   <div

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { GymArea } from '../../types';
-import { X, ZoomIn, ZoomOut, Maximize2, Download, Camera } from 'lucide-react';
+import { X, ZoomIn, ZoomOut, Camera } from 'lucide-react';
 
 interface AreaPhotoModalProps {
   area: GymArea | null;

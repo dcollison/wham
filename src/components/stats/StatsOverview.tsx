@@ -1,10 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import {
-  User,
   Users,
   Flame,
   CheckCircle2,
-  Check,
   Zap,
   Target,
   Trophy,
@@ -22,7 +20,6 @@ import {
   MapPin,
   Percent,
   ArrowUpDown,
-  LineChart,
   TrendingUp
 } from 'lucide-react';
 import { Profile, GymArea, Boulder, BoulderReview, Gym, Grade, GRADES, Attempt } from '../../types';
@@ -112,10 +109,10 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
   const reviewStats = useMemo(() => {
     return computeReviewAnalytics(
       reviews,
-      activeGymBoulders,
-      viewMode === 'my' ? selectedClimberId : null
+      allBoulders.length > 0 ? allBoulders : activeGymBoulders,
+      viewMode === 'my' ? (selectedClimberId || currentUserId || null) : null
     );
-  }, [reviews, activeGymBoulders, viewMode, selectedClimberId]);
+  }, [reviews, allBoulders, activeGymBoulders, viewMode, selectedClimberId, currentUserId]);
 
   // Attempt Efficiency metrics: Flashes (1 try) vs Quick Sends (2-3 tries) vs Project Battles (4+ tries)
   const efficiencyMetrics = useMemo(() => {
@@ -1148,7 +1145,15 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
 
                         {/* MODE 2: CUMULATIVE SENDS */}
                         {timelineMode === 'cumulative' && (() => {
-                          const maxC = timelineData.maxCumulative;
+                          const maxC =
+                            viewMode === 'group'
+                              ? Math.max(
+                                  ...timelineData.climberSeries.map(
+                                    (s) => s.points[s.points.length - 1]?.cumulativeSends || 0
+                                  ),
+                                  1
+                                )
+                              : timelineData.maxCumulative;
                           const gridVals = [0, Math.round(maxC / 2), maxC];
 
                           const pts = timelineData.sessions.map((s, idx) => ({
@@ -1191,38 +1196,80 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                                 );
                               })}
 
-                              <path d={areaPath} fill="url(#cumulativeGradient)" />
-                              <path
-                                d={linePath}
-                                fill="none"
-                                stroke="#34D399"
-                                strokeWidth="3"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                              {pts.map((pt, i) => (
-                                <g key={i}>
-                                  <circle
-                                    cx={pt.x}
-                                    cy={pt.y}
-                                    r="4.5"
-                                    fill="#34D399"
-                                    stroke="#0B0F19"
-                                    strokeWidth="2"
+                              {viewMode === 'group' ? (
+                                timelineData.climberSeries.map((series) => {
+                                  const seriesPts = series.points.map((p, idx) => ({
+                                    x: getX(idx),
+                                    y: plotBottom - (p.cumulativeSends / maxC) * plotHeight,
+                                    sends: p.cumulativeSends
+                                  }));
+
+                                  if (seriesPts.length === 0) return null;
+
+                                  const seriesLinePath = seriesPts
+                                    .map((pt, i) => `${i === 0 ? 'M' : 'L'} ${pt.x} ${pt.y}`)
+                                    .join(' ');
+
+                                  return (
+                                    <g key={series.climber.id}>
+                                      <path
+                                        d={seriesLinePath}
+                                        fill="none"
+                                        stroke={series.color}
+                                        strokeWidth="2.5"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      />
+                                      {seriesPts.map((pt, i) => (
+                                        <circle
+                                          key={i}
+                                          cx={pt.x}
+                                          cy={pt.y}
+                                          r="4"
+                                          fill={series.color}
+                                          stroke="#0F172A"
+                                          strokeWidth="1.5"
+                                        />
+                                      ))}
+                                    </g>
+                                  );
+                                })
+                              ) : (
+                                <>
+                                  <path d={areaPath} fill="url(#cumulativeGradient)" />
+                                  <path
+                                    d={linePath}
+                                    fill="none"
+                                    stroke="#34D399"
+                                    strokeWidth="3"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
                                   />
-                                  <text
-                                    x={pt.x}
-                                    y={pt.y - 9}
-                                    fill="#FFFFFF"
-                                    fontSize="10"
-                                    fontFamily="monospace"
-                                    fontWeight="bold"
-                                    textAnchor="middle"
-                                  >
-                                    {pt.sends}
-                                  </text>
-                                </g>
-                              ))}
+                                  {pts.map((pt, i) => (
+                                    <g key={i}>
+                                      <circle
+                                        cx={pt.x}
+                                        cy={pt.y}
+                                        r="4.5"
+                                        fill="#34D399"
+                                        stroke="#0B0F19"
+                                        strokeWidth="2"
+                                      />
+                                      <text
+                                        x={pt.x}
+                                        y={pt.y - 9}
+                                        fill="#FFFFFF"
+                                        fontSize="10"
+                                        fontFamily="monospace"
+                                        fontWeight="bold"
+                                        textAnchor="middle"
+                                      >
+                                        {pt.sends}
+                                      </text>
+                                    </g>
+                                  ))}
+                                </>
+                              )}
                             </>
                           );
                         })()}

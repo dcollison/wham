@@ -8,7 +8,6 @@ export const STORAGE_KEYS = {
   BOULDERS: 'wham_boulders',
   ATTEMPTS: 'wham_attempts',
   COMMENTS: 'wham_comments',
-  PROPS: 'wham_sends_props',
   ACTIVE_GYM: 'wham_active_gym_id',
   ACTIVE_PROFILE: 'wham_active_profile_id',
   PASSCODE_UNLOCKED: 'wham_passcode_unlocked',
@@ -85,13 +84,5 @@ export function setStorageString(key: StorageKey, value: string): void {
     localStorage.setItem(key, value);
   } catch (err) {
     console.warn(`Error setting string for localStorage key "${key}":`, err);
-  }
-}
-
-export function removeStorageItem(key: StorageKey): void {
-  try {
-    localStorage.removeItem(key);
-  } catch (err) {
-    console.warn(`Error removing localStorage key "${key}":`, err);
   }
 }

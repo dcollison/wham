@@ -28,10 +28,11 @@ export async function compressImage(
       img.onload = () => {
         let { width, height } = img;
 
-        // Calculate proportional scale
-        if (width > maxWidth) {
-          const ratio = maxWidth / width;
-          width = maxWidth;
+        // Calculate proportional scale constraining max(width, height)
+        const maxDim = Math.max(width, height);
+        if (maxDim > maxWidth) {
+          const ratio = maxWidth / maxDim;
+          width = Math.round(width * ratio);
           height = Math.round(height * ratio);
         }
 
@@ -52,9 +53,7 @@ export async function compressImage(
         // Draw and scale image
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Convert to blob and dataUrl
-        const dataUrl = canvas.toDataURL('image/jpeg', quality);
-
+        // Encode JPEG once via toBlob and read dataUrl from the resulting blob
         canvas.toBlob(
           (blob) => {
             if (!blob) {
@@ -71,14 +70,21 @@ export async function compressImage(
               }
             );
 
-            resolve({
-              file: compressedFile,
-              dataUrl,
-              originalSize: file.size,
-              compressedSize: blob.size,
-              width,
-              height
-            });
+            const blobReader = new FileReader();
+            blobReader.onloadend = () => {
+              resolve({
+                file: compressedFile,
+                dataUrl: (blobReader.result as string) || '',
+                originalSize: file.size,
+                compressedSize: blob.size,
+                width,
+                height
+              });
+            };
+            blobReader.onerror = () => {
+              reject(new Error('Failed to read compressed blob as data URL'));
+            };
+            blobReader.readAsDataURL(blob);
           },
           'image/jpeg',
           quality

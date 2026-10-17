@@ -222,6 +222,12 @@ CREATE POLICY "Public can update profiles"
     USING (true)
     WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Public can delete profiles" ON public.profiles;
+CREATE POLICY "Public can delete profiles"
+    ON public.profiles FOR DELETE
+    TO public
+    USING (true);
+
 -- 4.2 Gyms policies
 DROP POLICY IF EXISTS "Public can view gyms" ON public.gyms;
 DROP POLICY IF EXISTS "Public can insert gyms" ON public.gyms;
@@ -483,6 +489,7 @@ ALTER TABLE public.profiles REPLICA IDENTITY FULL;
 ALTER TABLE public.gym_areas REPLICA IDENTITY FULL;
 ALTER TABLE public.boulders REPLICA IDENTITY FULL;
 ALTER TABLE public.attempts REPLICA IDENTITY FULL;
+ALTER TABLE public.comments REPLICA IDENTITY FULL;
 ALTER TABLE public.boulder_reviews REPLICA IDENTITY FULL;
 
 DO $$

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useMemo, useRef } from 'react';
 import { supabase, isSupabaseConfigured, isDemoRequested, uploadBoulderPhoto, uploadAreaPhoto, deleteStoragePhotos, withTimeout } from '../lib/supabase';
-import { Boulder, Attempt, Comment, Gym, GymArea, Grade, AttemptStatus, LogAttemptParams, BulkAddBoulderItem, BulkAddBouldersParams, FeatureRequest, FeatureCategory, FeatureStatus, BoulderReview, SmileyRating, GradeOpinion } from '../types';
+import { Boulder, Attempt, Comment, Gym, GymArea, Grade, AttemptStatus, LogAttemptParams, BulkAddBouldersParams, FeatureRequest, FeatureCategory, FeatureStatus, BoulderReview, SmileyRating, GradeOpinion } from '../types';
 import {
   INITIAL_GYMS,
   INITIAL_AREAS,
@@ -55,11 +55,7 @@ interface GymContextType {
   boulders: Boulder[];
   attempts: Attempt[];
   comments: Comment[];
-  propsMap: Record<string, string[]>;
-  toggleProp: (attemptId: string, userId: string) => Promise<void>;
   loading: boolean;
-  hideSent: boolean;
-  setHideSent: (hide: boolean | ((prev: boolean) => boolean)) => void;
   showArchived: boolean;
   setShowArchived: (show: boolean | ((prev: boolean) => boolean)) => void;
   logAttempt: (params: LogAttemptParams) => Promise<void>;
@@ -99,7 +95,6 @@ interface GymContextType {
   snapshots: LocalSnapshotMeta[];
   createManualSnapshot: (reason?: string) => Promise<string>;
   restoreSnapshotById: (snapshotId: string) => Promise<boolean>;
-  getSnapshotsList: () => LocalSnapshotMeta[];
   syncSnapshotsToCloud: () => Promise<{ syncedCount: number; error?: string }>;
   deleteSnapshot: (snapshotId: string) => Promise<void>;
 }
@@ -189,25 +184,6 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return INITIAL_COMMENTS;
   });
 
-  const [propsMap, setPropsMap] = useState<Record<string, string[]>>(() => {
-    try {
-      const saved = localStorage.getItem('wham_sends_props');
-      if (!saved) return {};
-      const parsed = JSON.parse(saved);
-      const migrated: Record<string, string[]> = {};
-      for (const [key, val] of Object.entries(parsed)) {
-        if (Array.isArray(val)) {
-          migrated[key] = val.filter((id) => typeof id === 'string');
-        } else if (typeof val === 'number' && val > 0) {
-          migrated[key] = Array.from({ length: val }, (_, i) => `legacy-climber-${i}`);
-        }
-      }
-      return migrated;
-    } catch {
-      return {};
-    }
-  });
-
   const [featureRequests, setFeatureRequests] = useState<FeatureRequest[]>(() => {
     const cached = localStorage.getItem('wham_feature_requests');
     if (cached) {
@@ -260,7 +236,6 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const channelRef = useRef<any>(null);
 
   const [loading, setLoading] = useState<boolean>(true);
-  const [hideSent, setHideSent] = useState<boolean>(false);
   const [showArchived, setShowArchived] = useState<boolean>(false);
 
   // Initialize active gym & area from stored preferences or defaults
@@ -317,6 +292,41 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     climbersRef.current = climbers;
   }, [climbers]);
+
+  const mergeRemoteAttemptsWithPending = (remoteAttempts: Attempt[]): Attempt[] => {
+    const pendingAttempts = getStorageJson<PendingAttempt[]>(STORAGE_KEYS.PENDING_ATTEMPTS, []);
+    const pendingDeletes = getStorageJson<PendingDelete[]>(STORAGE_KEYS.PENDING_DELETES, []);
+
+    let mergedAttempts: Attempt[] = remoteAttempts
+      .filter((remote: Attempt) => {
+        return !pendingDeletes.some(
+          (d) => d.type === 'attempt' && d.boulder_id === remote.boulder_id && d.user_id === remote.user_id
+        );
+      })
+      .map((remote: Attempt) => {
+        const climber = climbersRef.current.find((c) => c.id === remote.user_id);
+        return climber ? { ...remote, profile: climber } : remote;
+      });
+
+    for (const pending of pendingAttempts) {
+      const climber = climbersRef.current.find((c) => c.id === pending.user_id);
+      const enriched: Attempt = {
+        id: pending.id,
+        boulder_id: pending.boulder_id,
+        user_id: pending.user_id,
+        status: pending.status as AttemptStatus,
+        attempt_count: pending.attempt_count,
+        logged_at: pending.logged_at,
+        profile: climber || undefined
+      };
+      mergedAttempts = mergedAttempts.filter(
+        (a) => !(a.boulder_id === pending.boulder_id && a.user_id === pending.user_id)
+      );
+      mergedAttempts.push(enriched);
+    }
+
+    return mergedAttempts;
+  };
 
   const isFlushingPendingRef = useRef(false);
 
@@ -449,13 +459,12 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       try {
         setLoading(true);
-        const [gymsRes, areasRes, bouldersRes, attemptsRes, commentsRes, propsRes, featureRequestsRes, reviewsRes, snapshotsRes] = await Promise.all([
+        const [gymsRes, areasRes, bouldersRes, attemptsRes, commentsRes, featureRequestsRes, reviewsRes, snapshotsRes] = await Promise.all([
           supabase.from('gyms').select('*').order('name'),
           supabase.from('gym_areas').select('*').order('gym_id').order('sort_order').order('id'),
           supabase.from('boulders').select('*').order('position_order'),
           supabase.from('attempts').select('*, profile:profiles(*)'),
           supabase.from('comments').select('*, profile:profiles(*)').order('created_at', { ascending: true }),
-          supabase.from('send_props').select('attempt_id, user_id'),
           supabase.from('feature_requests').select('*').order('created_at', { ascending: false }),
           supabase.from('boulder_reviews').select('*, profile:profiles(*)').order('created_at', { ascending: false }).then((res) => res, () => ({ data: null, error: true })),
           supabase.from('safety_snapshots').select('id, created_at, user_id, boulder_count, attempt_count, climber_count, reason').order('created_at', { ascending: false }).limit(20).then((res) => res, () => ({ data: null, error: true }))
@@ -490,33 +499,17 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           });
         }
         if (bouldersRes.data && bouldersRes.data.length > 0) setBoulders(bouldersRes.data);
-        if (attemptsRes.data && attemptsRes.data.length > 0) {
-          // Resiliently merge remote attempts with pending attempts so offline/recent sends are never wiped
-          const pendingAttempts = getStorageJson<PendingAttempt[]>(STORAGE_KEYS.PENDING_ATTEMPTS, []);
-          const pendingDeletes = getStorageJson<PendingDelete[]>(STORAGE_KEYS.PENDING_DELETES, []);
-
-          let mergedAttempts: Attempt[] = attemptsRes.data.filter((remote: Attempt) => {
-            return !pendingDeletes.some(d => d.type === 'attempt' && d.boulder_id === remote.boulder_id && d.user_id === remote.user_id);
-          });
-
-          for (const pending of pendingAttempts) {
-            const climber = climbersRef.current.find(c => c.id === pending.user_id);
-            const enriched: Attempt = {
-              id: pending.id,
-              boulder_id: pending.boulder_id,
-              user_id: pending.user_id,
-              status: pending.status as AttemptStatus,
-              attempt_count: pending.attempt_count,
-              logged_at: pending.logged_at,
-              profile: climber || undefined
-            };
-            mergedAttempts = mergedAttempts.filter(a => !(a.boulder_id === pending.boulder_id && a.user_id === pending.user_id));
-            mergedAttempts.push(enriched);
-          }
-
+        if (!attemptsRes.error && Array.isArray(attemptsRes.data)) {
+          const mergedAttempts = mergeRemoteAttemptsWithPending(attemptsRes.data);
           setAttempts(mergedAttempts);
         }
-        if (commentsRes.data && commentsRes.data.length > 0) setComments(commentsRes.data);
+        if (!commentsRes.error && Array.isArray(commentsRes.data)) {
+          const enrichedComments = commentsRes.data.map((c: Comment) => {
+            const author = climbersRef.current.find((cl) => cl.id === c.user_id);
+            return author ? { ...c, profile: author } : c;
+          });
+          setComments(enrichedComments);
+        }
         if (reviewsRes && !reviewsRes.error && Array.isArray(reviewsRes.data)) {
           const pendingReviews = getStorageJson<PendingReview[]>(STORAGE_KEYS.PENDING_REVIEWS, []);
           const pendingDeletes = getStorageJson<PendingDelete[]>(STORAGE_KEYS.PENDING_DELETES, []);
@@ -589,38 +582,12 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setSnapshots((prev) => mergeSnapshotMetas(prev, cloudMetas));
         }
 
-        if (!propsRes.error && Array.isArray(propsRes.data)) {
-          const remoteMap: Record<string, string[]> = {};
-          for (const row of propsRes.data) {
-            if (!remoteMap[row.attempt_id]) remoteMap[row.attempt_id] = [];
-            if (!remoteMap[row.attempt_id].includes(row.user_id)) {
-              remoteMap[row.attempt_id].push(row.user_id);
-            }
-          }
-          setPropsMap(remoteMap);
-        }
-
         // Setup real-time subscriptions
         channel = supabase
           .channel('wham-realtime', {
             config: {
               broadcast: { ack: true }
             }
-          })
-          .on('broadcast', { event: 'prop_toggled' }, ({ payload }) => {
-            if (!payload?.attemptId || !payload?.userId) return;
-            const { attemptId, userId, action } = payload;
-            setPropsMap((prev) => {
-              const currentList = Array.isArray(prev[attemptId]) ? prev[attemptId] : [];
-              let updatedList: string[];
-              if (action === 'remove') {
-                updatedList = currentList.filter((id) => id !== userId);
-              } else {
-                if (currentList.includes(userId)) return prev;
-                updatedList = [...currentList, userId];
-              }
-              return { ...prev, [attemptId]: updatedList };
-            });
           })
           .on('broadcast', { event: 'area_photo_updated' }, ({ payload }) => {
             if (!payload?.areaId) return;
@@ -685,24 +652,6 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 return next;
               });
               setCurrentAreaState((prev) => (prev && prev.id === oldArea.id ? null : prev));
-            }
-          })
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'send_props' }, (payload) => {
-            if (payload.eventType === 'INSERT') {
-              const row = payload.new as { attempt_id: string; user_id: string };
-              if (!row?.attempt_id || !row?.user_id) return;
-              setPropsMap((prev) => {
-                const currentList = Array.isArray(prev[row.attempt_id]) ? prev[row.attempt_id] : [];
-                if (currentList.includes(row.user_id)) return prev;
-                return { ...prev, [row.attempt_id]: [...currentList, row.user_id] };
-              });
-            } else if (payload.eventType === 'DELETE') {
-              const row = payload.old as { attempt_id: string; user_id: string };
-              if (!row?.attempt_id || !row?.user_id) return;
-              setPropsMap((prev) => {
-                const currentList = Array.isArray(prev[row.attempt_id]) ? prev[row.attempt_id] : [];
-                return { ...prev, [row.attempt_id]: currentList.filter((id) => id !== row.user_id) };
-              });
             }
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'boulders' }, (payload) => {
@@ -908,21 +857,20 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         supabase?.removeChannel(channel);
       }
     };
-  }, []);
+  }, [isDemoMode]);
 
   // Multi-device sync: poll periodically and re-fetch when tab becomes visible or receives window focus
   useEffect(() => {
     const client = supabase;
-    if (!isSupabaseConfigured || !client) return;
+    if (!isSupabaseConfigured || !client || isDemoMode || isDemoRequested()) return;
 
     const refreshData = async () => {
       try {
-        const [bouldersRes, areasRes, attRes, commRes, propsRes] = await Promise.all([
+        const [bouldersRes, areasRes, attRes, commRes] = await Promise.all([
           client.from('boulders').select('*').order('position_order'),
           client.from('gym_areas').select('*').order('gym_id').order('sort_order').order('id'),
           client.from('attempts').select('*, profile:profiles(*)'),
-          client.from('comments').select('*, profile:profiles(*)'),
-          client.from('send_props').select('attempt_id, user_id')
+          client.from('comments').select('*, profile:profiles(*)')
         ]);
 
         if (!bouldersRes.error && Array.isArray(bouldersRes.data)) {
@@ -990,11 +938,11 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           });
         }
         if (!attRes.error && Array.isArray(attRes.data)) {
+          const merged = mergeRemoteAttemptsWithPending(attRes.data);
           setAttempts(prev => {
-            const incoming = attRes.data;
-            if (prev.length === incoming.length) {
+            if (prev.length === merged.length) {
               const isSame = prev.every((p, i) => {
-                const inc = incoming[i];
+                const inc = merged[i];
                 return (
                   p.id === inc.id &&
                   p.boulder_id === inc.boulder_id &&
@@ -1007,17 +955,23 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               if (isSame) return prev;
             }
             try {
-              localStorage.setItem('wham_attempts', JSON.stringify(incoming));
+              localStorage.setItem('wham_attempts', JSON.stringify(merged));
             } catch (e) {}
-            return incoming;
+            return merged;
           });
         }
         if (!commRes.error && Array.isArray(commRes.data)) {
+          const enriched = commRes.data.map((inc: Comment) => {
+            const author = climbersRef.current.find(cl => cl.id === inc.user_id);
+            return {
+              ...inc,
+              profile: author || inc.profile
+            };
+          });
           setComments(prev => {
-            const incoming = commRes.data;
-            if (prev.length === incoming.length) {
+            if (prev.length === enriched.length) {
               const isSame = prev.every((p, i) => {
-                const inc = incoming[i];
+                const inc = enriched[i];
                 return (
                   p.id === inc.id &&
                   p.boulder_id === inc.boulder_id &&
@@ -1029,34 +983,9 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               if (isSame) return prev;
             }
             try {
-              localStorage.setItem('wham_comments', JSON.stringify(incoming));
+              localStorage.setItem('wham_comments', JSON.stringify(enriched));
             } catch (e) {}
-            return incoming;
-          });
-        }
-        if (!propsRes.error && Array.isArray(propsRes.data)) {
-          const remoteMap: Record<string, string[]> = {};
-          for (const row of propsRes.data) {
-            if (!remoteMap[row.attempt_id]) remoteMap[row.attempt_id] = [];
-            if (!remoteMap[row.attempt_id].includes(row.user_id)) {
-              remoteMap[row.attempt_id].push(row.user_id);
-            }
-          }
-          setPropsMap(prev => {
-            const prevKeys = Object.keys(prev);
-            const remoteKeys = Object.keys(remoteMap);
-            if (prevKeys.length === remoteKeys.length) {
-              const isSame = prevKeys.every(k => {
-                const prevList = prev[k] || [];
-                const remoteList = remoteMap[k] || [];
-                return (
-                  prevList.length === remoteList.length &&
-                  prevList.every((uid, idx) => uid === remoteList[idx])
-                );
-              });
-              if (isSame) return prev;
-            }
-            return remoteMap;
+            return enriched;
           });
         }
       } catch (err) {
@@ -1081,7 +1010,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearInterval(interval);
     };
-  }, []);
+  }, [isDemoMode]);
 
   // Save to localStorage whenever state changes (for offline/demo mode)
   useEffect(() => {
@@ -1103,10 +1032,6 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     localStorage.setItem('wham_comments', JSON.stringify(comments));
   }, [comments]);
-
-  useEffect(() => {
-    localStorage.setItem('wham_sends_props', JSON.stringify(propsMap));
-  }, [propsMap]);
 
   // Compute Clockwise ordered active boulders in current area (or across the entire gym if currentArea is null)
   const orderedActiveBouldersInCurrentArea = useMemo(() => {
@@ -1713,6 +1638,28 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return filtered;
     });
 
+    setReviews(prev => {
+      const filtered = prev.filter(r => r.boulder_id !== boulderId);
+      try {
+        localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(filtered));
+      } catch (e) {}
+      return filtered;
+    });
+
+    // Clean up any offline pending queue entries for the deleted boulder
+    const pendingAttempts = getStorageJson<PendingAttempt[]>(STORAGE_KEYS.PENDING_ATTEMPTS, []);
+    if (pendingAttempts.some(p => p.boulder_id === boulderId)) {
+      setStorageJson(STORAGE_KEYS.PENDING_ATTEMPTS, pendingAttempts.filter(p => p.boulder_id !== boulderId));
+    }
+    const pendingReviews = getStorageJson<PendingReview[]>(STORAGE_KEYS.PENDING_REVIEWS, []);
+    if (pendingReviews.some(r => r.boulder_id === boulderId)) {
+      setStorageJson(STORAGE_KEYS.PENDING_REVIEWS, pendingReviews.filter(r => r.boulder_id !== boulderId));
+    }
+    const pendingDeletes = getStorageJson<PendingDelete[]>(STORAGE_KEYS.PENDING_DELETES, []);
+    if (pendingDeletes.some(d => d.boulder_id === boulderId)) {
+      setStorageJson(STORAGE_KEYS.PENDING_DELETES, pendingDeletes.filter(d => d.boulder_id !== boulderId));
+    }
+
     // Prune storage photo if present
     if (targetBoulder?.image_url) {
       try {
@@ -1809,6 +1756,14 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           .eq('area_id', areaId);
       } catch (err) {
         console.error('Failed to archive area boulders in Supabase:', err);
+      }
+    }
+
+    if (localStorage.getItem('wham_auto_prune_photos') === 'true') {
+      try {
+        await pruneArchivedClimbPhotos(0, areaId);
+      } catch (err) {
+        console.warn('Auto-prune archived climb photos warning:', err);
       }
     }
   };
@@ -1958,13 +1913,15 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Photo Quota & Storage Management: Prune photos from oldest archived climbs
   const pruneArchivedClimbPhotos = async (
-    olderThanDays = 0
+    olderThanDays = 0,
+    includeAreaId?: string
   ): Promise<{ removedCount: number; freedBytesEstimate: number }> => {
     const now = Date.now();
     const cutoffMs = olderThanDays > 0 ? now - olderThanDays * 24 * 60 * 60 * 1000 : now;
 
     const targetedBoulders = boulders.filter((b) => {
-      if (!b.is_archived || !b.image_url) return false;
+      const isEffectivelyArchived = b.is_archived || (Boolean(includeAreaId) && b.area_id === includeAreaId);
+      if (!isEffectivelyArchived || !b.image_url) return false;
       if (olderThanDays > 0) {
         const addedMs = new Date(b.date_added).getTime();
         return !isNaN(addedMs) && addedMs < cutoffMs;
@@ -2031,7 +1988,13 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       profile: currentUser
     };
 
-    setComments(prev => [...prev, newComment]);
+    setComments(prev => {
+      const next = [...prev, newComment];
+      try {
+        localStorage.setItem('wham_comments', JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
 
     if (isSupabaseConfigured && supabase) {
       try {
@@ -2045,17 +2008,39 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           .select('*, profile:profiles(*)')
           .single();
 
-        if (!error && data) {
+        if (error) {
+          console.error('Failed to insert comment in Supabase:', error);
+          setComments(prev => {
+            const rolledBack = prev.filter(c => c.id !== newComment.id);
+            try {
+              localStorage.setItem('wham_comments', JSON.stringify(rolledBack));
+            } catch (e) {}
+            return rolledBack;
+          });
+          return;
+        }
+
+        if (data) {
           setComments(prev => {
             const hasReal = prev.some(c => c.id === data.id);
-            if (hasReal) {
-              return prev.filter(c => c.id !== newComment.id);
-            }
-            return prev.map(c => c.id === newComment.id ? data : c);
+            const next = hasReal
+              ? prev.filter(c => c.id !== newComment.id)
+              : prev.map(c => c.id === newComment.id ? data : c);
+            try {
+              localStorage.setItem('wham_comments', JSON.stringify(next));
+            } catch (e) {}
+            return next;
           });
         }
       } catch (err) {
         console.error('Failed to insert comment in Supabase:', err);
+        setComments(prev => {
+          const rolledBack = prev.filter(c => c.id !== newComment.id);
+          try {
+            localStorage.setItem('wham_comments', JSON.stringify(rolledBack));
+          } catch (e) {}
+          return rolledBack;
+        });
       }
     }
   };
@@ -2252,68 +2237,6 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return reviews.filter((r) => r.boulder_id === boulderId);
   };
 
-  const toggleProp = async (attemptId: string, userId: string) => {
-    let willBePropped = false;
-    setPropsMap((prev) => {
-      const currentList = Array.isArray(prev[attemptId]) ? prev[attemptId] : [];
-      const hasPropped = currentList.includes(userId);
-      willBePropped = !hasPropped;
-      let updatedList: string[];
-      if (hasPropped) {
-        updatedList = currentList.filter((id) => id !== userId);
-      } else {
-        updatedList = [...currentList, userId];
-      }
-      return { ...prev, [attemptId]: updatedList };
-    });
-
-    if (isSupabaseConfigured && supabase) {
-      // 1. Instant WebSocket broadcast across all open clients/tabs
-      try {
-        if (channelRef.current) {
-          const res = await channelRef.current.send({
-            type: 'broadcast',
-            event: 'prop_toggled',
-            payload: {
-              attemptId,
-              userId,
-              action: willBePropped ? 'add' : 'remove'
-            }
-          });
-          if (res !== 'ok') {
-            console.warn('Realtime prop broadcast status:', res);
-          }
-        }
-      } catch (broadcastErr) {
-        console.warn('Realtime prop broadcast warning:', broadcastErr);
-      }
-
-      // 2. Persist to database table if available
-      try {
-        if (willBePropped) {
-          const { error } = await supabase.from('send_props').insert({
-            attempt_id: attemptId,
-            user_id: userId
-          });
-          if (error) {
-            console.warn('Supabase send_props insert error:', error.message);
-          }
-        } else {
-          const { error } = await supabase.from('send_props').delete().match({
-            attempt_id: attemptId,
-            user_id: userId
-          });
-          if (error) {
-            console.warn('Supabase send_props delete error:', error.message);
-          }
-        }
-      } catch (dbErr) {
-        // Table may not exist yet if user hasn't run the migration
-        console.warn('Supabase send_props persistence warning:', dbErr);
-      }
-    }
-  };
-
   // Baseline automatic snapshot on session startup
   useEffect(() => {
     if (!loading && boulders.length > 0) {
@@ -2325,7 +2248,8 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           attempts,
           comments,
           profiles: climbers,
-          propsMap
+          boulderReviews: reviews,
+          featureRequests
         });
         createManualSnapshot('Session baseline snapshot', payload);
       }
@@ -2468,16 +2392,15 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const toggleFeatureUpvote = async (requestId: string, userId: string): Promise<void> => {
-    let finalUpvotes: string[] = [];
-    setFeatureRequests((prev) => {
-      const target = prev.find((r) => r.id === requestId);
-      if (!target) return prev;
-      const currentUpvotes = Array.isArray(target.upvotes) ? target.upvotes : [];
-      const hasVoted = currentUpvotes.includes(userId);
-      finalUpvotes = hasVoted
-        ? currentUpvotes.filter((id) => id !== userId)
-        : [...currentUpvotes, userId];
+    const target = featureRequests.find((r) => r.id === requestId);
+    if (!target) return;
+    const currentUpvotes = Array.isArray(target.upvotes) ? target.upvotes : [];
+    const hasVoted = currentUpvotes.includes(userId);
+    const finalUpvotes = hasVoted
+      ? currentUpvotes.filter((id) => id !== userId)
+      : [...currentUpvotes, userId];
 
+    setFeatureRequests((prev) => {
       const next = prev.map((r) => (r.id === requestId ? { ...r, upvotes: finalUpvotes } : r));
       try {
         localStorage.setItem('wham_feature_requests', JSON.stringify(next));
@@ -2567,7 +2490,8 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         attempts,
         comments,
         profiles: climbers,
-        propsMap
+        boulderReviews: reviews,
+        featureRequests
       });
       await createManualSnapshot('Pre-restore automatic safety snapshot', currentPayload);
 
@@ -2595,10 +2519,6 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (backup.boulderReviews && backup.boulderReviews.length > 0) {
         setReviews(backup.boulderReviews);
         localStorage.setItem('wham_boulder_reviews', JSON.stringify(backup.boulderReviews));
-      }
-      if (backup.sendsProps && typeof backup.sendsProps === 'object') {
-        setPropsMap(backup.sendsProps);
-        localStorage.setItem('wham_sends_props', JSON.stringify(backup.sendsProps));
       }
       if (backup.profiles && backup.profiles.length > 0 && restoreProfilesFromBackup) {
         restoreProfilesFromBackup(backup.profiles, backup.climberCustomizations);
@@ -2690,8 +2610,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       comments,
       profiles: climbers,
       boulderReviews: reviews,
-      featureRequests,
-      propsMap
+      featureRequests
     });
 
     const snapId = `snap_${Date.now()}`;
@@ -2851,10 +2770,6 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const getSnapshotsList = (): LocalSnapshotMeta[] => {
-    return snapshots;
-  };
-
   const contextValue = useMemo(() => ({
     gyms,
     currentGym,
@@ -2866,11 +2781,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     boulders,
     attempts,
     comments,
-    propsMap,
-    toggleProp,
     loading,
-    hideSent,
-    setHideSent,
     showArchived,
     setShowArchived,
     logAttempt,
@@ -2904,7 +2815,6 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     snapshots,
     createManualSnapshot,
     restoreSnapshotById,
-    getSnapshotsList,
     syncSnapshotsToCloud,
     deleteSnapshot
   }), [
@@ -2915,14 +2825,15 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     boulders,
     attempts,
     comments,
-    propsMap,
     loading,
-    hideSent,
     showArchived,
     reviews,
     orderedActiveBouldersInCurrentArea,
     featureRequests,
-    snapshots
+    snapshots,
+    currentUser,
+    climbers,
+    isDemoMode
   ]);
 
   return (

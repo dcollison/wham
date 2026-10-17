@@ -3,7 +3,7 @@ import { GymArea, Boulder, Attempt, Profile } from '../../types';
 import { ClimberAvatar } from '../ClimberAvatar';
 import { HoldSwatch } from './HoldSwatch';
 import { computeCompWallStandings, computeCompWallScorecard } from '../../lib/compWallScoring';
-import { Trophy, ChevronDown, ChevronUp, Zap, Check, Clock, Plus, Award } from 'lucide-react';
+import { Trophy, ChevronDown, ChevronUp, Zap, Check, Clock, Award } from 'lucide-react';
 
 interface CompWallBannerProps {
   area: GymArea;

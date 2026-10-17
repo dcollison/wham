@@ -11,8 +11,6 @@ import { BoulderDetailModal } from './components/boulders/BoulderDetailModal';
 import { AreaResetModal } from './components/boulders/AreaResetModal';
 import { StatsDashboard } from './components/stats/StatsDashboard';
 import { CompLeaderboard } from './components/leaderboard/CompLeaderboard';
-import { CompLeaderboardModal } from './components/leaderboard/CompLeaderboardModal';
-import { GymCompBanner } from './components/boulders/GymCompBanner';
 import { CompWallBanner } from './components/boulders/CompWallBanner';
 import { CrewFeedView } from './components/feed/CrewFeedView';
 import { CircleView } from './components/settings/CircleView';
@@ -20,8 +18,8 @@ import { AreaPhotoBanner } from './components/boulders/AreaPhotoBanner';
 import { BoulderFilters, BoulderFiltersState } from './components/boulders/BoulderFilters';
 import { ClimberAvatar } from './components/ClimberAvatar';
 import { Boulder, Attempt, BoulderReview, GRADES } from './types';
-import { Plus, Compass, Sparkles, Filter, RotateCcw, Layers, Zap, ChevronRight, Clock } from 'lucide-react';
-import { WhamLogo, WhamBadge } from './components/WhamLogo';
+import { Plus, Compass, Filter, RotateCcw, Layers, Clock } from 'lucide-react';
+import { WhamBadge } from './components/WhamLogo';
 import { PasscodeGate } from './components/PasscodeGate';
 import { STORAGE_KEYS, getStorageString, setStorageString } from './lib/storage';
 import { getAreaResetInfo } from './lib/resetStatus';
@@ -62,8 +60,6 @@ export function App() {
     attempts,
     comments,
     featureRequests,
-    hideSent,
-    setHideSent,
     showArchived,
     setShowArchived,
     logAttempt,
@@ -81,8 +77,7 @@ export function App() {
     deleteComment,
     toggleAreaCompWall,
     orderedActiveBouldersInCurrentArea,
-    reviews,
-    loading
+    reviews
   } = useGym();
 
   const activeColor = currentUser?.accent_color || '#3B82F6';
@@ -133,7 +128,6 @@ export function App() {
   const [quickLogBoulder, setQuickLogBoulder] = useState<Boulder | null>(null);
   const [quickLogTargetUserId, setQuickLogTargetUserId] = useState<string | undefined>(undefined);
   const [detailBoulder, setDetailBoulder] = useState<Boulder | null>(null);
-  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState<boolean>(false);
 
   const handleOpenQuickLog = useCallback((boulder: Boulder, targetUserId?: string) => {
     setQuickLogBoulder(boulder);
@@ -185,7 +179,7 @@ export function App() {
     return {
       minGrade: null,
       maxGrade: null,
-      statusFilter: hideSent ? 'unsent' : 'all',
+      statusFilter: 'all',
       selectedColour: null,
       targetClimberId: savedUserId,
       sortBy: 'position'
@@ -209,29 +203,11 @@ export function App() {
     }
   }, [currentUser?.id]);
 
-  // Sync statusFilter when hideSent is toggled from Header
-  useEffect(() => {
-    if (hideSent) {
-      setBoulderFilters((prev) => (prev.statusFilter === 'unsent' ? prev : { ...prev, statusFilter: 'unsent' }));
-    } else {
-      setBoulderFilters((prev) => (prev.statusFilter === 'unsent' ? { ...prev, statusFilter: 'all' } : prev));
-    }
-  }, [hideSent]);
-
   const handleUpdateFilters = (updater: (prev: BoulderFiltersState) => BoulderFiltersState) => {
-    setBoulderFilters((prev) => {
-      const next = updater(prev);
-      if (next.statusFilter === 'unsent' && !hideSent) {
-        setHideSent(true);
-      } else if (next.statusFilter !== 'unsent' && hideSent) {
-        setHideSent(false);
-      }
-      return next;
-    });
+    setBoulderFilters((prev) => updater(prev));
   };
 
   const handleResetFilters = () => {
-    setHideSent(false);
     setBoulderFilters({
       minGrade: null,
       maxGrade: null,
@@ -328,22 +304,6 @@ export function App() {
     });
   }, [orderedActiveBouldersInCurrentArea, boulderFilters, currentUser, attempts]);
 
-  // Latest crew send ticker for quick notification banner
-  const latestSendInfo = useMemo(() => {
-    const sends = attempts.filter((a) => a.status === 'sent' || a.status === 'flashed');
-    if (sends.length === 0) return null;
-    const sorted = [...sends].sort((a, b) => new Date(b.logged_at).getTime() - new Date(a.logged_at).getTime());
-    const latest = sorted[0];
-    const boulder = boulders.find((b) => b.id === latest.boulder_id);
-    const climber = climbers.find((c) => c.id === latest.user_id) || latest.profile;
-    if (!boulder || !climber) return null;
-    return {
-      attempt: latest,
-      boulder,
-      climber
-    };
-  }, [attempts, boulders, climbers]);
-
   // Pre-index attempts by boulder ID for O(1) card lookups
   const attemptsByBoulder = useMemo(() => {
     const map = new Map<string, Attempt[]>();
@@ -432,7 +392,6 @@ export function App() {
           window.location.hash = '#/settings';
           setCurrentTab('settings');
         }}
-        onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
         onOpenAddBoulder={() => setIsAddModalOpen(true)}
         onOpenBulkAdd={() => setIsBulkAddOpen(true)}
         onOpenAreaReset={() => {
@@ -578,7 +537,6 @@ export function App() {
                             currentUserId={currentUser?.id}
                             commentCount={commentCountsByBoulder.get(boulder.id) || 0}
                             reviewSummary={reviewSummariesByBoulder.get(boulder.id)}
-                            areaName={boulderArea?.name}
                             onQuickLog={handleOpenQuickLog}
                             onOpenDetails={handleOpenDetails}
                             onLogAttempt={logAttempt}
@@ -831,23 +789,6 @@ export function App() {
             await archiveAreaBoulders(currentArea.id);
             setIsBulkAddOpen(true);
           }
-        }}
-      />
-
-      {/* Gym Comp Leaderboard Modal */}
-      <CompLeaderboardModal
-        isOpen={isLeaderboardOpen}
-        onClose={() => setIsLeaderboardOpen(false)}
-        boulders={boulders}
-        attempts={attempts}
-        climbers={climbers}
-        gyms={gyms}
-        currentGymId={currentGym?.id}
-        currentUserId={currentUser?.id}
-        onSelectBoulder={(b) => setDetailBoulder(b)}
-        onNavigateToStats={() => {
-          setCurrentTab('comp');
-          window.location.hash = '#/comp';
         }}
       />
 

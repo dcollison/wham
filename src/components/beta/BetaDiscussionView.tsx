@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Comment, Boulder, Profile, Gym, GymArea } from '../../types';
 import { HoldBadge } from '../boulders/HoldBadge';
 import { ClimberAvatar } from '../ClimberAvatar';
-import { MessageSquare, Send, Calendar, MapPin, Trash2 } from 'lucide-react';
+import { MessageSquare, Send, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 interface BetaDiscussionViewProps {

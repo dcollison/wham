@@ -167,6 +167,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Initialize session and profiles
   useEffect(() => {
+    let isMounted = true;
+    let authSubscription: { unsubscribe: () => void } | null = null;
+    let profilesRealtimeChannel: ReturnType<NonNullable<typeof supabase>['channel']> | null = null;
+
     async function initAuth() {
       setLoading(true);
 
@@ -178,12 +182,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           // Fetch existing session
           const { data: { session } } = await supabase.auth.getSession();
+          if (!isMounted) return;
 
           // Fetch profiles from Supabase
           const { data: remoteProfiles, error: profileErr } = await supabase
             .from('profiles')
             .select('*')
             .order('display_name');
+          if (!isMounted) return;
 
           if (!profileErr && remoteProfiles && remoteProfiles.length > 0) {
             // Synchronize remote values into local storage customizations cache
@@ -232,13 +238,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
 
           // Listen for auth state changes (e.g. login/logout via email or OAuth)
-          const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+          const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+            if (!isMounted) return;
             if (session?.user) {
               const { data: profile } = await supabase!
                 .from('profiles')
                 .select('*')
                 .eq('id', session.user.id)
                 .single();
+              if (!isMounted) return;
 
               if (profile) {
                 setCurrentUser(enrichProfile(profile, 0, getClimberCustomizations()));
@@ -255,14 +263,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
             // In shared crew mode (session is null), do NOT overwrite currentUser with stale closure
           });
+          authSubscription = authListener.subscription;
 
           // Setup Realtime subscription for cross-device profile changes
-          const profilesRealtimeChannel = supabase
+          profilesRealtimeChannel = supabase
             .channel('wham-profiles-sync')
             .on(
               'postgres_changes',
               { event: '*', schema: 'public', table: 'profiles' },
               (payload) => {
+                if (!isMounted) return;
                 if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
                   const incoming = payload.new as Profile;
                   if (!incoming?.id) return;
@@ -310,16 +320,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .subscribe();
 
           setLoading(false);
-          return () => {
-            authListener.subscription.unsubscribe();
-            supabase?.removeChannel(profilesRealtimeChannel);
-          };
+          return;
         } catch (err) {
           console.warn('Supabase auth initialization failed, defaulting to offline demo mode:', err);
-          setIsDemoMode(true);
+          if (isMounted) setIsDemoMode(true);
         }
       }
 
+      if (!isMounted) return;
       // Offline / Demo fallback
       const stored = localStorage.getItem('wham_profiles');
       const rawClimbers: Profile[] = stored ? JSON.parse(stored) : INITIAL_PROFILES;
@@ -335,6 +343,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     initAuth();
+
+    return () => {
+      isMounted = false;
+      authSubscription?.unsubscribe();
+      if (profilesRealtimeChannel && supabase) {
+        supabase.removeChannel(profilesRealtimeChannel);
+      }
+    };
   }, []);
 
   const switchClimber = (profileId: string) => {

@@ -31,7 +31,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
   areas,
   currentUserId,
   onSelectBoulder,
-  onQuickLog
+  onQuickLog: _onQuickLog
 }) => {
   // Filter state
   const [selectedClimberId, setSelectedClimberId] = useState<string>('all');

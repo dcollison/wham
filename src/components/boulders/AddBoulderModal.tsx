@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Boulder, Grade, GRADES, HOLD_COLORS, GymArea, getHoldSwatchStyle } from '../../types';
+import { Boulder, Grade, GRADES, HOLD_COLORS, GymArea } from '../../types';
 import { compressImage, CompressionResult } from '../../lib/imageCompressor';
 import { HoldSwatch } from './HoldSwatch';
-import { X, Camera, Upload, Plus, AlertCircle, ArrowDown, Layers, Trophy } from 'lucide-react';
+import { X, Camera, Plus, AlertCircle, Layers, Trophy } from 'lucide-react';
 
 interface AddBoulderModalProps {
   isOpen: boolean;
@@ -128,7 +128,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
         gymId,
         areaId: effectiveAreaId,
         holdColour,
-        grade: isComp ? 'VB' : grade,
+        grade: grade || 'VB',
         isComp,
         compNumber: isComp ? compNumber : undefined,
         notes: notes.trim() || undefined,
@@ -231,7 +231,7 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
               Hold Colour
             </label>
             <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-              {Object.entries(HOLD_COLORS).map(([colorName, config]) => {
+              {Object.keys(HOLD_COLORS).map((colorName) => {
                 const isSelected = holdColour === colorName;
                 return (
                   <button

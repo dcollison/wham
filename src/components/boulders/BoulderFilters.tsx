@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { Grade, GRADES, HOLD_COLORS, Profile, getHoldSwatchStyle } from '../../types';
+import { Grade, GRADES, Profile, getHoldSwatchStyle } from '../../types';
 import {
   Filter,
   X,
   RotateCcw,
   Check,
-  Zap,
   Clock,
   CircleDashed,
   SlidersHorizontal,
@@ -72,14 +71,6 @@ const BoulderFiltersComponent: React.FC<BoulderFiltersProps> = ({
 
   const isCustomGradeRange =
     (filters.minGrade !== null || filters.maxGrade !== null) && !activePreset;
-
-  // Count how many non-default filter settings are active
-  const activeFilterCount =
-    (filters.minGrade !== null || filters.maxGrade !== null ? 1 : 0) +
-    (filters.statusFilter !== 'all' ? 1 : 0) +
-    (filters.selectedColour !== null ? 1 : 0) +
-    (filters.sortBy !== 'position' ? 1 : 0) +
-    (currentUserId && filters.targetClimberId !== currentUserId ? 1 : 0);
 
   // Count how many modal-only filters are active (colour, sort, climber, custom fine-tuned grade)
   const modalActiveFiltersCount =

@@ -1,4 +1,4 @@
-import { Boulder, Attempt, Profile, Grade, GRADES } from '../types';
+import { Boulder, Attempt, Profile, Grade } from '../types';
 
 /**
  * Base Elo anchor for each V-grade.
@@ -190,7 +190,7 @@ export function computeClimberRating(
     if (a.status !== 'sent' && a.status !== 'flashed') return;
 
     const b = boulderMap.get(a.boulder_id);
-    if (!b) return;
+    if (!b || b.is_comp) return;
 
     // Determine send date
     const dateStr = a.logged_at || b.date_added;
@@ -215,7 +215,7 @@ export function computeClimberRating(
 
   bestAttemptPerBoulder.forEach((attempt, boulderId) => {
     const boulder = boulderMap.get(boulderId);
-    if (!boulder) return;
+    if (!boulder || boulder.is_comp) return;
     const dateStr = attempt.logged_at || boulder.date_added;
     userSendsInWindow.push({
       attempt,

@@ -39,30 +39,35 @@ export const PasscodeGate: React.FC<PasscodeGateProps> = ({ onUnlock }) => {
     setIsError(false);
     setErrorMessage('');
 
-    setPin((prev) => {
-      if (prev.length >= PIN_LENGTH) return prev;
-      const next = prev + digit;
+    setPin((prev) => (prev.length < PIN_LENGTH ? prev + digit : prev));
+  }, [isSuccess]);
 
-      if (next.length === PIN_LENGTH) {
-        if (next === REQUIRED_PIN) {
-          setTimeout(() => {
-            handleSuccess();
-          }, 50);
-        } else {
-          setTimeout(() => {
-            setIsError(true);
-            setErrorMessage('Incorrect passcode. Try again.');
-            setTimeout(() => {
-              setPin('');
-              setIsError(false);
-            }, 750);
-          }, 100);
-        }
-      }
+  useEffect(() => {
+    if (pin.length !== PIN_LENGTH || isSuccess) return;
 
-      return next;
-    });
-  }, [isSuccess, handleSuccess]);
+    let outerTimer: ReturnType<typeof setTimeout> | null = null;
+    let innerTimer: ReturnType<typeof setTimeout> | null = null;
+
+    if (pin === REQUIRED_PIN) {
+      outerTimer = setTimeout(() => {
+        handleSuccess();
+      }, 50);
+    } else {
+      outerTimer = setTimeout(() => {
+        setIsError(true);
+        setErrorMessage('Incorrect passcode. Try again.');
+        innerTimer = setTimeout(() => {
+          setPin('');
+          setIsError(false);
+        }, 750);
+      }, 100);
+    }
+
+    return () => {
+      if (outerTimer) clearTimeout(outerTimer);
+      if (innerTimer) clearTimeout(innerTimer);
+    };
+  }, [pin, isSuccess, handleSuccess]);
 
   const handleDelete = useCallback(() => {
     if (isSuccess) return;

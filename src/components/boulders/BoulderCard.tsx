@@ -1,12 +1,13 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Boulder, Attempt, Profile, getHoldCardStyle, LogAttemptParams } from '../../types';
 import { HoldBadge } from './HoldBadge';
 import { HoldSwatch } from './HoldSwatch';
 import { ClimberStatusPills } from './ClimberStatusPills';
 import { Zap, Check, Clock, MessageSquare, Camera, FileText, Plus } from 'lucide-react';
 import { getBoulderAgeInfo } from '../../lib/resetStatus';
-import { useGym } from '../../context/GymContext';
 import { calcBoulderReviewSummary, GRADE_OPINION_CONFIG, REVIEW_RATING_CONFIG, BoulderReviewSummary } from '../../lib/reviews';
+
+const EMPTY_REVIEW_SUMMARY: BoulderReviewSummary = calcBoulderReviewSummary([]);
 
 interface BoulderCardProps {
   boulder: Boulder;
@@ -28,20 +29,13 @@ const BoulderCardComponent: React.FC<BoulderCardProps> = ({
   currentUserId,
   commentCount,
   reviewSummary: propReviewSummary,
-  areaName,
   onQuickLog,
   onOpenDetails,
   onLogAttempt
 }) => {
-  const gymCtx = useGym();
-  const logAttempt = onLogAttempt || gymCtx.logAttempt;
   const [isLoggingInstant, setIsLoggingInstant] = useState(false);
 
-  const reviewSummary = useMemo(() => {
-    if (propReviewSummary) return propReviewSummary;
-    const boulderReviews = gymCtx.reviews.filter(r => r.boulder_id === boulder.id);
-    return calcBoulderReviewSummary(boulderReviews);
-  }, [propReviewSummary, gymCtx.reviews, boulder.id]);
+  const reviewSummary = propReviewSummary ?? EMPTY_REVIEW_SUMMARY;
 
   const userAttempt = attempts.find(a => a.user_id === currentUserId);
   const cardStyle = getHoldCardStyle(boulder.hold_colour);
@@ -50,7 +44,6 @@ const BoulderCardComponent: React.FC<BoulderCardProps> = ({
   const isFlash = userAttempt?.status === 'flashed';
   const isSent = userAttempt?.status === 'sent';
   const isProject = userAttempt?.status === 'attempted';
-  const isUntried = !userAttempt;
 
   let borderShadowClass = 'border-white/[0.06] hover:border-white/[0.12] surface-card';
   if (isFlash) {
@@ -64,11 +57,11 @@ const BoulderCardComponent: React.FC<BoulderCardProps> = ({
   // 1-Tap Quick "+" Increment: adds 1 attempt (falls off without sending)
   const handleQuickIncrement = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!currentUserId || isLoggingInstant) return;
+    if (!currentUserId || isLoggingInstant || !onLogAttempt) return;
     setIsLoggingInstant(true);
     try {
       const nextCount = userAttempt ? userAttempt.attempt_count + 1 : 1;
-      await logAttempt({
+      await onLogAttempt({
         boulderId: boulder.id,
         status: 'attempted',
         attemptCount: nextCount,
@@ -85,11 +78,11 @@ const BoulderCardComponent: React.FC<BoulderCardProps> = ({
   // - On projecting boulder: increments tries (attempt_count + 1) and records send (status: 'sent')
   const handleQuickSend = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!currentUserId || isLoggingInstant) return;
+    if (!currentUserId || isLoggingInstant || !onLogAttempt) return;
     setIsLoggingInstant(true);
     try {
       if (!userAttempt) {
-        await logAttempt({
+        await onLogAttempt({
           boulderId: boulder.id,
           status: 'flashed',
           attemptCount: 1,
@@ -98,7 +91,7 @@ const BoulderCardComponent: React.FC<BoulderCardProps> = ({
         });
       } else {
         const sendCount = userAttempt.attempt_count + 1;
-        await logAttempt({
+        await onLogAttempt({
           boulderId: boulder.id,
           status: 'sent',
           attemptCount: sendCount,
