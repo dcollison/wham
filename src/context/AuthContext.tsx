@@ -3,6 +3,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { Profile, CLIMBER_ACCENT_PALETTE } from '../types';
 import { INITIAL_PROFILES } from '../lib/mockData';
 import { updateWhamFavicon } from '../components/WhamLogo';
+import { STORAGE_KEYS } from '../lib/storage';
 
 interface AuthContextType {
   currentUser: Profile | null;
@@ -165,6 +166,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updateWhamFavicon(accent);
   }, [currentUser?.accent_color]);
 
+  // Passcode gate status detection
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(() => {
+    return localStorage.getItem(STORAGE_KEYS.PASSCODE_UNLOCKED) === 'true';
+  });
+
+  useEffect(() => {
+    const handlePasscodeChange = () => {
+      setIsUnlocked(localStorage.getItem(STORAGE_KEYS.PASSCODE_UNLOCKED) === 'true');
+    };
+    window.addEventListener('wham_passcode_status_changed', handlePasscodeChange);
+    window.addEventListener('storage', handlePasscodeChange);
+    return () => {
+      window.removeEventListener('wham_passcode_status_changed', handlePasscodeChange);
+      window.removeEventListener('storage', handlePasscodeChange);
+    };
+  }, []);
+
   // Initialize session and profiles
   useEffect(() => {
     let isMounted = true;
@@ -172,11 +190,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let profilesRealtimeChannel: ReturnType<NonNullable<typeof supabase>['channel']> | null = null;
 
     async function initAuth() {
-      setLoading(true);
-
       // Check for locally stored profile preference
       const savedProfileId = localStorage.getItem('wham_active_profile_id');
       const customizations = getClimberCustomizations();
+
+      if (!isUnlocked) {
+        // App is locked behind passcode - use local fallback and avoid all network calls
+        const stored = localStorage.getItem('wham_profiles');
+        const rawClimbers: Profile[] = stored ? JSON.parse(stored) : INITIAL_PROFILES;
+        const loadedClimbers: Profile[] = rawClimbers.map((c, idx) =>
+          enrichProfile(c, idx, customizations)
+        );
+        setClimbers(loadedClimbers);
+        const active = loadedClimbers.find((p: Profile) => p.id === savedProfileId) || loadedClimbers[0];
+        setCurrentUser(active);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
 
       if (isSupabaseConfigured && supabase) {
         try {
@@ -351,7 +383,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         supabase.removeChannel(profilesRealtimeChannel);
       }
     };
-  }, []);
+  }, [isUnlocked]);
 
   const switchClimber = (profileId: string) => {
     const climber = climbers.find(c => c.id === profileId);

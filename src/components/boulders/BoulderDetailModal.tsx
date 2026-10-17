@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Boulder, Attempt, Comment, Profile, GymArea, Grade, GRADES, HOLD_COLORS, ReviewRating, GradeOpinion } from '../../types';
-import { REVIEW_RATING_CONFIG, GRADE_OPINION_CONFIG, REVIEW_RATING_LIST, GRADE_OPINION_LIST, calcBoulderReviewSummary, normalizeRating, normalizeGradeOpinion } from '../../lib/reviews';
+import { REVIEW_RATING_CONFIG, GRADE_OPINION_CONFIG, REVIEW_RATING_LIST, calcBoulderReviewSummary, normalizeRating, normalizeGradeOpinion } from '../../lib/reviews';
+import { BoulderReviewPicker } from './BoulderReviewPicker';
 import { HoldBadge } from './HoldBadge';
 import { HoldSwatch } from './HoldSwatch';
 import { ClimberStatusPills } from './ClimberStatusPills';
@@ -143,10 +144,8 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
     return boulderReviews.find(r => r.user_id === currentUserId);
   }, [boulderReviews, currentUserId, boulder?.id]);
 
-  const handleToggleRating = async (ratingVal: ReviewRating) => {
+  const handleRatingChange = async (newRating: ReviewRating | null) => {
     if (!boulder || !currentUserId) return;
-    const currentRating = normalizeRating(userReview?.rating);
-    const newRating = currentRating === ratingVal ? null : ratingVal;
     if (newRating === null && !userReview?.grade_opinion && !userReview?.comment) {
       await deleteReview(boulder.id, currentUserId);
     } else {
@@ -160,10 +159,8 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
     }
   };
 
-  const handleToggleGradeOpinion = async (gradeVal: GradeOpinion) => {
+  const handleGradeOpinionChange = async (newGrade: GradeOpinion | null) => {
     if (!boulder || !currentUserId) return;
-    const currentGrade = normalizeGradeOpinion(userReview?.grade_opinion);
-    const newGrade = currentGrade === gradeVal ? null : gradeVal;
     if (newGrade === null && !userReview?.rating && !userReview?.comment) {
       await deleteReview(boulder.id, currentUserId);
     } else {
@@ -1044,68 +1041,18 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
 
               {/* Interactive Quick Vote for current user */}
               {currentUserId && (
-                <div className="bg-slate-900/70 rounded-2xl p-3.5 border border-slate-800 flex flex-col gap-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-slate-300">
-                      {userReview?.rating || userReview?.grade_opinion ? 'Your Review:' : 'Leave your review:'}
-                    </span>
-                    {(userReview?.rating || userReview?.grade_opinion) && (
-                      <button
-                        type="button"
-                        onClick={() => deleteReview(boulder.id, currentUserId)}
-                        className="text-[10px] text-slate-400 hover:text-rose-400 underline transition-colors"
-                      >
-                        Clear my review
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Quality row: Good, Okay, Rough */}
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {REVIEW_RATING_LIST.map((r) => {
-                      const isSelected = normalizeRating(userReview?.rating) === r.value;
-                      return (
-                        <button
-                          key={r.value}
-                          type="button"
-                          onClick={() => handleToggleRating(r.value)}
-                          className={`py-2 px-2 rounded-xl text-xs font-semibold flex flex-col items-center justify-center gap-0.5 transition-all active-press border ${
-                            isSelected
-                              ? `${r.activeBg} ${r.activeBorder} ${r.activeText} ring-1 ring-white/20 shadow-xs`
-                              : 'bg-slate-800/80 hover:bg-slate-800 border-slate-750 text-slate-400 hover:text-slate-200'
-                          }`}
-                        >
-                          <span className="font-mono text-xs font-black tracking-tight select-none">
-                            {r.kaomoji}
-                          </span>
-                          <span className="text-[10px] font-bold">{r.shortLabel}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Grade feel row: Soft, Fair, Hard */}
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {GRADE_OPINION_LIST.map((g) => {
-                      const isSelected = normalizeGradeOpinion(userReview?.grade_opinion) === g.value;
-                      const Icon = g.icon;
-                      return (
-                        <button
-                          key={g.value}
-                          type="button"
-                          onClick={() => handleToggleGradeOpinion(g.value)}
-                          className={`py-2 px-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all active-press border ${
-                            isSelected
-                              ? `${g.activeBg} ${g.activeBorder} ${g.activeText} ring-1 ring-white/20 shadow-xs`
-                              : 'bg-slate-800/80 hover:bg-slate-800 border-slate-750 text-slate-400 hover:text-slate-200'
-                          }`}
-                        >
-                          <Icon className="w-3.5 h-3.5" />
-                          <span className="text-xs font-bold">{g.shortLabel}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                <div className="bg-slate-900/70 rounded-2xl p-3.5 border border-slate-800">
+                  <BoulderReviewPicker
+                    rating={userReview?.rating}
+                    gradeOpinion={userReview?.grade_opinion}
+                    onRatingChange={handleRatingChange}
+                    onGradeOpinionChange={handleGradeOpinionChange}
+                    onClear={() => deleteReview(boulder.id, currentUserId)}
+                    title={userReview?.rating || userReview?.grade_opinion ? 'Your Review:' : 'Leave your review:'}
+                    clearLabel="Clear my review"
+                    size="sm"
+                    showHeaders={false}
+                  />
                 </div>
               )}
 

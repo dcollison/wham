@@ -8,8 +8,8 @@ import {
   INITIAL_ATTEMPTS,
   INITIAL_COMMENTS,
   INITIAL_FEATURE_REQUESTS,
-  INITIAL_BOULDER_REVIEWS
-} from '../lib/mockData';
+  INITIAL_REVIEWS
+} from '../lib/seedData';
 import { useAuth } from './AuthContext';
 import confetti from 'canvas-confetti';
 import {
@@ -25,6 +25,8 @@ import {
   STORAGE_KEYS,
   getStorageJson,
   setStorageJson,
+  getStorageString,
+  setStorageString,
   PendingAttempt,
   PendingReview,
   PendingDelete
@@ -101,27 +103,21 @@ interface GymContextType {
 
 const GymContext = createContext<GymContextType | undefined>(undefined);
 
-export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const GymProvider: React.FC<{ children: React.ReactNode; isLocked?: boolean }> = ({ children, isLocked = false }) => {
   const { currentUser, climbers, isDemoMode, restoreProfilesFromBackup } = useAuth();
 
   const [gyms, setGyms] = useState<Gym[]>(() => {
-    const cached = localStorage.getItem('wham_gyms');
-    return cached ? JSON.parse(cached) : INITIAL_GYMS;
+    return getStorageJson<Gym[]>(STORAGE_KEYS.GYMS, INITIAL_GYMS);
   });
 
   const [currentGym, setCurrentGymState] = useState<Gym | null>(null);
 
   const [areas, setAreas] = useState<GymArea[]>(() => {
-    const cached = localStorage.getItem('wham_areas');
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        const hasNumberedBondAreas = Array.isArray(parsed) && parsed.some((a: GymArea) => /^\d+:/.test(a.name));
-        if (Array.isArray(parsed) && parsed.length >= INITIAL_AREAS.length && !hasNumberedBondAreas) {
-          return parsed;
-        }
-      } catch {
-        // Fallback
+    const cached = getStorageJson<GymArea[] | null>(STORAGE_KEYS.AREAS, null);
+    if (cached && Array.isArray(cached)) {
+      const hasNumberedBondAreas = cached.some((a: GymArea) => /^\d+:/.test(a.name));
+      if (cached.length >= INITIAL_AREAS.length && !hasNumberedBondAreas) {
+        return cached;
       }
     }
     return INITIAL_AREAS;
@@ -133,102 +129,67 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (isDemoRequested()) {
       return INITIAL_BOULDERS;
     }
-    const cached = localStorage.getItem('wham_boulders');
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
-      } catch {
-        // Fallback
-      }
+    const cached = getStorageJson<Boulder[] | null>(STORAGE_KEYS.BOULDERS, null);
+    if (cached && Array.isArray(cached) && cached.length > 0) {
+      return cached;
     }
     return INITIAL_BOULDERS;
   });
 
   const [attempts, setAttempts] = useState<Attempt[]>(() => {
-    const cached = localStorage.getItem('wham_attempts');
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const firstDate = parsed[0]?.logged_at;
-          const isOldMonolithicDate =
-            parsed.length > 50 &&
-            parsed.every((a) => a.logged_at === firstDate && firstDate === '2026-09-10T19:00:00Z');
-          if (isOldMonolithicDate) {
-            return INITIAL_ATTEMPTS;
-          }
-          return parsed;
-        }
-      } catch {
-        // Fallback
+    const cached = getStorageJson<Attempt[] | null>(STORAGE_KEYS.ATTEMPTS, null);
+    if (cached && Array.isArray(cached) && cached.length > 0) {
+      const firstDate = cached[0]?.logged_at;
+      const isOldMonolithicDate =
+        cached.length > 50 &&
+        cached.every((a) => a.logged_at === firstDate && firstDate === '2026-09-10T19:00:00Z');
+      if (isOldMonolithicDate) {
+        return INITIAL_ATTEMPTS;
       }
+      return cached;
     }
     return INITIAL_ATTEMPTS;
   });
 
   const [comments, setComments] = useState<Comment[]>(() => {
-    const cached = localStorage.getItem('wham_comments');
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed)) {
-          return parsed.filter((c: Comment) => !c.id.startsWith('e0000000-0000-0000-0000-'));
-        }
-      } catch {
-        // Fallback
-      }
+    const cached = getStorageJson<Comment[] | null>(STORAGE_KEYS.COMMENTS, null);
+    if (cached && Array.isArray(cached)) {
+      return cached.filter((c: Comment) => !c.id.startsWith('e0000000-0000-0000-0000-'));
     }
     return INITIAL_COMMENTS;
   });
 
   const [featureRequests, setFeatureRequests] = useState<FeatureRequest[]>(() => {
-    const cached = localStorage.getItem('wham_feature_requests');
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const cleaned = parsed
-            .map((r: FeatureRequest) => {
-              const lower = r.title?.toLowerCase() || '';
-              if (
-                lower === 'save and next buttons' ||
-                lower === 'boulder review system' ||
-                lower.includes('storage tab says 0 photos') ||
-                lower.includes('backups not synced')
-              ) {
-                return { ...r, status: 'shipped' as const };
-              }
-              return r;
-            })
-            .filter((r: FeatureRequest) => !['req-001', 'req-002', 'req-003'].includes(r.id));
+    const cached = getStorageJson<FeatureRequest[] | null>(STORAGE_KEYS.FEATURE_REQUESTS, null);
+    if (cached && Array.isArray(cached) && cached.length > 0) {
+      const cleaned = cached
+        .map((r: FeatureRequest) => {
+          const lower = r.title?.toLowerCase() || '';
+          if (
+            lower === 'save and next buttons' ||
+            lower === 'boulder review system' ||
+            lower.includes('storage tab says 0 photos') ||
+            lower.includes('backups not synced')
+          ) {
+            return { ...r, status: 'shipped' as const };
+          }
+          return r;
+        })
+        .filter((r: FeatureRequest) => !['req-001', 'req-002', 'req-003'].includes(r.id));
 
-          const existingIds = new Set(cleaned.map((r: FeatureRequest) => r.id));
-          const missing = INITIAL_FEATURE_REQUESTS.filter(r => !existingIds.has(r.id));
-          return [...cleaned, ...missing];
-        }
-      } catch {
-        // Fallback
-      }
+      const existingIds = new Set(cleaned.map((r: FeatureRequest) => r.id));
+      const missing = INITIAL_FEATURE_REQUESTS.filter(r => !existingIds.has(r.id));
+      return [...cleaned, ...missing];
     }
     return INITIAL_FEATURE_REQUESTS;
   });
 
   const [reviews, setReviews] = useState<BoulderReview[]>(() => {
-    const cached = localStorage.getItem('wham_boulder_reviews');
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
-      } catch {
-        // Fallback
-      }
+    const cached = getStorageJson<BoulderReview[] | null>(STORAGE_KEYS.REVIEWS, null);
+    if (cached && Array.isArray(cached) && cached.length > 0) {
+      return cached;
     }
-    return INITIAL_BOULDER_REVIEWS;
+    return INITIAL_REVIEWS;
   });
 
   const [snapshots, setSnapshots] = useState<LocalSnapshotMeta[]>(() => getLocalSnapshotsMeta());
@@ -238,10 +199,29 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [loading, setLoading] = useState<boolean>(true);
   const [showArchived, setShowArchived] = useState<boolean>(false);
 
+  // Passcode gate status detection
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(() => {
+    return getStorageString(STORAGE_KEYS.PASSCODE_UNLOCKED) === 'true';
+  });
+
+  useEffect(() => {
+    const handlePasscodeChange = () => {
+      setIsUnlocked(getStorageString(STORAGE_KEYS.PASSCODE_UNLOCKED) === 'true');
+    };
+    window.addEventListener('wham_passcode_status_changed', handlePasscodeChange);
+    window.addEventListener('storage', handlePasscodeChange);
+    return () => {
+      window.removeEventListener('wham_passcode_status_changed', handlePasscodeChange);
+      window.removeEventListener('storage', handlePasscodeChange);
+    };
+  }, []);
+
+  const isNetworkGated = isLocked || !isUnlocked;
+
   // Initialize active gym & area from stored preferences or defaults
   useEffect(() => {
     if (gyms.length > 0 && !currentGym) {
-      const savedGymId = localStorage.getItem('wham_active_gym_id');
+      const savedGymId = getStorageString(STORAGE_KEYS.ACTIVE_GYM);
       const gym = gyms.find(g => g.id === savedGymId) || gyms[0];
       setCurrentGymState(gym);
     }
@@ -250,7 +230,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     if (currentGym) {
       const gymAreas = areas.filter(a => a.gym_id === currentGym.id).sort((a, b) => a.sort_order - b.sort_order);
-      const savedAreaId = localStorage.getItem(`wham_active_area_${currentGym.id}`);
+      const savedAreaId = getStorageString(`wham_active_area_${currentGym.id}`);
       if (savedAreaId === 'all') {
         setCurrentAreaState(prev => (prev === null ? prev : null));
       } else if (savedAreaId) {
@@ -264,9 +244,9 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const setCurrentGym = (gym: Gym) => {
     setCurrentGymState(gym);
-    localStorage.setItem('wham_active_gym_id', gym.id);
+    setStorageString(STORAGE_KEYS.ACTIVE_GYM, gym.id);
     const gymAreas = areas.filter(a => a.gym_id === gym.id).sort((a, b) => a.sort_order - b.sort_order);
-    const savedAreaId = localStorage.getItem(`wham_active_area_${gym.id}`);
+    const savedAreaId = getStorageString(`wham_active_area_${gym.id}`);
     if (savedAreaId === 'all') {
       setCurrentAreaState(null);
     } else if (savedAreaId) {
@@ -281,9 +261,9 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCurrentAreaState(area);
     if (currentGym) {
       if (area) {
-        localStorage.setItem(`wham_active_area_${currentGym.id}`, area.id);
+        setStorageString(`wham_active_area_${currentGym.id}`, area.id);
       } else {
-        localStorage.setItem(`wham_active_area_${currentGym.id}`, 'all');
+        setStorageString(`wham_active_area_${currentGym.id}`, 'all');
       }
     }
   };
@@ -333,7 +313,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Background retry queue for offline or stalled writes
   const flushPendingQueue = async () => {
     if (isFlushingPendingRef.current) return;
-    if (!isSupabaseConfigured || !supabase || isDemoMode || isDemoRequested()) return;
+    if (isNetworkGated || !isSupabaseConfigured || !supabase || isDemoMode || isDemoRequested()) return;
     if (typeof window !== 'undefined' && !navigator.onLine) return;
 
     isFlushingPendingRef.current = true;
@@ -428,6 +408,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Re-sync pending offline queue when online or periodically every 30s
   useEffect(() => {
+    if (isNetworkGated) return;
     const handleOnline = () => {
       flushPendingQueue();
     };
@@ -444,7 +425,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       window.removeEventListener('online', handleOnline);
       clearInterval(interval);
     };
-  }, []);
+  }, [isNetworkGated]);
 
   // Sync with Supabase or fallback to LocalStorage
   useEffect(() => {
@@ -452,7 +433,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let isMounted = true;
 
     async function fetchData() {
-      if (!isSupabaseConfigured || !supabase || isDemoMode || isDemoRequested()) {
+      if (isNetworkGated || !isSupabaseConfigured || !supabase || isDemoMode || isDemoRequested()) {
         setLoading(false);
         return;
       }
@@ -483,11 +464,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               }
               return remote;
             });
-            try {
-              localStorage.setItem('wham_areas', JSON.stringify(merged));
-            } catch (e) {
-              console.warn('Failed to cache areas to localStorage:', e);
-            }
+            setStorageJson(STORAGE_KEYS.AREAS, merged);
             return merged;
           });
           setCurrentAreaState((prev) => {
@@ -536,9 +513,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
 
           setReviews(mergedReviews);
-          try {
-            localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(mergedReviews));
-          } catch (e) {}
+          setStorageJson(STORAGE_KEYS.REVIEWS, mergedReviews);
         }
 
         // Trigger background flush of any pending queue
@@ -563,9 +538,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const missing = INITIAL_FEATURE_REQUESTS.filter(r => !existingIds.has(r.id));
           const merged = [...cleanRequests, ...missing];
           setFeatureRequests(merged.length > 0 ? merged : INITIAL_FEATURE_REQUESTS);
-          try {
-            localStorage.setItem('wham_feature_requests', JSON.stringify(merged.length > 0 ? merged : INITIAL_FEATURE_REQUESTS));
-          } catch (e) {}
+          setStorageJson(STORAGE_KEYS.FEATURE_REQUESTS, merged.length > 0 ? merged : INITIAL_FEATURE_REQUESTS);
         }
 
         if (snapshotsRes && !snapshotsRes.error && Array.isArray(snapshotsRes.data)) {
@@ -594,9 +567,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             const { areaId, imageUrl } = payload;
             setAreas((prev) => {
               const updated = prev.map((a) => (a.id === areaId ? { ...a, image_url: imageUrl } : a));
-              try {
-                localStorage.setItem('wham_areas', JSON.stringify(updated));
-              } catch (e) {}
+              setStorageJson(STORAGE_KEYS.AREAS, updated);
               return updated;
             });
             setCurrentAreaState((prev) => (prev && prev.id === areaId ? { ...prev, image_url: imageUrl } : prev));
@@ -606,7 +577,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             setFeatureRequests((prev) => {
               if (prev.some((r) => r.id === payload.request.id)) return prev;
               const next = [payload.request, ...prev];
-              try { localStorage.setItem('wham_feature_requests', JSON.stringify(next)); } catch (e) {}
+              setStorageJson(STORAGE_KEYS.FEATURE_REQUESTS, next);
               return next;
             });
           })
@@ -614,7 +585,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             if (!payload?.id) return;
             setFeatureRequests((prev) => {
               const next = prev.filter((r) => r.id !== payload.id);
-              try { localStorage.setItem('wham_feature_requests', JSON.stringify(next)); } catch (e) {}
+              setStorageJson(STORAGE_KEYS.FEATURE_REQUESTS, next);
               return next;
             });
           })
@@ -622,7 +593,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             if (!payload?.id || !payload?.updates) return;
             setFeatureRequests((prev) => {
               const next = prev.map((r) => (r.id === payload.id ? { ...r, ...payload.updates } : r));
-              try { localStorage.setItem('wham_feature_requests', JSON.stringify(next)); } catch (e) {}
+              setStorageJson(STORAGE_KEYS.FEATURE_REQUESTS, next);
               return next;
             });
           })
@@ -635,9 +606,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 const next = exists
                   ? prev.map((a) => (a.id === updated.id ? { ...a, ...updated } : a))
                   : [...prev, updated];
-                try {
-                  localStorage.setItem('wham_areas', JSON.stringify(next));
-                } catch (e) {}
+                setStorageJson(STORAGE_KEYS.AREAS, next);
                 return next;
               });
               setCurrentAreaState((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev));
@@ -646,9 +615,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               if (!oldArea?.id) return;
               setAreas((prev) => {
                 const next = prev.filter((a) => a.id !== oldArea.id);
-                try {
-                  localStorage.setItem('wham_areas', JSON.stringify(next));
-                } catch (e) {}
+                setStorageJson(STORAGE_KEYS.AREAS, next);
                 return next;
               });
               setCurrentAreaState((prev) => (prev && prev.id === oldArea.id ? null : prev));
@@ -751,7 +718,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               setFeatureRequests((prev) => {
                 if (prev.some((r) => r.id === newReq.id)) return prev;
                 const next = [newReq, ...prev];
-                try { localStorage.setItem('wham_feature_requests', JSON.stringify(next)); } catch (e) {}
+                setStorageJson(STORAGE_KEYS.FEATURE_REQUESTS, next);
                 return next;
               });
             } else if (payload.eventType === 'UPDATE') {
@@ -759,7 +726,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               if (!updated?.id) return;
               setFeatureRequests((prev) => {
                 const next = prev.map((r) => (r.id === updated.id ? { ...r, ...updated } : r));
-                try { localStorage.setItem('wham_feature_requests', JSON.stringify(next)); } catch (e) {}
+                setStorageJson(STORAGE_KEYS.FEATURE_REQUESTS, next);
                 return next;
               });
             } else if (payload.eventType === 'DELETE') {
@@ -767,7 +734,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               if (!oldReq?.id) return;
               setFeatureRequests((prev) => {
                 const next = prev.filter((r) => r.id !== oldReq.id);
-                try { localStorage.setItem('wham_feature_requests', JSON.stringify(next)); } catch (e) {}
+                setStorageJson(STORAGE_KEYS.FEATURE_REQUESTS, next);
                 return next;
               });
             }
@@ -784,7 +751,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                   (r) => !(r.boulder_id === incoming.boulder_id && r.user_id === incoming.user_id)
                 );
                 const next = [enriched, ...filtered];
-                try { localStorage.setItem('wham_boulder_reviews', JSON.stringify(next)); } catch (e) {}
+                setStorageJson(STORAGE_KEYS.REVIEWS, next);
                 return next;
               });
             } else if (payload.eventType === 'UPDATE') {
@@ -798,7 +765,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     ? enriched
                     : r
                 );
-                try { localStorage.setItem('wham_boulder_reviews', JSON.stringify(next)); } catch (e) {}
+                setStorageJson(STORAGE_KEYS.REVIEWS, next);
                 return next;
               });
             } else if (payload.eventType === 'DELETE') {
@@ -807,7 +774,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 const next = prev.filter(
                   (r) => r.id !== old.id && !(old.boulder_id && old.user_id && r.boulder_id === old.boulder_id && r.user_id === old.user_id)
                 );
-                try { localStorage.setItem('wham_boulder_reviews', JSON.stringify(next)); } catch (e) {}
+                setStorageJson(STORAGE_KEYS.REVIEWS, next);
                 return next;
               });
             }
@@ -857,12 +824,12 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         supabase?.removeChannel(channel);
       }
     };
-  }, [isDemoMode]);
+  }, [isDemoMode, isNetworkGated]);
 
   // Multi-device sync: poll periodically and re-fetch when tab becomes visible or receives window focus
   useEffect(() => {
     const client = supabase;
-    if (!isSupabaseConfigured || !client || isDemoMode || isDemoRequested()) return;
+    if (isNetworkGated || !isSupabaseConfigured || !client || isDemoMode || isDemoRequested()) return;
 
     const refreshData = async () => {
       try {
@@ -889,9 +856,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ) {
               return prev;
             }
-            try {
-              localStorage.setItem('wham_boulders', JSON.stringify(bouldersRes.data));
-            } catch (e) {}
+            setStorageJson(STORAGE_KEYS.BOULDERS, bouldersRes.data);
             return bouldersRes.data;
           });
         }
@@ -919,9 +884,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               return prev;
             }
 
-            try {
-              localStorage.setItem('wham_areas', JSON.stringify(incoming));
-            } catch (e) {}
+            setStorageJson(STORAGE_KEYS.AREAS, incoming);
 
             // If active area was updated remotely (e.g. peer uploaded a photo), sync currentAreaState
             setCurrentAreaState((prevArea) => {
@@ -954,9 +917,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               });
               if (isSame) return prev;
             }
-            try {
-              localStorage.setItem('wham_attempts', JSON.stringify(merged));
-            } catch (e) {}
+            setStorageJson(STORAGE_KEYS.ATTEMPTS, merged);
             return merged;
           });
         }
@@ -982,9 +943,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               });
               if (isSame) return prev;
             }
-            try {
-              localStorage.setItem('wham_comments', JSON.stringify(enriched));
-            } catch (e) {}
+            setStorageJson(STORAGE_KEYS.COMMENTS, enriched);
             return enriched;
           });
         }
@@ -1010,27 +969,27 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearInterval(interval);
     };
-  }, [isDemoMode]);
+  }, [isDemoMode, isNetworkGated]);
 
   // Save to localStorage whenever state changes (for offline/demo mode)
   useEffect(() => {
-    localStorage.setItem('wham_gyms', JSON.stringify(gyms));
+    setStorageJson(STORAGE_KEYS.GYMS, gyms);
   }, [gyms]);
 
   useEffect(() => {
-    localStorage.setItem('wham_areas', JSON.stringify(areas));
+    setStorageJson(STORAGE_KEYS.AREAS, areas);
   }, [areas]);
 
   useEffect(() => {
-    localStorage.setItem('wham_boulders', JSON.stringify(boulders));
+    setStorageJson(STORAGE_KEYS.BOULDERS, boulders);
   }, [boulders]);
 
   useEffect(() => {
-    localStorage.setItem('wham_attempts', JSON.stringify(attempts));
+    setStorageJson(STORAGE_KEYS.ATTEMPTS, attempts);
   }, [attempts]);
 
   useEffect(() => {
-    localStorage.setItem('wham_comments', JSON.stringify(comments));
+    setStorageJson(STORAGE_KEYS.COMMENTS, comments);
   }, [comments]);
 
   // Compute Clockwise ordered active boulders in current area (or across the entire gym if currentArea is null)
@@ -1142,9 +1101,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         a => !(a.boulder_id === boulderId && a.user_id === targetUserId)
       );
       const updated = [...filtered, newAttempt];
-      try {
-        localStorage.setItem(STORAGE_KEYS.ATTEMPTS, JSON.stringify(updated));
-      } catch (e) {}
+      setStorageJson(STORAGE_KEYS.ATTEMPTS, updated);
       return updated;
     });
 
@@ -1209,9 +1166,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setAttempts(prev => {
       const filtered = prev.filter(a => !(a.boulder_id === boulderId && a.user_id === targetUserId));
-      try {
-        localStorage.setItem(STORAGE_KEYS.ATTEMPTS, JSON.stringify(filtered));
-      } catch (e) {}
+      setStorageJson(STORAGE_KEYS.ATTEMPTS, filtered);
       return filtered;
     });
 
@@ -1363,14 +1318,11 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (data) {
           // Replace temp id with Supabase-generated UUID
           setBoulders(prev => prev.map(b => b.id === tempBoulderId ? data : b));
-          try {
-            const currentCached = localStorage.getItem('wham_boulders');
-            if (currentCached) {
-              const parsed = JSON.parse(currentCached);
-              const replaced = parsed.map((b: Boulder) => b.id === tempBoulderId ? data : b);
-              localStorage.setItem('wham_boulders', JSON.stringify(replaced));
-            }
-          } catch (e) {}
+          const currentCached = getStorageJson<Boulder[]>(STORAGE_KEYS.BOULDERS, []);
+          if (currentCached.length > 0) {
+            const replaced = currentCached.map((b: Boulder) => b.id === tempBoulderId ? data : b);
+            setStorageJson(STORAGE_KEYS.BOULDERS, replaced);
+          }
           return data;
         }
       } catch (err: any) {
@@ -1535,9 +1487,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const archiveBoulder = async (boulderId: string, archive = true) => {
     setBoulders(prev => {
       const updated = prev.map(b => b.id === boulderId ? { ...b, is_archived: archive } : b);
-      try {
-        localStorage.setItem('wham_boulders', JSON.stringify(updated));
-      } catch (e) {}
+      setStorageJson(STORAGE_KEYS.BOULDERS, updated);
       return updated;
     });
 
@@ -1578,9 +1528,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         return b;
       });
-      try {
-        localStorage.setItem('wham_boulders', JSON.stringify(updated));
-      } catch (e) {}
+      setStorageJson(STORAGE_KEYS.BOULDERS, updated);
       return updated;
     });
 
@@ -1616,33 +1564,25 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Optimistically update boulders, attempts, and comments state
     setBoulders(prev => {
       const filtered = prev.filter(b => b.id !== boulderId);
-      try {
-        localStorage.setItem('wham_boulders', JSON.stringify(filtered));
-      } catch (e) {}
+      setStorageJson(STORAGE_KEYS.BOULDERS, filtered);
       return filtered;
     });
 
     setAttempts(prev => {
       const filtered = prev.filter(a => a.boulder_id !== boulderId);
-      try {
-        localStorage.setItem('wham_attempts', JSON.stringify(filtered));
-      } catch (e) {}
+      setStorageJson(STORAGE_KEYS.ATTEMPTS, filtered);
       return filtered;
     });
 
     setComments(prev => {
       const filtered = prev.filter(c => c.boulder_id !== boulderId);
-      try {
-        localStorage.setItem('wham_comments', JSON.stringify(filtered));
-      } catch (e) {}
+      setStorageJson(STORAGE_KEYS.COMMENTS, filtered);
       return filtered;
     });
 
     setReviews(prev => {
       const filtered = prev.filter(r => r.boulder_id !== boulderId);
-      try {
-        localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(filtered));
-      } catch (e) {}
+      setStorageJson(STORAGE_KEYS.REVIEWS, filtered);
       return filtered;
     });
 
@@ -1706,11 +1646,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         return b;
       });
-      try {
-        localStorage.setItem('wham_boulders', JSON.stringify(updated));
-      } catch (e) {
-        // Ignore
-      }
+      setStorageJson(STORAGE_KEYS.BOULDERS, updated);
       return updated;
     });
 
@@ -1740,11 +1676,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setBoulders(prev => {
       const updated = prev.map(b => b.area_id === areaId ? { ...b, is_archived: true } : b);
-      try {
-        localStorage.setItem('wham_boulders', JSON.stringify(updated));
-      } catch (e) {
-        // Ignore
-      }
+      setStorageJson(STORAGE_KEYS.BOULDERS, updated);
       return updated;
     });
 
@@ -1759,7 +1691,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
 
-    if (localStorage.getItem('wham_auto_prune_photos') === 'true') {
+    if (getStorageString(STORAGE_KEYS.AUTO_PRUNE_PHOTOS) === 'true') {
       try {
         await pruneArchivedClimbPhotos(0, areaId);
       } catch (err) {
@@ -1804,11 +1736,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Persist to local state and localStorage
     setAreas((prev) => {
       const updated = prev.map((a) => (a.id === areaId ? { ...a, image_url: finalUrl } : a));
-      try {
-        localStorage.setItem('wham_areas', JSON.stringify(updated));
-      } catch (e) {
-        console.warn('Failed to persist areas to localStorage:', e);
-      }
+      setStorageJson(STORAGE_KEYS.AREAS, updated);
       return updated;
     });
 
@@ -1840,11 +1768,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setAreas((prev) => {
       const updated = prev.map((a) => (a.id === areaId ? { ...a, image_url: null } : a));
-      try {
-        localStorage.setItem('wham_areas', JSON.stringify(updated));
-      } catch (e) {
-        console.warn('Failed to persist areas to localStorage:', e);
-      }
+      setStorageJson(STORAGE_KEYS.AREAS, updated);
       return updated;
     });
 
@@ -1884,11 +1808,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const toggleAreaCompWall = async (areaId: string, isCompWall: boolean): Promise<void> => {
     setAreas((prev) => {
       const updated = prev.map((a) => (a.id === areaId ? { ...a, is_comp_wall: isCompWall } : a));
-      try {
-        localStorage.setItem('wham_areas', JSON.stringify(updated));
-      } catch (e) {
-        console.warn('Failed to persist areas to localStorage:', e);
-      }
+      setStorageJson(STORAGE_KEYS.AREAS, updated);
       return updated;
     });
 
@@ -1945,11 +1865,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Update local state and keep climb metadata (grade, notes, attempts) intact
     setBoulders((prev) => {
       const updated = prev.map((b) => (targetIds.has(b.id) ? { ...b, image_url: null } : b));
-      try {
-        localStorage.setItem('wham_boulders', JSON.stringify(updated));
-      } catch (e) {
-        console.warn('Failed to save boulders after photo prune:', e);
-      }
+      setStorageJson(STORAGE_KEYS.BOULDERS, updated);
       return updated;
     });
 
@@ -1990,9 +1906,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setComments(prev => {
       const next = [...prev, newComment];
-      try {
-        localStorage.setItem('wham_comments', JSON.stringify(next));
-      } catch (e) {}
+      setStorageJson(STORAGE_KEYS.COMMENTS, next);
       return next;
     });
 
@@ -2012,9 +1926,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           console.error('Failed to insert comment in Supabase:', error);
           setComments(prev => {
             const rolledBack = prev.filter(c => c.id !== newComment.id);
-            try {
-              localStorage.setItem('wham_comments', JSON.stringify(rolledBack));
-            } catch (e) {}
+            setStorageJson(STORAGE_KEYS.COMMENTS, rolledBack);
             return rolledBack;
           });
           return;
@@ -2026,9 +1938,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             const next = hasReal
               ? prev.filter(c => c.id !== newComment.id)
               : prev.map(c => c.id === newComment.id ? data : c);
-            try {
-              localStorage.setItem('wham_comments', JSON.stringify(next));
-            } catch (e) {}
+            setStorageJson(STORAGE_KEYS.COMMENTS, next);
             return next;
           });
         }
@@ -2036,9 +1946,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.error('Failed to insert comment in Supabase:', err);
         setComments(prev => {
           const rolledBack = prev.filter(c => c.id !== newComment.id);
-          try {
-            localStorage.setItem('wham_comments', JSON.stringify(rolledBack));
-          } catch (e) {}
+          setStorageJson(STORAGE_KEYS.COMMENTS, rolledBack);
           return rolledBack;
         });
       }
@@ -2120,11 +2028,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     setReviews(updatedReviews);
-    try {
-      localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(updatedReviews));
-    } catch (e) {
-      console.warn('Failed to cache boulder reviews to localStorage:', e);
-    }
+    setStorageJson(STORAGE_KEYS.REVIEWS, updatedReviews);
 
     // Clear any pending delete for this review
     const pendingDeletes = getStorageJson<PendingDelete[]>(STORAGE_KEYS.PENDING_DELETES, []);
@@ -2132,6 +2036,8 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       STORAGE_KEYS.PENDING_DELETES,
       pendingDeletes.filter(d => !(d.type === 'review' && d.boulder_id === boulderId && d.user_id === userId))
     );
+
+    const targetReview = existingIndex >= 0 ? updatedReviews[existingIndex] : updatedReviews[0];
 
     // Queue in offline pending reviews
     const pendingReviews = getStorageJson<PendingReview[]>(STORAGE_KEYS.PENDING_REVIEWS, []);
@@ -2141,9 +2047,9 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newPendingReview: PendingReview = {
       boulder_id: boulderId,
       user_id: userId,
-      rating: rating || null,
-      grade_opinion: gradeOpinion || null,
-      comment: comment || null,
+      rating: targetReview.rating || null,
+      grade_opinion: targetReview.grade_opinion || null,
+      comment: targetReview.comment || null,
       updated_at: now,
       timestamp: Date.now(),
       retry_count: 0
@@ -2154,9 +2060,9 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const payload = {
         boulder_id: boulderId,
         user_id: userId,
-        rating: rating || null,
-        grade_opinion: gradeOpinion || null,
-        comment: comment || null,
+        rating: targetReview.rating || null,
+        grade_opinion: targetReview.grade_opinion || null,
+        comment: targetReview.comment || null,
         updated_at: now
       };
       withTimeout(
@@ -2188,11 +2094,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       (r) => !(r.boulder_id === boulderId && r.user_id === userId)
     );
     setReviews(updatedReviews);
-    try {
-      localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(updatedReviews));
-    } catch (e) {
-      console.warn('Failed to cache reviews to localStorage:', e);
-    }
+    setStorageJson(STORAGE_KEYS.REVIEWS, updatedReviews);
 
     // Remove from pending reviews
     const pendingReviews = getStorageJson<PendingReview[]>(STORAGE_KEYS.PENDING_REVIEWS, []);
@@ -2287,9 +2189,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setFeatureRequests((prev) => {
       if (prev.some((r) => r.id === newReq.id)) return prev;
       const next = [newReq, ...prev];
-      try {
-        localStorage.setItem('wham_feature_requests', JSON.stringify(next));
-      } catch (e) {}
+      setStorageJson(STORAGE_KEYS.FEATURE_REQUESTS, next);
       return next;
     });
 
@@ -2330,9 +2230,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (data) {
           setFeatureRequests((prev) => {
             const next = prev.map((r) => (r.id === newReq.id ? data : r));
-            try {
-              localStorage.setItem('wham_feature_requests', JSON.stringify(next));
-            } catch (e) {}
+            setStorageJson(STORAGE_KEYS.FEATURE_REQUESTS, next);
             return next;
           });
           return data;
@@ -2349,9 +2247,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateFeatureStatus = async (requestId: string, status: FeatureStatus): Promise<void> => {
     setFeatureRequests((prev) => {
       const next = prev.map((r) => (r.id === requestId ? { ...r, status } : r));
-      try {
-        localStorage.setItem('wham_feature_requests', JSON.stringify(next));
-      } catch (e) {}
+      setStorageJson(STORAGE_KEYS.FEATURE_REQUESTS, next);
       return next;
     });
 
@@ -2402,9 +2298,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setFeatureRequests((prev) => {
       const next = prev.map((r) => (r.id === requestId ? { ...r, upvotes: finalUpvotes } : r));
-      try {
-        localStorage.setItem('wham_feature_requests', JSON.stringify(next));
-      } catch (e) {}
+      setStorageJson(STORAGE_KEYS.FEATURE_REQUESTS, next);
       return next;
     });
 
@@ -2440,9 +2334,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // 1. Optimistic remove
     setFeatureRequests((prev) => {
       const next = prev.filter((r) => r.id !== requestId);
-      try {
-        localStorage.setItem('wham_feature_requests', JSON.stringify(next));
-      } catch (e) {}
+      setStorageJson(STORAGE_KEYS.FEATURE_REQUESTS, next);
       return next;
     });
 
@@ -2498,27 +2390,27 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // 2. Restore state locally
       if (backup.gyms && backup.gyms.length > 0) {
         setGyms(backup.gyms);
-        localStorage.setItem('wham_gyms', JSON.stringify(backup.gyms));
+        setStorageJson(STORAGE_KEYS.GYMS, backup.gyms);
       }
       if (backup.areas && backup.areas.length > 0) {
         setAreas(backup.areas);
-        localStorage.setItem('wham_areas', JSON.stringify(backup.areas));
+        setStorageJson(STORAGE_KEYS.AREAS, backup.areas);
       }
       if (backup.boulders && backup.boulders.length > 0) {
         setBoulders(backup.boulders);
-        localStorage.setItem('wham_boulders', JSON.stringify(backup.boulders));
+        setStorageJson(STORAGE_KEYS.BOULDERS, backup.boulders);
       }
       if (backup.attempts && backup.attempts.length > 0) {
         setAttempts(backup.attempts);
-        localStorage.setItem('wham_attempts', JSON.stringify(backup.attempts));
+        setStorageJson(STORAGE_KEYS.ATTEMPTS, backup.attempts);
       }
       if (backup.comments && backup.comments.length > 0) {
         setComments(backup.comments);
-        localStorage.setItem('wham_comments', JSON.stringify(backup.comments));
+        setStorageJson(STORAGE_KEYS.COMMENTS, backup.comments);
       }
       if (backup.boulderReviews && backup.boulderReviews.length > 0) {
         setReviews(backup.boulderReviews);
-        localStorage.setItem('wham_boulder_reviews', JSON.stringify(backup.boulderReviews));
+        setStorageJson(STORAGE_KEYS.REVIEWS, backup.boulderReviews);
       }
       if (backup.profiles && backup.profiles.length > 0 && restoreProfilesFromBackup) {
         restoreProfilesFromBackup(backup.profiles, backup.climberCustomizations);
@@ -2557,9 +2449,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
           if (backup.featureRequests && backup.featureRequests.length > 0) {
             setFeatureRequests(backup.featureRequests);
-            try {
-              localStorage.setItem('wham_feature_requests', JSON.stringify(backup.featureRequests));
-            } catch (e) {}
+            setStorageJson(STORAGE_KEYS.FEATURE_REQUESTS, backup.featureRequests);
             await supabase.from('feature_requests').upsert(backup.featureRequests, { onConflict: 'id' });
           }
         } catch (supabaseErr) {
@@ -2569,9 +2459,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (backup.featureRequests && backup.featureRequests.length > 0) {
         setFeatureRequests(backup.featureRequests);
-        try {
-          localStorage.setItem('wham_feature_requests', JSON.stringify(backup.featureRequests));
-        } catch (e) {}
+        setStorageJson(STORAGE_KEYS.FEATURE_REQUESTS, backup.featureRequests);
       }
 
       const counts = {
@@ -2747,16 +2635,11 @@ export const GymProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deleteSnapshot = async (snapshotId: string): Promise<void> => {
     // Delete locally
-    try {
-      const raw = localStorage.getItem('wham_local_snapshots');
-      if (raw) {
-        const list = JSON.parse(raw);
-        if (Array.isArray(list)) {
-          const filtered = list.filter((item) => item.id !== snapshotId);
-          localStorage.setItem('wham_local_snapshots', JSON.stringify(filtered));
-        }
-      }
-    } catch (e) {}
+    const list = getStorageJson<any[]>(STORAGE_KEYS.LOCAL_SNAPSHOTS, []);
+    if (Array.isArray(list) && list.length > 0) {
+      const filtered = list.filter((item) => item.id !== snapshotId);
+      setStorageJson(STORAGE_KEYS.LOCAL_SNAPSHOTS, filtered);
+    }
 
     setSnapshots((prev) => prev.filter((s) => s.id !== snapshotId));
 

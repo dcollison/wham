@@ -6,14 +6,9 @@ import { Navigation } from './components/Navigation';
 import { BoulderCard } from './components/boulders/BoulderCard';
 import { QuickLogModal } from './components/boulders/QuickLogModal';
 import { AddBoulderModal } from './components/boulders/AddBoulderModal';
-import { BulkAddBouldersModal } from './components/boulders/BulkAddBouldersModal';
-import { BoulderDetailModal } from './components/boulders/BoulderDetailModal';
 import { AreaResetModal } from './components/boulders/AreaResetModal';
-import { StatsDashboard } from './components/stats/StatsDashboard';
 import { CompLeaderboard } from './components/leaderboard/CompLeaderboard';
 import { CompWallBanner } from './components/boulders/CompWallBanner';
-import { CrewFeedView } from './components/feed/CrewFeedView';
-import { CircleView } from './components/settings/CircleView';
 import { AreaPhotoBanner } from './components/boulders/AreaPhotoBanner';
 import { BoulderFilters, BoulderFiltersState } from './components/boulders/BoulderFilters';
 import { ClimberAvatar } from './components/ClimberAvatar';
@@ -25,6 +20,19 @@ import { STORAGE_KEYS, getStorageString, setStorageString } from './lib/storage'
 import { getAreaResetInfo } from './lib/resetStatus';
 import { calcBoulderReviewSummary, BoulderReviewSummary } from './lib/reviews';
 
+const StatsDashboard = React.lazy(() => import('./components/stats/StatsDashboard').then(m => ({ default: m.StatsDashboard })));
+const CrewFeedView = React.lazy(() => import('./components/feed/CrewFeedView').then(m => ({ default: m.CrewFeedView })));
+const CircleView = React.lazy(() => import('./components/settings/CircleView').then(m => ({ default: m.CircleView })));
+const BoulderDetailModal = React.lazy(() => import('./components/boulders/BoulderDetailModal').then(m => ({ default: m.BoulderDetailModal })));
+const BulkAddBouldersModal = React.lazy(() => import('./components/boulders/BulkAddBouldersModal').then(m => ({ default: m.BulkAddBouldersModal })));
+
+const TabLoadingFallback = () => (
+  <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-500">
+    <div className="w-8 h-8 rounded-full border-2 border-amber-400/30 border-t-amber-400 animate-spin" />
+    <span className="text-xs font-mono uppercase tracking-wider">Loading...</span>
+  </div>
+);
+
 const EMPTY_ATTEMPTS: Attempt[] = [];
 
 export function App() {
@@ -32,8 +40,21 @@ export function App() {
     return localStorage.getItem(STORAGE_KEYS.PASSCODE_UNLOCKED) === 'true';
   });
 
+  useEffect(() => {
+    const handlePasscodeChange = () => {
+      setIsPasscodeUnlocked(localStorage.getItem(STORAGE_KEYS.PASSCODE_UNLOCKED) === 'true');
+    };
+    window.addEventListener('wham_passcode_status_changed', handlePasscodeChange);
+    window.addEventListener('storage', handlePasscodeChange);
+    return () => {
+      window.removeEventListener('wham_passcode_status_changed', handlePasscodeChange);
+      window.removeEventListener('storage', handlePasscodeChange);
+    };
+  }, []);
+
   const handleLockApp = () => {
     localStorage.removeItem(STORAGE_KEYS.PASSCODE_UNLOCKED);
+    window.dispatchEvent(new Event('wham_passcode_status_changed'));
     setIsPasscodeUnlocked(false);
   };
   const {
@@ -626,19 +647,21 @@ export function App() {
 
         {/* TAB 2: Crew Feed (Recent Sends & Beta Spray) */}
         {currentTab === 'beta' && (
-          <CrewFeedView
-            comments={comments}
-            attempts={attempts}
-            boulders={boulders}
-            climbers={climbers}
-            gyms={gyms}
-            areas={areas}
-            currentUserId={currentUser?.id}
-            onSelectBoulder={(b) => setDetailBoulder(b)}
-            onQuickLog={(b, targetUserId) => handleOpenQuickLog(b, targetUserId)}
-            onAddComment={addComment}
-            onDeleteComment={deleteComment}
-          />
+          <React.Suspense fallback={<TabLoadingFallback />}>
+            <CrewFeedView
+              comments={comments}
+              attempts={attempts}
+              boulders={boulders}
+              climbers={climbers}
+              gyms={gyms}
+              areas={areas}
+              currentUserId={currentUser?.id}
+              onSelectBoulder={(b) => setDetailBoulder(b)}
+              onQuickLog={(b, targetUserId) => handleOpenQuickLog(b, targetUserId)}
+              onAddComment={addComment}
+              onDeleteComment={deleteComment}
+            />
+          </React.Suspense>
         )}
 
         {/* TAB 3: Comp Leaderboard & Standings */}
@@ -657,33 +680,37 @@ export function App() {
 
         {/* TAB 4: Analytics & Stats Dashboard */}
         {currentTab === 'stats' && (
-          <StatsDashboard
-            boulders={boulders}
-            attempts={attempts}
-            climbers={climbers}
-            gyms={gyms}
-            areas={areas}
-            currentUserId={currentUser?.id}
-            onSelectBoulder={(b) => setDetailBoulder(b)}
-            reviews={reviews}
-          />
+          <React.Suspense fallback={<TabLoadingFallback />}>
+            <StatsDashboard
+              boulders={boulders}
+              attempts={attempts}
+              climbers={climbers}
+              gyms={gyms}
+              areas={areas}
+              currentUserId={currentUser?.id}
+              onSelectBoulder={(b) => setDetailBoulder(b)}
+              reviews={reviews}
+            />
+          </React.Suspense>
         )}
 
         {/* TAB 4: The Circle Page View */}
         {currentTab === 'settings' && (
-          <CircleView
-            currentUser={currentUser}
-            climbers={climbers}
-            onSwitchClimber={switchClimber}
-            onUpdateDisplayName={updateDisplayName}
-            onUpdateAccentColor={updateAccentColor}
-            onUpdateAvatarIcon={updateAvatarIcon}
-            onUpdateClimber={updateClimber}
-            onAddClimber={addClimber}
-            onRemoveClimber={removeClimber}
-            onLockApp={handleLockApp}
-            initialTab={settingsInitialTab}
-          />
+          <React.Suspense fallback={<TabLoadingFallback />}>
+            <CircleView
+              currentUser={currentUser}
+              climbers={climbers}
+              onSwitchClimber={switchClimber}
+              onUpdateDisplayName={updateDisplayName}
+              onUpdateAccentColor={updateAccentColor}
+              onUpdateAvatarIcon={updateAvatarIcon}
+              onUpdateClimber={updateClimber}
+              onAddClimber={addClimber}
+              onRemoveClimber={removeClimber}
+              onLockApp={handleLockApp}
+              initialTab={settingsInitialTab}
+            />
+          </React.Suspense>
         )}
       </main>
 
@@ -715,27 +742,31 @@ export function App() {
       />
 
       {/* Boulder Detail & Beta Modal */}
-      <BoulderDetailModal
-        boulder={detailBoulder ? boulders.find((b) => b.id === detailBoulder.id) || detailBoulder : null}
-        isOpen={Boolean(detailBoulder)}
-        onClose={() => setDetailBoulder(null)}
-        attempts={detailBoulder ? attempts.filter((a) => a.boulder_id === detailBoulder.id) : []}
-        comments={detailBoulder ? comments.filter((c) => c.boulder_id === detailBoulder.id) : []}
-        climbers={climbers}
-        currentUserId={currentUser?.id}
-        areas={areas}
-        areaName={areas.find((a) => a.id === detailBoulder?.area_id)?.name}
-        gymName={gyms.find((g) => g.id === detailBoulder?.gym_id)?.name}
-        onQuickLog={(b, targetUserId) => handleOpenQuickLog(b, targetUserId)}
-        onAddComment={addComment}
-        onDeleteComment={deleteComment}
-        onToggleArchive={archiveBoulder}
-        onUpdateBoulder={updateBoulder}
-        onDeleteBoulder={deleteBoulder}
-        onMoveBoulder={moveBoulder}
-        filteredBoulders={visibleBoulders}
-        onNavigateBoulder={(next) => setDetailBoulder(next)}
-      />
+      {detailBoulder && (
+        <React.Suspense fallback={null}>
+          <BoulderDetailModal
+            boulder={boulders.find((b) => b.id === detailBoulder.id) || detailBoulder}
+            isOpen={Boolean(detailBoulder)}
+            onClose={() => setDetailBoulder(null)}
+            attempts={attempts.filter((a) => a.boulder_id === detailBoulder.id)}
+            comments={comments.filter((c) => c.boulder_id === detailBoulder.id)}
+            climbers={climbers}
+            currentUserId={currentUser?.id}
+            areas={areas}
+            areaName={areas.find((a) => a.id === detailBoulder?.area_id)?.name}
+            gymName={gyms.find((g) => g.id === detailBoulder?.gym_id)?.name}
+            onQuickLog={(b, targetUserId) => handleOpenQuickLog(b, targetUserId)}
+            onAddComment={addComment}
+            onDeleteComment={deleteComment}
+            onToggleArchive={archiveBoulder}
+            onUpdateBoulder={updateBoulder}
+            onDeleteBoulder={deleteBoulder}
+            onMoveBoulder={moveBoulder}
+            filteredBoulders={visibleBoulders}
+            onNavigateBoulder={(next) => setDetailBoulder(next)}
+          />
+        </React.Suspense>
+      )}
 
       {/* Add Boulder Modal (with Adjacent Placement) */}
       <AddBoulderModal
@@ -754,23 +785,27 @@ export function App() {
       />
 
       {/* Bulk Add Boulders Modal (for wall resets or initial gym logging) */}
-      <BulkAddBouldersModal
-        key="bulk-add-boulders-modal"
-        isOpen={isBulkAddOpen}
-        onClose={() => setIsBulkAddOpen(false)}
-        gymId={currentGym?.id || gyms[0]?.id || ''}
-        areaId={currentArea?.id || null}
-        areaName={currentArea?.name || `${currentGym?.name || 'Gym'} • All Areas`}
-        areas={areas}
-        existingBoulders={boulders.filter(b => b.gym_id === (currentGym?.id || gyms[0]?.id || ''))}
-        onBulkAdd={async (p) => {
-          await bulkAddBoulders(p);
-        }}
-        onSwitchToSingle={() => {
-          setIsBulkAddOpen(false);
-          setIsAddModalOpen(true);
-        }}
-      />
+      {isBulkAddOpen && (
+        <React.Suspense fallback={null}>
+          <BulkAddBouldersModal
+            key="bulk-add-boulders-modal"
+            isOpen={isBulkAddOpen}
+            onClose={() => setIsBulkAddOpen(false)}
+            gymId={currentGym?.id || gyms[0]?.id || ''}
+            areaId={currentArea?.id || null}
+            areaName={currentArea?.name || `${currentGym?.name || 'Gym'} • All Areas`}
+            areas={areas}
+            existingBoulders={boulders.filter(b => b.gym_id === (currentGym?.id || gyms[0]?.id || ''))}
+            onBulkAdd={async (p) => {
+              await bulkAddBoulders(p);
+            }}
+            onSwitchToSingle={() => {
+              setIsBulkAddOpen(false);
+              setIsAddModalOpen(true);
+            }}
+          />
+        </React.Suspense>
+      )}
 
       {/* Area Bulk Reset Confirmation Modal */}
       <AreaResetModal

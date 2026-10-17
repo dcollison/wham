@@ -18,7 +18,10 @@ export const STORAGE_KEYS = {
   REVIEWS: 'wham_boulder_reviews',
   PENDING_ATTEMPTS: 'wham_pending_attempts',
   PENDING_REVIEWS: 'wham_pending_reviews',
-  PENDING_DELETES: 'wham_pending_deletes'
+  PENDING_DELETES: 'wham_pending_deletes',
+  LOCAL_SNAPSHOTS: 'wham_local_snapshots',
+  AUTO_PRUNE_PHOTOS: 'wham_auto_prune_photos',
+  CLIMBER_CUSTOMIZATIONS: 'wham_climber_customizations'
 } as const;
 
 export interface PendingAttempt {

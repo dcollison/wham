@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { WhamBadge } from './WhamLogo';
 import { Lock, Delete, AlertCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { STORAGE_KEYS } from '../lib/storage';
 
 interface PasscodeGateProps {
   onUnlock: () => void;
@@ -20,7 +21,8 @@ export const PasscodeGate: React.FC<PasscodeGateProps> = ({ onUnlock }) => {
     setIsSuccess(true);
     setIsError(false);
     setErrorMessage('');
-    localStorage.setItem('wham_passcode_unlocked', 'true');
+    localStorage.setItem(STORAGE_KEYS.PASSCODE_UNLOCKED, 'true');
+    window.dispatchEvent(new Event('wham_passcode_status_changed'));
 
     confetti({
       particleCount: 40,
