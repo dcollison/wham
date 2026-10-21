@@ -106,15 +106,13 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <Milestone className="w-4 h-4 text-amber-400" />
+            <Milestone className="w-3.5 h-3.5 text-amber-400" />
             <h4 className="text-xs font-heading font-black text-white uppercase tracking-wider">
-              {mode === 'group' ? 'Crew Elo Demarcations Ladder' : 'Elo Level Demarcations Reference'}
+              {mode === 'group' ? 'Crew Levels' : 'Level Demarcations'}
             </h4>
           </div>
           <p className="text-[11px] text-slate-400 mt-0.5">
-            {mode === 'group'
-              ? 'Where each crew member sits on the 100-pt level ladder. Solid V4 = 1,450 – 1,550 pts.'
-              : 'Standardized performance brackets (100-pt steps). Solid V4 = 1,450 – 1,550 pts.'}
+            100-pt steps (Solid V4 = 1,450 – 1,550 pts)
           </p>
         </div>
 
@@ -425,108 +423,58 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
             </div>
           </div>
 
-          {/* NEXT LEVEL DEMARCATION PROGRESS CARD */}
-          <div className="p-4 rounded-2xl bg-slate-900/70 border border-white/[0.06] space-y-3">
-            <div className="flex items-start justify-between gap-3 flex-wrap sm:flex-nowrap">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
-                  <TrendingUp className="w-4 h-4" />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-heading font-black text-white uppercase tracking-wider">
-                      Level Demarcation Progress
-                    </span>
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-800 text-amber-300 border border-amber-500/20">
-                      {activeRating.currentLevel.minElo.toLocaleString()} –{' '}
-                      {activeRating.currentLevel.maxElo === Infinity
-                        ? '∞'
-                        : activeRating.currentLevel.maxElo.toLocaleString()}{' '}
-                      pts
-                    </span>
-                  </div>
-                  <div className="text-[11px] text-slate-400 mt-0.5">
-                    {activeRating.nextLevel ? (
-                      <span>
-                        Next Demarcation:{' '}
-                        <strong className="text-slate-200">{activeRating.nextLevel.title}</strong> (
-                        {activeRating.nextLevel.minElo.toLocaleString()} pts)
-                      </span>
-                    ) : (
-                      <span className="text-emerald-400 font-semibold">Apex World Class tier achieved</span>
-                    )}
-                  </div>
-                </div>
+          {/* NEXT LEVEL PROGRESS */}
+          <div className="p-3.5 rounded-2xl bg-slate-900/70 border border-white/[0.06] space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-xs font-bold text-white truncate">
+                  {activeRating.nextLevel ? `Next: ${activeRating.nextLevel.title}` : 'Apex Tier (Max Level)'}
+                </span>
+                <span className="text-[10px] font-mono text-slate-400 bg-slate-800/80 px-1.5 py-0.5 rounded border border-white/[0.04] shrink-0">
+                  {activeRating.currentLevel.minElo.toLocaleString()}–{activeRating.currentLevel.maxElo === Infinity ? '∞' : activeRating.currentLevel.maxElo.toLocaleString()} pts
+                </span>
               </div>
 
               {activeRating.nextLevel && (
-                <div className="text-right shrink-0">
-                  <div className="flex items-baseline justify-end gap-1 font-mono text-sm sm:text-base font-black text-amber-400">
-                    <Zap className="w-3.5 h-3.5 fill-current shrink-0" />
-                    <span>{activeRating.pointsToNextLevel} pts</span>
-                  </div>
-                  <div className="text-[10px] text-slate-400 font-medium">
-                    to {activeRating.nextLevel.shortGrade}
-                  </div>
-                </div>
+                <span className="font-mono text-xs font-bold text-amber-400 shrink-0">
+                  {activeRating.pointsToNextLevel} pts to {activeRating.nextLevel.shortGrade}
+                </span>
               )}
             </div>
 
             {/* Progress Bar with Demarcation Bounds */}
-            <div className="space-y-1.5 pt-1">
-              <div className="relative w-full h-3 bg-slate-800/90 rounded-full overflow-hidden p-0.5 border border-white/[0.05]">
+            <div className="space-y-1">
+              <div className="relative w-full h-2.5 bg-slate-800/90 rounded-full overflow-hidden p-0.5 border border-white/[0.05]">
                 <div
-                  className="h-full rounded-full transition-all duration-700 bg-gradient-to-r from-amber-500 via-amber-400 to-emerald-400 relative"
+                  className="h-full rounded-full transition-all duration-700 bg-gradient-to-r from-amber-500 to-emerald-400"
                   style={{ width: `${Math.min(100, Math.max(3, activeRating.levelProgress))}%` }}
-                >
-                  <span className="absolute right-0.5 top-0 bottom-0 flex items-center">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_6px_rgba(255,255,255,0.9)] animate-pulse" />
-                  </span>
-                </div>
+                />
               </div>
 
-              <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-0.5">
-                <span className="text-slate-400">
-                  {activeRating.currentLevel.shortGrade} ({activeRating.currentLevel.minElo.toLocaleString()} pts)
-                </span>
-                <span className="font-bold text-slate-200">
-                  {activeRating.elo.toLocaleString()} pts ({Math.round(activeRating.levelProgress)}%)
-                </span>
+              <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
+                <span>{activeRating.currentLevel.shortGrade} ({activeRating.currentLevel.minElo.toLocaleString()})</span>
+                <span className="font-bold text-slate-300">{activeRating.elo.toLocaleString()} pts ({Math.round(activeRating.levelProgress)}%)</span>
                 <span>
                   {activeRating.nextLevel
-                    ? `${activeRating.nextLevel.shortGrade} (${activeRating.nextLevel.minElo.toLocaleString()} pts)`
-                    : '∞ (Max Tier)'}
+                    ? `${activeRating.nextLevel.shortGrade} (${activeRating.nextLevel.minElo.toLocaleString()})`
+                    : '∞'}
                 </span>
               </div>
             </div>
 
-            {/* Contextual coaching footer with Demarcations toggle button */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-1 border-t border-white/[0.04]">
-              <div className="text-[11px] text-slate-400">
-                {activeRating.nextLevel ? (
-                  <span>
-                    <strong className="text-amber-300 font-mono">+{activeRating.pointsToNextLevel} pts</strong> needed
-                    to break into <strong className="text-white">{activeRating.nextLevel.title}</strong>. Flashes add
-                    +40 bonus.
-                  </span>
-                ) : (
-                  <span className="text-emerald-400">
-                    You have reached the maximum tracked grade tier in Wham!
-                  </span>
-                )}
-              </div>
-
+            {/* View Demarcations toggle button */}
+            <div className="flex items-center justify-end pt-0.5">
               <button
                 type="button"
                 onClick={() => setShowDemarcations(!showDemarcations)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-750 border border-white/[0.08] text-xs font-semibold text-amber-300 hover:text-amber-200 transition-all shrink-0 active-press self-start sm:self-auto"
+                className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 hover:text-amber-300 transition-colors active-press"
               >
-                <Milestone className="w-3.5 h-3.5 text-amber-400" />
-                <span>{showDemarcations ? 'Hide Demarcations' : 'View Level Demarcations'}</span>
+                <Milestone className="w-3 h-3 text-amber-400" />
+                <span>{showDemarcations ? 'Hide Demarcations' : 'View All Demarcations'}</span>
                 {showDemarcations ? (
-                  <ChevronUp className="w-3.5 h-3.5" />
+                  <ChevronUp className="w-3 h-3" />
                 ) : (
-                  <ChevronDown className="w-3.5 h-3.5" />
+                  <ChevronDown className="w-3 h-3" />
                 )}
               </button>
             </div>
@@ -773,7 +721,7 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
             className="w-full py-2.5 px-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-white/[0.06] text-xs font-semibold text-slate-300 flex items-center justify-center gap-2 transition-all active-press"
           >
             <Milestone className="w-3.5 h-3.5 text-amber-400" />
-            <span>{showDemarcations ? 'Hide Level Demarcations Table' : 'View Level Demarcations (VB – V10+)'}</span>
+            <span>{showDemarcations ? 'Hide Demarcations' : 'View All Demarcations'}</span>
             {showDemarcations ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>
 
