@@ -1,0 +1,2594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>⚡ Wham – 80s & 90s CRT Retro Themes Explorer</title>
+  
+  <!-- Preconnect & Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800;900&family=Permanent+Marker&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+
+  <style>
+    /* =========================================================
+       CSS RESET & BASE CONFIGURATION
+       ========================================================= */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --font-body: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      --font-mono: 'Space Mono', monospace;
+      --scanline-opacity: 0.12; /* Refined, subtle default preserving 100% legibility */
+      --bloom-intensity: 0.5;
+
+      /* =======================================================
+         SEMANTIC COLOR PILLAR 1: SACRED BOULDER HOLD COLORS
+         (Physical climbing reality - never altered by theme)
+         ======================================================= */
+      --hold-red: #DC2626;
+      --hold-bee-yellow: #DDA82B;
+      --hold-bee-black: #18181B;
+      --hold-purple: #9333EA;
+      --hold-green: #16A34A;
+      --hold-blue: #2563EB;
+      --hold-yellow: #EAB308;
+      --hold-pink: #EC4899;
+      --hold-white: #F1F5F9;
+      --hold-black: #27272A;
+      --hold-wood: #8C4E26;
+
+      /* =======================================================
+         SEMANTIC COLOR PILLAR 2: DYNAMIC CLIMBER ACCENT COLOR
+         (User identity, active UI states, primary buttons)
+         Defaults to Dale (#F59E0B Amber)
+         ======================================================= */
+      --climber-accent: #F59E0B;
+      --climber-accent-muted: rgba(245, 158, 11, 0.16);
+      --climber-accent-glow: rgba(245, 158, 11, 0.4);
+      --climber-accent-contrast: #000000;
+      --climber-name: 'Dale';
+
+      /* Universal send status */
+      --status-sent: #10B981;
+      --status-project: #3B82F6;
+    }
+
+    body {
+      background-color: #030408;
+      color: #e2e8f0;
+      font-family: var(--font-body);
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Tactile Micro-Interactions */
+    .btn-press, .card-press, .badge-press {
+      translate: 0px 0px;
+      scale: 1;
+      transition: scale 0.12s cubic-bezier(0.2, 0, 0, 1), translate 0.12s ease, filter 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease;
+      cursor: pointer;
+    }
+    .btn-press:hover, .card-press:hover {
+      scale: 1.015;
+    }
+    .btn-press:active, .card-press:active {
+      scale: 0.97;
+    }
+
+    /* =========================================================
+       CRT OPTICAL ENGINE (Subtle Scanlines, Phosphor Warmth, Flat/Bezel)
+       No chromatic aberration eyesores; neutral phosphor aura.
+       ========================================================= */
+    .crt-viewport {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.9), inset 0 0 20px rgba(0, 0, 0, 0.85);
+      transition: box-shadow 0.25s ease;
+    }
+
+    /* 3D CRT Curvature Bezel simulation */
+    .crt-bezel {
+      background: #11141c;
+      border: 12px solid #1a202c;
+      border-radius: 28px;
+      box-shadow: 
+        0 20px 60px rgba(0, 0, 0, 0.96),
+        inset 0 3px 10px rgba(255, 255, 255, 0.08),
+        inset 0 -8px 24px rgba(0, 0, 0, 0.85);
+      padding: 16px;
+      position: relative;
+      transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    .crt-bezel::before {
+      content: "TRINITRON APERTURE // BROADCAST COLOR MONITOR // WHAM DISPLAY";
+      position: absolute;
+      top: 3px;
+      left: 50%;
+      translate: -50% 0;
+      font-family: 'Space Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 2px;
+      color: #4b5568;
+      text-transform: uppercase;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    .crt-bezel-flat {
+      background: transparent !important;
+      border: 1px solid #1e2638 !important;
+      border-radius: 14px !important;
+      padding: 0 !important;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6) !important;
+    }
+    .crt-bezel-flat::before {
+      display: none !important;
+    }
+
+    /* Glass glare layer */
+    .crt-glass-glare {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0.008) 35%, transparent 60%);
+      z-index: 40;
+      mix-blend-mode: screen;
+    }
+
+    /* Subtle, Refined Scanlines Layer (Non-intrusive 3px pitch) */
+    .crt-scanlines {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 30;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%);
+      background-size: 100% 3px;
+      opacity: var(--scanline-opacity);
+      transition: opacity 0.2s ease, background 0.2s ease;
+    }
+
+    .crt-scanlines.scan-aperture {
+      background: 
+        linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.02) 0px, rgba(255, 255, 255, 0.02) 1px, transparent 1px, transparent 3px);
+      background-size: 100% 3px, 3px 100%;
+    }
+
+    /* Corner Vignette */
+    .crt-vignette {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 35;
+      background: radial-gradient(circle at center, transparent 70%, rgba(0, 0, 0, 0.28) 88%, rgba(0, 0, 0, 0.75) 100%);
+      border-radius: inherit;
+    }
+
+    /* Gentle Phosphor flicker */
+    .crt-flicker {
+      animation: crtFlicker 0.15s infinite;
+    }
+    @keyframes crtFlicker {
+      0% { opacity: 0.994; }
+      50% { opacity: 1; }
+      100% { opacity: 0.996; }
+    }
+
+    /* Phosphor Bloom System: Driven by Climber Accent Glow */
+    .bloom-subtle .card-id-text,
+    .bloom-subtle .theme-logo-badge,
+    .bloom-subtle #dock-title {
+      text-shadow: 0 0 8px var(--climber-accent-glow);
+    }
+
+    .bloom-subtle .arcade-box,
+    .bloom-subtle [data-theme="arcade"] .boulder-card-retro {
+      box-shadow: 
+        0 0 12px var(--climber-accent-muted),
+        0 4px 20px rgba(0, 0, 0, 0.7);
+    }
+
+    .bloom-radiant .card-id-text,
+    .bloom-radiant .theme-logo-badge,
+    .bloom-radiant #dock-title {
+      text-shadow: 
+        0 0 14px var(--climber-accent-glow),
+        0 0 2px #fff;
+    }
+
+    .bloom-radiant .arcade-box,
+    .bloom-radiant [data-theme="arcade"] .boulder-card-retro {
+      box-shadow: 
+        0 0 18px var(--climber-accent-glow),
+        0 4px 20px rgba(0, 0, 0, 0.7);
+    }
+
+    /* Degauss Coil Shake & Distortion */
+    @keyframes degaussAnimation {
+      0% { filter: brightness(2.2) contrast(1.6); translate: 0 0; }
+      10% { translate: -8px 4px; filter: saturate(1.8); }
+      25% { translate: 6px -5px; filter: contrast(1.8); }
+      45% { translate: -4px 3px; filter: brightness(1.5); }
+      70% { translate: 2px -1px; }
+      100% { filter: brightness(1) contrast(1); translate: 0 0; }
+    }
+    .degauss-active {
+      animation: degaussAnimation 1.1s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    /* CRT Power On Warmup */
+    @keyframes crtTurnOn {
+      0% { transform: scale(1, 0.005); filter: brightness(20); opacity: 0; }
+      35% { transform: scale(1, 0.005); filter: brightness(12); opacity: 1; }
+      65% { transform: scale(1.01, 1); filter: brightness(2.2); }
+      100% { transform: scale(1, 1); filter: brightness(1); opacity: 1; }
+    }
+    .crt-warmup {
+      animation: crtTurnOn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+
+    /* =========================================================
+       THEME 1: ARCADE '84 (Vector Deck & Precision Wireframe CRT)
+       - Clean monochrome obsidian base with subtle vector wireframe grid
+       - Sharp 45° chamfered geometry
+       - Luminous vector lines with climber accent illumination
+       - Boulder hold colors remain 100% sacred
+       ========================================================= */
+    [data-theme="arcade"] {
+      --theme-bg: #06080e;
+      --theme-surface: #0e121a;
+      --theme-elevated: #151b26;
+      --theme-border: #232d3f;
+      --theme-border-highlight: #3b4960;
+      --theme-text: #f8fafc;
+      --theme-muted: #8b99ad;
+      --font-display: 'Space Mono', monospace;
+      --font-heading: 'Space Mono', monospace;
+      --font-content: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    [data-theme="arcade"] .retro-screen {
+      background-color: var(--theme-bg);
+      background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 24px 24px;
+      color: var(--theme-text);
+      font-family: var(--font-content);
+    }
+
+    [data-theme="arcade"] .theme-logo-badge {
+      font-family: 'Space Mono', monospace;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 1px;
+      background: var(--climber-accent);
+      color: var(--climber-accent-contrast);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 0 10px var(--climber-accent-glow);
+      padding: 3px 10px;
+      border-radius: 2px;
+      clip-path: polygon(4px 0, calc(100% - 4px) 0, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 0 calc(100% - 4px), 0 4px);
+    }
+
+    [data-theme="arcade"] .arcade-box,
+    [data-theme="arcade"] .boulder-card-retro {
+      background: var(--theme-surface);
+      border: 1.5px solid var(--theme-border);
+      border-radius: 4px;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.7);
+      padding: 14px 16px;
+      position: relative;
+    }
+
+    [data-theme="arcade"] .boulder-card-retro:hover {
+      border-color: var(--theme-border-highlight);
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.05), 0 4px 20px rgba(0, 0, 0, 0.8);
+    }
+
+    [data-theme="arcade"] .card-id-text {
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      color: #f8fafc;
+      letter-spacing: 0.5px;
+    }
+
+    [data-theme="arcade"] .action-btn-retro,
+    [data-theme="arcade"] .dock-btn-retro {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      background: var(--climber-accent);
+      color: var(--climber-accent-contrast);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 3px;
+      padding: 6px 14px;
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.6), 0 0 8px var(--climber-accent-glow);
+      clip-path: polygon(3px 0, calc(100% - 3px) 0, 100% 3px, 100% calc(100% - 3px), calc(100% - 3px) 100%, 3px 100%, 0 calc(100% - 3px), 0 3px);
+    }
+    [data-theme="arcade"] .action-btn-retro:active,
+    [data-theme="arcade"] .dock-btn-retro:active {
+      translate: 0 2px;
+      box-shadow: 0 0 4px var(--climber-accent-glow);
+    }
+
+    /* =========================================================
+       THEME 2: STUDIO RACK '93 (19-Inch Gunmetal Audio Gear)
+       - Brushed gunmetal faceplates with 1px top highlight
+       - 4-point corner hex bolts (⊕)
+       - Monospace silkscreen hardware labels with letter tracking
+       - Discrete 8-segment LED meter ladders
+       - Debossed mechanical microswitches
+       ========================================================= */
+    [data-theme="rack"] {
+      --theme-bg: #0c0f14;
+      --theme-surface: #141922;
+      --theme-elevated: #1b222e;
+      --theme-border: #263242;
+      --theme-border-highlight: #3a4b63;
+      --theme-text: #f1f5f9;
+      --theme-muted: #7e8d9f;
+      --font-display: 'Space Mono', monospace;
+      --font-heading: 'Space Mono', monospace;
+      --font-content: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    [data-theme="rack"] .retro-screen {
+      background-color: var(--theme-bg);
+      color: var(--theme-text);
+      font-family: var(--font-content);
+    }
+
+    [data-theme="rack"] .theme-logo-badge {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      background: #1a222f;
+      color: var(--climber-accent);
+      border: 1px solid #334155;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 2px 4px rgba(0,0,0,0.5);
+      padding: 3px 10px;
+      border-radius: 3px;
+    }
+
+    [data-theme="rack"] .rack-box,
+    [data-theme="rack"] .boulder-card-retro {
+      background: var(--theme-surface);
+      border: 1px solid var(--theme-border);
+      border-top: 1px solid var(--theme-border-highlight);
+      border-radius: 4px;
+      box-shadow: 
+        0 4px 16px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      padding: 14px 16px;
+      position: relative;
+    }
+
+    /* Silkscreen rack hex screws on corners (4-point rack mount) */
+    .rack-corner-screw {
+      position: absolute;
+      font-size: 8px;
+      color: #475569;
+      pointer-events: none;
+      line-height: 1;
+      font-family: monospace;
+      font-weight: bold;
+    }
+    .screw-tl { top: 4px; left: 6px; }
+    .screw-tr { top: 4px; right: 6px; }
+    .screw-bl { bottom: 4px; left: 6px; }
+    .screw-br { bottom: 4px; right: 6px; }
+
+    [data-theme="rack"] .card-id-text {
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      color: #f1f5f9;
+      letter-spacing: 0.5px;
+    }
+
+    [data-theme="rack"] .action-btn-retro,
+    [data-theme="rack"] .dock-btn-retro {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      background: #1c232f;
+      color: #f1f5f9;
+      border: 1px solid #374559;
+      border-radius: 4px;
+      box-shadow: 0 3px 0 #080b0f, inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      padding: 6px 14px;
+    }
+    [data-theme="rack"] .action-btn-retro:hover,
+    [data-theme="rack"] .dock-btn-retro:hover {
+      background: #242d3c;
+      border-color: var(--climber-accent);
+      color: var(--climber-accent);
+    }
+    [data-theme="rack"] .action-btn-retro:active,
+    [data-theme="rack"] .dock-btn-retro:active {
+      translate: 0 2px;
+      box-shadow: 0 1px 0 #080b0f;
+    }
+
+    /* Hardware Segmental LED Level Ladders */
+    .led-meter-ladder {
+      display: inline-flex;
+      align-items: center;
+      gap: 2.5px;
+      background: #080a0f;
+      padding: 3px 6px;
+      border-radius: 3px;
+      border: 1px solid #1a222e;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
+    }
+    .led-segment {
+      width: 7px;
+      height: 10px;
+      border-radius: 1px;
+      background: #121720;
+      transition: all 0.15s ease;
+    }
+    .led-segment.led-green.on {
+      background: #10b981;
+      box-shadow: 0 0 6px rgba(16, 185, 129, 0.7);
+    }
+    .led-segment.led-amber.on {
+      background: #f59e0b;
+      box-shadow: 0 0 6px rgba(245, 158, 11, 0.7);
+    }
+    .led-segment.led-red.on {
+      background: #ef4444;
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.85);
+    }
+    .led-segment.off {
+      background: #121720;
+      opacity: 0.3;
+    }
+
+    /* =========================================================
+       THEME 3: TRINITRON '97 (Sony Multiscan & Telemetry HUD)
+       - Stealth graphite chassis
+       - Sony aperture grille scanlines texture
+       - Technical telemetry brackets [ // ... ]
+       - Left status bar rule in climber accent
+       - Clean Orbitron display & Space Mono telemetry
+       ========================================================= */
+    [data-theme="trinitron"] {
+      --theme-bg: #070a10;
+      --theme-surface: #0e141f;
+      --theme-elevated: #151e2e;
+      --theme-border: #1d2b3c;
+      --theme-text: #f0f6fc;
+      --theme-muted: #647b93;
+      --font-display: 'Orbitron', sans-serif;
+      --font-heading: 'Orbitron', sans-serif;
+      --font-content: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    [data-theme="trinitron"] .retro-screen {
+      background-color: var(--theme-bg);
+      color: var(--theme-text);
+      font-family: var(--font-content);
+    }
+
+    [data-theme="trinitron"] .theme-logo-badge {
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      background: var(--climber-accent);
+      color: #070a10;
+      padding: 3px 10px;
+      border-radius: 2px;
+      box-shadow: 0 0 10px var(--climber-accent-glow);
+    }
+
+    [data-theme="trinitron"] .trinitron-box {
+      background: var(--theme-surface);
+      border: 1px solid var(--theme-border);
+      border-left: 3px solid var(--climber-accent);
+      border-radius: 4px;
+      position: relative;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+      padding: 14px 18px;
+    }
+
+    [data-theme="trinitron"] .boulder-card-retro {
+      background: var(--theme-surface);
+      border: 1px solid var(--theme-border);
+      border-radius: 4px;
+      position: relative;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+      padding: 14px 18px;
+    }
+
+    [data-theme="trinitron"] .card-id-text {
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #f0f6fc;
+    }
+
+    [data-theme="trinitron"] .action-btn-retro,
+    [data-theme="trinitron"] .dock-btn-retro {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      background: var(--climber-accent-muted);
+      color: var(--climber-accent);
+      border: 1px solid var(--climber-accent);
+      border-radius: 3px;
+      padding: 6px 14px;
+      box-shadow: 0 0 8px var(--climber-accent-muted);
+    }
+    [data-theme="trinitron"] .action-btn-retro:hover,
+    [data-theme="trinitron"] .dock-btn-retro:hover {
+      background: var(--climber-accent);
+      color: #070a10;
+      box-shadow: 0 0 14px var(--climber-accent-glow);
+    }
+    [data-theme="trinitron"] .action-btn-retro:active,
+    [data-theme="trinitron"] .dock-btn-retro:active {
+      translate: 0 2px;
+    }
+
+    /* =========================================================
+       THEME 4: RAD TAPE '91 (Utilitarian Crag Zine & Field Topo)
+       - Charcoal newsprint dark base
+       - Authentic off-white masking tape snippets for beta notes
+       - Solid black 2px drop-shadow stickers (no garish fuchsia/cyan)
+       - Analog camcorder timestamp OSD
+       - Permanent Marker brand stamps
+       ========================================================= */
+    [data-theme="vhs"] {
+      --theme-bg: #090a0f;
+      --theme-surface: #11141c;
+      --theme-elevated: #181d28;
+      --theme-border: #262d3d;
+      --theme-text: #fffdf5;
+      --theme-muted: #8892a4;
+      --font-display: 'Permanent Marker', cursive;
+      --font-heading: 'Space Mono', monospace;
+      --font-content: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    [data-theme="vhs"] .retro-screen {
+      background-color: var(--theme-bg);
+      color: var(--theme-text);
+      font-family: var(--font-content);
+    }
+
+    [data-theme="vhs"] .theme-logo-badge {
+      font-family: var(--font-display);
+      font-size: 15px;
+      color: #090a0f;
+      background: var(--climber-accent);
+      border: 1.5px solid #000;
+      box-shadow: 2px 2px 0 #000;
+      padding: 2px 10px;
+      border-radius: 2px;
+    }
+
+    [data-theme="vhs"] .vhs-box,
+    [data-theme="vhs"] .boulder-card-retro {
+      background: var(--theme-surface);
+      border: 1.5px solid var(--theme-border);
+      border-radius: 4px;
+      box-shadow: 
+        2px 2px 0 #000,
+        0 4px 18px rgba(0, 0, 0, 0.6);
+      padding: 14px 18px;
+      position: relative;
+    }
+
+    [data-theme="vhs"] .card-id-text {
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      color: #fffdf5;
+      letter-spacing: 0.5px;
+    }
+
+    [data-theme="vhs"] .action-btn-retro,
+    [data-theme="vhs"] .dock-btn-retro {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--climber-accent);
+      color: var(--climber-accent-contrast);
+      border: 1.5px solid #000;
+      box-shadow: 2px 2px 0 #000;
+      border-radius: 3px;
+      padding: 6px 14px;
+      text-transform: uppercase;
+    }
+    [data-theme="vhs"] .action-btn-retro:hover,
+    [data-theme="vhs"] .dock-btn-retro:hover {
+      box-shadow: 3px 3px 0 #000;
+    }
+    [data-theme="vhs"] .action-btn-retro:active,
+    [data-theme="vhs"] .dock-btn-retro:active {
+      translate: 2px 2px;
+      box-shadow: 0 0 0 #000;
+    }
+
+    /* Topo Tape Corner Sticker */
+    [data-theme="vhs"] .vhs-tape-corner {
+      position: absolute;
+      top: -8px;
+      right: 18px;
+      background: #ece8db;
+      color: #18181b;
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 8px;
+      box-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+      border-radius: 1px;
+      border: 1px dashed #888;
+    }
+
+    /* Subtle Analog Tracking Sweep (Neutral monochrome) */
+    .vhs-tracking-glitch {
+      position: absolute;
+      left: 0; right: 0; height: 10px;
+      background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0px, rgba(255, 255, 255, 0.02) 4px, transparent 8px);
+      opacity: 0.06;
+      mix-blend-mode: screen;
+      pointer-events: none;
+      animation: vhsGlitchSweep 10s infinite;
+    }
+    @keyframes vhsGlitchSweep {
+      0% { top: -20px; opacity: 0; }
+      15% { top: 25%; opacity: 0.09; }
+      20% { top: 27%; opacity: 0.03; }
+      50% { top: 75%; opacity: 0.10; }
+      60% { top: 100%; opacity: 0; }
+      100% { top: 100%; opacity: 0; }
+    }
+
+    /* =========================================================
+       PAGE LAYOUT, NAVIGATION & CONTROL DOCK
+       ========================================================= */
+    .app-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px 16px 64px 16px;
+    }
+
+    .top-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: 24px;
+    }
+
+    .theme-selector-pill {
+      display: flex;
+      background: #11151f;
+      padding: 4px;
+      border-radius: 9999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      gap: 4px;
+      overflow-x: auto;
+    }
+
+    .theme-nav-btn {
+      padding: 8px 16px;
+      border-radius: 9999px;
+      border: none;
+      background: transparent;
+      color: #94a3b8;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .theme-nav-btn.active {
+      background: var(--climber-accent);
+      color: var(--climber-accent-contrast);
+      box-shadow: 0 0 12px var(--climber-accent-glow);
+    }
+
+    /* CRT Control Rack */
+    .control-rack {
+      background: #0d111a;
+      border: 1px solid #1e2638;
+      border-radius: 16px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .control-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      font-family: 'Space Mono', monospace;
+    }
+    .control-label {
+      color: #94a3b8;
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+    .control-toggle {
+      background: #161c28;
+      border: 1px solid #2d3748;
+      color: #e2e8f0;
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-family: 'Space Mono', monospace;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .control-toggle.active {
+      background: var(--climber-accent);
+      color: var(--climber-accent-contrast);
+      font-weight: 700;
+      border-color: var(--climber-accent);
+      box-shadow: 0 0 10px var(--climber-accent-glow);
+    }
+
+    /* Climber Selector Buttons in Control Rack */
+    .climber-select-pill {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.4);
+    }
+
+    /* Side-by-side Matrix View */
+    .matrix-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+    .matrix-card {
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
+      transition: transform 0.2s ease;
+    }
+    .matrix-card:hover {
+      transform: translateY(-4px);
+    }
+
+    /* Retro Badge */
+    .retro-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    /* Native <dialog> Modal with Backdrop */
+    dialog.retro-modal {
+      border: none;
+      background: transparent;
+      padding: 0;
+      margin: auto;
+      max-width: 740px;
+      width: calc(100% - 32px);
+      max-height: 85vh;
+      border-radius: 16px;
+      color: inherit;
+      overflow: visible;
+    }
+    dialog.retro-modal::backdrop {
+      background-color: rgba(3, 5, 10, 0.85);
+      backdrop-filter: blur(10px);
+    }
+    .modal-inner-card {
+      background: #0f141f;
+      border: 1px solid #2d3748;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95);
+      overflow-y: auto;
+      max-height: 85vh;
+    }
+
+    /* Score Pop Toast Banner */
+    #score-toast {
+      position: absolute;
+      top: 24px;
+      left: 50%;
+      translate: -50% 0;
+      z-index: 50;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-family: 'Space Mono', monospace;
+      font-weight: 700;
+      font-size: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
+      opacity: 0;
+      scale: 0.9;
+    }
+    #score-toast.show {
+      opacity: 1;
+      scale: 1;
+      translate: -50% 10px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Mobile Responsive Optimizations */
+    @media (max-width: 640px) {
+      .app-container {
+        padding: 12px 8px 48px 8px;
+      }
+      .top-header {
+        gap: 10px;
+        padding-bottom: 14px;
+        margin-bottom: 16px;
+      }
+      .theme-selector-pill {
+        width: 100%;
+      }
+      .control-rack {
+        padding: 12px 14px;
+        gap: 10px;
+      }
+      .crt-bezel {
+        border-width: 6px;
+        padding: 8px;
+        border-radius: 18px;
+      }
+      .crt-bezel::before {
+        display: none;
+      }
+      #mock-app-body {
+        padding: 14px 12px !important;
+      }
+      .boulder-card-retro {
+        padding: 10px 12px !important;
+      }
+      .action-btn-retro, .dock-btn-retro {
+        padding: 5px 10px !important;
+        font-size: 10px !important;
+      }
+    }
+  </style>
+</head>
+<body data-theme="arcade">
+
+  <div class="app-container">
+
+    <!-- Top Global Header -->
+    <header class="top-header">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div id="brand-lightning-box" style="width: 36px; height: 36px; background: var(--climber-accent); border-radius: 8px; display: grid; place-items: center; font-size: 20px; font-weight: 900; color: var(--climber-accent-contrast); box-shadow: 0 0 16px var(--climber-accent-glow); transition: all 0.25s ease;">
+          ⚡
+        </div>
+        <div>
+          <h1 style="font-size: 1.25rem; font-weight: 800; font-family: 'Space Mono', monospace; letter-spacing: -0.5px; color: #fff;">
+            Wham<span id="brand-accent-dot" style="color: var(--climber-accent);">.</span> <span style="font-size: 0.85rem; color: #94a3b8; font-weight: 400;">// Retro Retheme Lab</span>
+          </h1>
+          <p style="font-size: 12px; color: #64748b;">
+            Hold Colors Sacred • Climber Accent Driven • 4 Expressive CRT Aesthetics
+          </p>
+        </div>
+      </div>
+
+      <!-- Theme Switcher Navigation Tabs -->
+      <nav class="theme-selector-pill" role="tablist">
+        <button class="theme-nav-btn active btn-press" data-set-theme="arcade" onclick="selectTheme('arcade')">
+          <span>🕹️</span> ARCADE '84
+        </button>
+        <button class="theme-nav-btn btn-press" data-set-theme="rack" onclick="selectTheme('rack')">
+          <span>🎛️</span> STUDIO RACK '93
+        </button>
+        <button class="theme-nav-btn btn-press" data-set-theme="trinitron" onclick="selectTheme('trinitron')">
+          <span>⚡</span> TRINITRON '97
+        </button>
+        <button class="theme-nav-btn btn-press" data-set-theme="vhs" onclick="selectTheme('vhs')">
+          <span>📼</span> RAD TAPE '91
+        </button>
+        <button class="theme-nav-btn btn-press" style="border-left: 1px solid rgba(255,255,255,0.1); margin-left: 4px;" onclick="toggleViewMode('matrix')" id="btn-matrix-toggle">
+          <span>👁️</span> COMPARE ALL 4
+        </button>
+      </nav>
+    </header>
+
+    <!-- CRT Hardware Control Rack & Dynamic Climber Accent Selector -->
+    <section class="control-rack">
+      <!-- Active Climber Accent Selector -->
+      <div class="control-group">
+        <span class="control-label">Climber Accent:</span>
+        <button class="control-toggle active btn-press" id="btn-climber-dale" onclick="setActiveClimber('dale')" title="Dale (#F59E0B Amber)">
+          <span class="climber-select-pill" style="background: #F59E0B;"></span> DALE
+        </button>
+        <button class="control-toggle btn-press" id="btn-climber-alex" onclick="setActiveClimber('alex')" title="Alex (#3B82F6 Blue)">
+          <span class="climber-select-pill" style="background: #3B82F6;"></span> ALEX
+        </button>
+        <button class="control-toggle btn-press" id="btn-climber-taiye" onclick="setActiveClimber('taiye')" title="Taiye (#EC4899 Rose)">
+          <span class="climber-select-pill" style="background: #EC4899;"></span> TAIYE
+        </button>
+        <button class="control-toggle btn-press" id="btn-climber-euan" onclick="setActiveClimber('euan')" title="Euan (#10B981 Emerald)">
+          <span class="climber-select-pill" style="background: #10B981;"></span> EUAN
+        </button>
+      </div>
+
+      <!-- CRT Optical FX Controls -->
+      <div class="control-group">
+        <span class="control-label">CRT Optical FX:</span>
+        <button class="control-toggle active btn-press" id="toggle-scanlines" onclick="toggleScanlines()">
+          Scanlines: <span id="scanlines-status">SUBTLE 12%</span>
+        </button>
+        <button class="control-toggle active btn-press" id="toggle-bloom" onclick="toggleBloom()">
+          Phosphor Glow: <span id="bloom-status">SUBTLE</span>
+        </button>
+        <button class="control-toggle active btn-press" id="toggle-bezel" onclick="toggleBezel()">
+          Bezel & Curve: <span id="bezel-status">TUBE</span>
+        </button>
+      </div>
+
+      <!-- Tactile Hardware Buttons -->
+      <div class="control-group">
+        <span class="control-label">Tactile:</span>
+        <button class="control-toggle btn-press" id="btn-degauss" onclick="triggerDegauss()" title="Simulate electromagnetic degauss coil discharge" style="border-color: #3b4759; color: #e2e8f0;">
+          🧲 DEGAUSS
+        </button>
+        <button class="control-toggle active btn-press" id="toggle-sound" onclick="toggleSound()">
+          🔊 Audio: <span id="sound-status">ON</span>
+        </button>
+        <button class="control-toggle btn-press" id="btn-power" onclick="togglePower()" title="Cathode ray tube power switch">
+          ⏻ POWER
+        </button>
+      </div>
+    </section>
+
+    <!-- VIEW 1: FULL INTERACTIVE SIMULATOR (Inside the CRT Monitor) -->
+    <div id="single-view-container">
+      
+      <!-- Theme Summary Banner -->
+      <div id="theme-banner" style="margin-bottom: 20px; padding: 14px 18px; border-radius: 12px; background: #0c1017; border: 1px solid #1e2638; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;">
+        <div>
+          <span id="theme-badge" class="retro-badge" style="background: var(--climber-accent); color: var(--climber-accent-contrast); margin-bottom: 4px;">ARCADE '84</span>
+          <h2 id="theme-headline" style="font-size: 1.1rem; font-weight: 700; color: #fff; font-family: 'Space Mono', monospace;">
+            Precision Vector Deck & Wireframe CRT
+          </h2>
+          <p id="theme-description" style="font-size: 12px; color: #94a3b8; max-width: 750px;">
+            Monochrome obsidian base with razor-sharp chamfered geometry, luminous vector phosphor linework, and climber accent illumination—leaving boulder hold colors 100% sacred.
+          </p>
+        </div>
+        <button class="control-toggle active btn-press" onclick="openSpecModal()" style="padding: 8px 16px; font-weight: bold; background: var(--climber-accent); border-color: var(--climber-accent); color: var(--climber-accent-contrast);">
+          📋 Inspect Design Specs & Tokens
+        </button>
+      </div>
+
+      <!-- CRT Monitor Bezel Shell -->
+      <div id="crt-frame" class="crt-bezel">
+        <div id="crt-screen" class="crt-viewport retro-screen crt-flicker bloom-subtle">
+          
+          <!-- Live Score Toast Alert Overlay -->
+          <div id="score-toast"></div>
+
+          <!-- CRT Optical Overlays -->
+          <div id="crt-scanlines-layer" class="crt-scanlines"></div>
+          <div id="crt-vignette-layer" class="crt-vignette"></div>
+          <div id="crt-glare-layer" class="crt-glass-glare"></div>
+          <div id="vhs-glitch-bar" class="vhs-tracking-glitch hidden"></div>
+
+          <!-- ====================================================
+               MOCKUP CONTENT: AUTHENTIC WHAM APP INTERFACE
+               ==================================================== -->
+          <div id="mock-app-body" style="padding: 22px 24px; min-height: 670px; position: relative; z-index: 10;">
+            
+            <!-- Wham App Header -->
+            <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 16px; border-bottom: 1px dashed rgba(255, 255, 255, 0.15); margin-bottom: 20px;">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="theme-logo-badge" id="app-logo-badge">
+                  ⚡ WHAM.
+                </div>
+                <div>
+                  <div style="font-size: 10px; opacity: 0.7; text-transform: uppercase;" id="header-sector-subtitle">
+                    Current Gym / Wall Sector
+                  </div>
+                  <div style="font-size: 14px; font-weight: 700; font-family: 'Space Mono', monospace;" id="app-location-text">
+                    Substation Brixton <span style="opacity: 0.5;">▸</span> The Comp Arch
+                  </div>
+                </div>
+              </div>
+
+              <!-- Climber Status Tag & Quick Avatar Switcher -->
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div id="climber-status-tag" class="retro-badge" style="background: var(--climber-accent); color: var(--climber-accent-contrast); font-weight: 700;">
+                  CLIMBER: DALE • 1,450 PTS
+                </div>
+                <!-- Interactive Crew Avatars: Click any avatar to preview and verify color harmony -->
+                <div style="display: flex; gap: 6px;" id="crew-avatar-row" title="Click any avatar to switch active climber accent">
+                  <span id="avatar-d" title="Dale (#F59E0B)" onclick="setActiveClimber('dale')" class="retro-badge btn-press" style="background: #f59e0b; color: #000; width: 26px; height: 26px; padding: 0; display: grid; place-items: center; border-radius: 50%; outline: 2px solid #fff; box-shadow: 0 0 10px rgba(245, 158, 11, 0.6); font-weight: 800;">D</span>
+                  <span id="avatar-a" title="Alex (#3B82F6)" onclick="setActiveClimber('alex')" class="retro-badge btn-press" style="background: #3b82f6; color: #fff; width: 26px; height: 26px; padding: 0; display: grid; place-items: center; border-radius: 50%; opacity: 0.75; font-weight: 800;">A</span>
+                  <span id="avatar-t" title="Taiye (#EC4899)" onclick="setActiveClimber('taiye')" class="retro-badge btn-press" style="background: #ec4899; color: #fff; width: 26px; height: 26px; padding: 0; display: grid; place-items: center; border-radius: 50%; opacity: 0.75; font-weight: 800;">T</span>
+                  <span id="avatar-e" title="Euan (#10B981)" onclick="setActiveClimber('euan')" class="retro-badge btn-press" style="background: #10b981; color: #fff; width: 26px; height: 26px; padding: 0; display: grid; place-items: center; border-radius: 50%; opacity: 0.75; font-weight: 800;">E</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Gym Comp Banner & Standings -->
+            <div id="comp-banner-box" class="arcade-box" style="margin-bottom: 24px; position: relative;">
+              <!-- Corner screws for Studio Rack (hidden in other themes) -->
+              <span class="rack-corner-screw screw-tl hidden" id="screw-banner-tl">⊕</span>
+              <span class="rack-corner-screw screw-tr hidden" id="screw-banner-tr">⊕</span>
+              <span class="rack-corner-screw screw-bl hidden" id="screw-banner-bl">⊕</span>
+              <span class="rack-corner-screw screw-br hidden" id="screw-banner-br">⊕</span>
+
+              <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span id="comp-tag" class="retro-badge" style="background: var(--climber-accent); color: var(--climber-accent-contrast); font-size: 10px;">
+                    OCTOBER GYM COMP
+                  </span>
+                  <span style="font-size: 11px; opacity: 0.8; font-family: 'Space Mono', monospace;" id="comp-time-left">
+                    ⏱️ 12 Days Remaining
+                  </span>
+                </div>
+                <div style="font-size: 11px; font-weight: 700; font-family: 'Space Mono', monospace;" id="comp-mode-tag">
+                  OCTOBER COMP // REDPOINT LEADERBOARD
+                </div>
+              </div>
+
+              <!-- Podium Micro-bar with Hardware LED Level Ladders -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; font-size: 11px;" id="podium-grid">
+                
+                <!-- 1. Dale -->
+                <div class="podium-card card-press" id="podium-dale" onclick="setActiveClimber('dale')" title="Click to view Dale's perspective" style="padding: 8px 10px; border-radius: 6px; background: rgba(0, 0, 0, 0.4); border: 1.5px solid var(--climber-accent); display: flex; flex-direction: column; gap: 4px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span id="podium-name-dale" style="font-weight: 700;">🥇 1. Dale</span>
+                    <strong id="score-dale" style="color: #f59e0b; font-family: 'Space Mono', monospace;">1,450 pts</strong>
+                  </div>
+                  <div class="led-meter-ladder" id="led-meter-dale" title="Dale Level Ladder: 1,450 pts">
+                    <span class="led-segment led-green on"></span>
+                    <span class="led-segment led-green on"></span>
+                    <span class="led-segment led-green on"></span>
+                    <span class="led-segment led-green on"></span>
+                    <span class="led-segment led-green on"></span>
+                    <span class="led-segment led-amber on"></span>
+                    <span class="led-segment led-amber on"></span>
+                    <span class="led-segment led-red off" id="led-clip-dale"></span>
+                  </div>
+                </div>
+
+                <!-- 2. Alex -->
+                <div class="podium-card card-press" id="podium-alex" onclick="setActiveClimber('alex')" title="Click to view Alex's perspective" style="padding: 8px 10px; border-radius: 6px; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); display: flex; flex-direction: column; gap: 4px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span id="podium-name-alex">🥈 2. Alex</span>
+                    <strong id="score-alex" style="color: #3b82f6; font-family: 'Space Mono', monospace;">1,325 pts</strong>
+                  </div>
+                  <div class="led-meter-ladder" id="led-meter-alex" title="Alex Level Ladder: 1,325 pts">
+                    <span class="led-segment led-green on"></span>
+                    <span class="led-segment led-green on"></span>
+                    <span class="led-segment led-green on"></span>
+                    <span class="led-segment led-green on"></span>
+                    <span class="led-segment led-green on"></span>
+                    <span class="led-segment led-amber on"></span>
+                    <span class="led-segment led-amber off"></span>
+                    <span class="led-segment led-red off" id="led-clip-alex"></span>
+                  </div>
+                </div>
+
+                <!-- 3. Taiye -->
+                <div class="podium-card card-press" id="podium-taiye" onclick="setActiveClimber('taiye')" title="Click to view Taiye's perspective" style="padding: 8px 10px; border-radius: 6px; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); display: flex; flex-direction: column; gap: 4px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span id="podium-name-taiye">🥉 3. Taiye</span>
+                    <strong id="score-taiye" style="color: #ec4899; font-family: 'Space Mono', monospace;">1,100 pts</strong>
+                  </div>
+                  <div class="led-meter-ladder" id="led-meter-taiye" title="Taiye Level Ladder: 1,100 pts">
+                    <span class="led-segment led-green on"></span>
+                    <span class="led-segment led-green on"></span>
+                    <span class="led-segment led-green on"></span>
+                    <span class="led-segment led-green on"></span>
+                    <span class="led-segment led-green on"></span>
+                    <span class="led-segment led-amber off"></span>
+                    <span class="led-segment led-amber off"></span>
+                    <span class="led-segment led-red off" id="led-clip-taiye"></span>
+                  </div>
+                </div>
+
+                <!-- 4. Euan -->
+                <div class="podium-card card-press" id="podium-euan" onclick="setActiveClimber('euan')" title="Click to view Euan's perspective" style="padding: 8px 10px; border-radius: 6px; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); display: flex; flex-direction: column; gap: 4px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span id="podium-name-euan">4. Euan</span>
+                    <strong id="score-euan" style="color: #10b981; font-family: 'Space Mono', monospace;">950 pts</strong>
+                  </div>
+                  <div class="led-meter-ladder" id="led-meter-euan" title="Euan Level Ladder: 950 pts">
+                    <span class="led-segment led-green on"></span>
+                    <span class="led-segment led-green on"></span>
+                    <span class="led-segment led-green on"></span>
+                    <span class="led-segment led-green on"></span>
+                    <span class="led-segment led-green off"></span>
+                    <span class="led-segment led-amber off"></span>
+                    <span class="led-segment led-amber off"></span>
+                    <span class="led-segment led-red off" id="led-clip-euan"></span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Clockwise Wall Sequence Ticklist Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 13px; font-weight: 700; text-transform: uppercase; font-family: 'Space Mono', monospace;" id="ticklist-header-title">
+                  Clockwise Wall Sequence (Active Set)
+                </span>
+                <span class="retro-badge" id="ticklist-count-badge" style="background: rgba(255,255,255,0.1); font-size: 10px;">
+                  3 Active Problems
+                </span>
+              </div>
+              <div style="font-size: 11px; opacity: 0.7; font-family: 'Space Mono', monospace;" id="clockwise-hint">
+                ↻ Sequenced left-to-right around wall
+              </div>
+            </div>
+
+            <!-- Boulder Problems Cards Grid -->
+            <div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 24px;" id="boulder-cards-list">
+              
+              <!-- Boulder Card 1: Red Overhang V5 (Sent) -->
+              <div class="boulder-card-retro card-press" id="card-b1" onclick="inspectBoulder('b1')">
+                <span class="rack-corner-screw screw-tl hidden" id="screw-b1-tl">⊕</span>
+                <span class="rack-corner-screw screw-tr hidden" id="screw-b1-tr">⊕</span>
+                <span class="rack-corner-screw screw-bl hidden" id="screw-b1-bl">⊕</span>
+                <span class="rack-corner-screw screw-br hidden" id="screw-b1-br">⊕</span>
+
+                <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
+                  
+                  <!-- Left: Sacred Hold Swatch, Position, Grade & Adjacent -->
+                  <div style="display: flex; align-items: center; gap: 12px;">
+                    <div id="hold-b1" style="width: 22px; height: 22px; border-radius: 4px; background: #dc2626; border: 2px solid rgba(255,255,255,0.8); box-shadow: 0 0 8px rgba(220, 38, 38, 0.7); flex-shrink: 0;" title="Red Hold (#DC2626)"></div>
+                    <div>
+                      <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="card-id-text" id="name-b1">#04 CRIMP SLAB</span>
+                        <span class="retro-grade-pill" id="grade-b1" style="background: #dc2626; color: #fff; font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px;">V5</span>
+                      </div>
+                      <div style="font-size: 11px; opacity: 0.7; margin-top: 2px; font-family: 'Space Mono', monospace;" id="adj-b1">
+                        ← #03 Blue V3 • #05 Bee V4 →
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Right: Climber Attempt Chips & Quick Actions -->
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="font-size: 11px; text-align: right;" id="status-box-b1">
+                      <span class="retro-badge" id="badge-b1" style="background: #10b981; color: #000; font-weight: bold;">
+                        ✓ SENT (2t)
+                      </span>
+                      <div style="font-size: 10px; opacity: 0.7; margin-top: 2px; font-family: 'Space Mono', monospace;" id="pts-b1">+300 pts</div>
+                    </div>
+                    <button class="action-btn-retro btn-press" onclick="event.stopPropagation(); logClimb('b1', 'flash')">
+                      ⚡ FLASH (+25%)
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Beta notes snippet -->
+                <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dotted rgba(255, 255, 255, 0.15); font-size: 12px; opacity: 0.85; display: flex; justify-content: space-between;" id="notes-b1">
+                  <span>💬 "Greasy sloper on the right, high heel hook unlocks it."</span>
+                  <span style="opacity: 0.6; font-family: 'Space Mono', monospace; font-size: 11px;">Alex, 2h ago</span>
+                </div>
+              </div>
+
+              <!-- Boulder Card 2: Bee Dual-Tone V4 (Flashed) -->
+              <div class="boulder-card-retro card-press" id="card-b2" onclick="inspectBoulder('b2')">
+                <span class="rack-corner-screw screw-tl hidden" id="screw-b2-tl">⊕</span>
+                <span class="rack-corner-screw screw-tr hidden" id="screw-b2-tr">⊕</span>
+                <span class="rack-corner-screw screw-bl hidden" id="screw-b2-bl">⊕</span>
+                <span class="rack-corner-screw screw-br hidden" id="screw-b2-br">⊕</span>
+
+                <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
+                  
+                  <div style="display: flex; align-items: center; gap: 12px;">
+                    <!-- Bee Half-and-Half Hold Color definition: yellow and black areas, no stripes -->
+                    <div id="hold-b2" style="width: 22px; height: 22px; border-radius: 4px; background: linear-gradient(90deg, #DDA82B 50%, #18181B 50%); border: 2px solid rgba(255,255,255,0.8); box-shadow: 0 0 8px rgba(221, 168, 43, 0.7); flex-shrink: 0;" title="Bee Hold (Yellow/Black dual tone)"></div>
+                    <div>
+                      <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="card-id-text" id="name-b2">#05 THE PROW</span>
+                        <span class="retro-grade-pill" id="grade-b2" style="background: #DDA82B; color: #000; font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px;">V4</span>
+                      </div>
+                      <div style="font-size: 11px; opacity: 0.7; margin-top: 2px; font-family: 'Space Mono', monospace;" id="adj-b2">
+                        ← #04 Red V5 • #06 Purple V7 →
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="font-size: 11px; text-align: right;" id="status-box-b2">
+                      <span class="retro-badge" id="badge-b2" style="background: #f59e0b; color: #000000; font-weight: 800; box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);">
+                        ⚡ FLASH (1t)
+                      </span>
+                      <div style="font-size: 10px; color: #f59e0b; font-weight: bold; margin-top: 2px; font-family: 'Space Mono', monospace;" id="pts-b2">+375 pts (BONUS)</div>
+                    </div>
+                    <button class="action-btn-retro btn-press" onclick="event.stopPropagation(); logClimb('b2', 'sent')">
+                      ✓ TOPPED
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Boulder Card 3: Purple Comp Problem V7 (Projecting) -->
+              <div class="boulder-card-retro card-press" id="card-b3" onclick="inspectBoulder('b3')">
+                <span class="rack-corner-screw screw-tl hidden" id="screw-b3-tl">⊕</span>
+                <span class="rack-corner-screw screw-tr hidden" id="screw-b3-tr">⊕</span>
+                <span class="rack-corner-screw screw-bl hidden" id="screw-b3-bl">⊕</span>
+                <span class="rack-corner-screw screw-br hidden" id="screw-b3-br">⊕</span>
+
+                <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
+                  
+                  <div style="display: flex; align-items: center; gap: 12px;">
+                    <div id="hold-b3" style="width: 22px; height: 22px; border-radius: 4px; background: #9333ea; border: 2px solid rgba(255,255,255,0.8); box-shadow: 0 0 8px rgba(147, 51, 234, 0.7); flex-shrink: 0;" title="Purple Hold (#9333EA)"></div>
+                    <div>
+                      <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="card-id-text" id="name-b3">#06 ROOF DYNÓ</span>
+                        <span class="retro-grade-pill" id="grade-b3" style="background: #9333ea; color: #fff; font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px;">V7</span>
+                        <span class="retro-badge" id="comp-b3-badge" style="background: #1e2638; border: 1px solid #3b4759; color: #f1f5f9; font-size: 9px; font-family: 'Space Mono', monospace;">COMP #12</span>
+                      </div>
+                      <div style="font-size: 11px; opacity: 0.7; margin-top: 2px; font-family: 'Space Mono', monospace;" id="adj-b3">
+                        ← #05 Bee V4 • #07 Yellow V2 →
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="font-size: 11px; text-align: right;" id="status-box-b3">
+                      <span class="retro-badge" id="badge-b3" style="background: #1e293b; border: 1px solid #3b82f6; color: #60a5fa; font-weight: bold;">
+                        ⏳ PROJECT (<span id="b3-attempts">3</span>t)
+                      </span>
+                      <div style="font-size: 10px; opacity: 0.7; margin-top: 2px; font-family: 'Space Mono', monospace;">Crux at move 4</div>
+                    </div>
+                    <button class="action-btn-retro btn-press" onclick="event.stopPropagation(); incrementAttempt('b3')">
+                      +1 ATTEMPT
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Quick Log Tactile Controller Dock -->
+            <div id="quick-log-dock" class="arcade-box" style="margin-top: 16px; position: relative;">
+              <span class="rack-corner-screw screw-tl hidden" id="screw-dock-tl">⊕</span>
+              <span class="rack-corner-screw screw-tr hidden" id="screw-dock-tr">⊕</span>
+              <span class="rack-corner-screw screw-bl hidden" id="screw-dock-bl">⊕</span>
+              <span class="rack-corner-screw screw-br hidden" id="screw-dock-br">⊕</span>
+
+              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                <span style="font-size: 18px;" id="dock-icon">⚡</span>
+                <div>
+                  <div style="font-size: 12px; font-weight: bold; font-family: 'Space Mono', monospace;" id="dock-title">
+                    EXPRESS LOGGING DOCK
+                  </div>
+                  <div style="font-size: 11px; opacity: 0.7;" id="dock-status-desc">
+                    Active Climber: Dale • Selected Problem: #04 Red V5
+                  </div>
+                </div>
+              </div>
+
+              <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                <button class="dock-btn-retro btn-press" onclick="logClimb('b1', 'flash')">
+                  ⚡ LOG FLASH (+25%)
+                </button>
+                <button class="dock-btn-retro btn-press" onclick="logClimb('b1', 'sent')">
+                  ✓ LOG SEND (2t)
+                </button>
+                <button class="dock-btn-retro btn-press" onclick="incrementAttempt('b3')">
+                  ⏳ LOG ATTEMPT
+                </button>
+              </div>
+            </div>
+
+            <!-- App Bottom Navigation Bar -->
+            <nav id="app-bottom-nav" style="display: flex; justify-content: space-around; padding-top: 20px; margin-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.1); font-size: 11px; font-family: 'Space Mono', monospace; text-transform: uppercase;">
+              <div id="nav-item-boulders" onclick="playClickSound()" style="font-weight: bold; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; color: var(--climber-accent);">
+                <span>🧗</span> BOULDERS
+              </div>
+              <div style="opacity: 0.6; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer;" onclick="playClickSound()">
+                <span>💬</span> FEED
+              </div>
+              <div style="opacity: 0.6; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer;" onclick="playClickSound()">
+                <span>🏆</span> COMP
+              </div>
+              <div style="opacity: 0.6; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer;" onclick="playClickSound()">
+                <span>📊</span> STATS
+              </div>
+              <div style="opacity: 0.6; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer;" onclick="playClickSound()">
+                <span>⚙️</span> CREW
+              </div>
+            </nav>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 2: SIDE-BY-SIDE MATRIX VIEW (Compare All 4 Designs Cleanly) -->
+    <div id="matrix-view-container" class="hidden">
+      <div style="margin-bottom: 24px; text-align: center;">
+        <h2 style="font-size: 1.4rem; font-family: 'Space Mono', monospace; font-weight: 700; color: #fff;">
+          All 4 Designs Grounded in Hold Colors & Climber Accent
+        </h2>
+        <p style="font-size: 13px; color: #94a3b8; max-width: 680px; margin: 4px auto 16px;">
+          Inspect how problem #04 Red V5 and controls render across each aesthetic. Notice how the sacred Red hold color and active climber accent harmonize without visual clutter.
+        </p>
+        <button class="control-toggle active btn-press" onclick="toggleViewMode('single')">
+          ← Back to Interactive Preview
+        </button>
+      </div>
+
+      <div class="matrix-grid">
+        
+        <!-- Matrix 1: Arcade '84 Vector Deck -->
+        <div class="matrix-card" data-theme="arcade" style="background: #06080e; border: 1.5px solid #232d3f; padding: 18px;">
+          <div style="font-family: 'Space Mono'; font-weight: 700; color: var(--climber-accent); font-size: 13px; margin-bottom: 4px;">
+            🕹️ 01. ARCADE '84
+          </div>
+          <div style="font-size: 11px; color: #8b99ad; margin-bottom: 12px; font-family: 'Space Mono';">
+            Precision Vector Deck & Wireframe CRT
+          </div>
+          
+          <div class="arcade-box" style="padding: 12px; border-radius: 4px; margin-bottom: 14px; background: #0e121a; border: 1.5px solid #232d3f;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <div style="width: 14px; height: 14px; border-radius: 3px; background: #dc2626; border: 1.5px solid rgba(255,255,255,0.8); flex-shrink: 0;" title="Red Hold"></div>
+              <span style="font-family: 'Space Mono'; font-weight: 700; font-size: 12px; color: #f8fafc;">
+                #04 CRIMP SLAB [V5]
+              </span>
+            </div>
+            <div class="matrix-climber-tag" style="font-size: 11px; font-family: 'Space Mono'; color: var(--climber-accent); margin-bottom: 8px;">
+              CLIMBER: DALE • 1,450 PTS
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <span class="retro-badge" style="background: #10b981; color: #000; font-size: 10px; font-weight: bold;">+300 PTS SENT</span>
+              <span class="retro-badge" style="background: #f59e0b; color: #000; font-size: 10px; font-weight: bold; box-shadow: 0 0 6px rgba(245, 158, 11, 0.6);">⚡ FLASH (1t)</span>
+            </div>
+          </div>
+
+          <button class="action-btn-retro btn-press" style="width: 100%; font-size: 11px;" onclick="selectTheme('arcade'); toggleViewMode('single');">
+            Select Arcade Theme
+          </button>
+        </div>
+
+        <!-- Matrix 2: Studio Rack '93 Audio Gear -->
+        <div class="matrix-card" data-theme="rack" style="background: #0c0f14; border: 1px solid #263242; border-top: 2px solid var(--climber-accent); padding: 18px; position: relative;">
+          <span class="rack-corner-screw screw-tl">⊕</span>
+          <span class="rack-corner-screw screw-tr">⊕</span>
+          <div style="font-family: 'Space Mono'; font-weight: 700; color: #f1f5f9; font-size: 13px; margin-bottom: 4px; letter-spacing: 1px;">
+            🎛️ 02. STUDIO RACK '93
+          </div>
+          <div style="font-size: 11px; color: var(--climber-accent); margin-bottom: 12px; font-family: 'Space Mono';">
+            19" Gunmetal Hardware & Tactile LEDs
+          </div>
+
+          <div class="rack-box" style="padding: 12px; margin-bottom: 14px; font-family: 'Space Mono'; font-size: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <div style="width: 14px; height: 14px; border-radius: 3px; background: #dc2626; border: 1.5px solid #3b4759; flex-shrink: 0;" title="Red Hold"></div>
+              <span style="color: #f1f5f9; font-weight: 700;">
+                #04 CRIMP SLAB [V5]
+              </span>
+            </div>
+            <div class="matrix-climber-tag-rack" style="color: #94a3b8; font-size: 11px; margin-bottom: 6px;">
+              CH 01 // DALE [1,450 PTS]
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <span class="retro-badge" style="background: #13281e; border: 1px solid #10b981; color: #10b981; font-size: 10px;">
+                ● SENT // 2T
+              </span>
+              <span class="retro-badge" style="background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; color: #f59e0b; font-size: 10px;">
+                ⚡ FLASH // 1T
+              </span>
+            </div>
+          </div>
+
+          <button class="action-btn-retro btn-press" style="width: 100%; font-size: 11px;" onclick="selectTheme('rack'); toggleViewMode('single');">
+            Select Studio Rack Theme
+          </button>
+        </div>
+
+        <!-- Matrix 3: Trinitron '97 Multiscan Monitor -->
+        <div class="matrix-card" data-theme="trinitron" style="background: #070a10; border: 1px solid #1d2b3c; border-left: 3px solid var(--climber-accent); padding: 18px;">
+          <div style="font-family: 'Orbitron'; color: var(--climber-accent); font-size: 13px; font-weight: 800; margin-bottom: 4px;">
+            ⚡ 03. TRINITRON '97
+          </div>
+          <div style="font-size: 11px; color: #889bb0; margin-bottom: 12px; font-family: 'Space Mono';">
+            Sony Multiscan & Telemetry HUD
+          </div>
+
+          <div class="trinitron-box" style="padding: 12px; margin-bottom: 14px; font-family: 'Space Mono'; font-size: 11px; border-left: 3px solid #dc2626;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <div style="width: 14px; height: 14px; border-radius: 3px; background: #dc2626; border: 1.5px solid rgba(255,255,255,0.8); flex-shrink: 0;" title="Red Hold"></div>
+              <span style="color: #f0f6fc; font-weight: bold;">
+                // SECTOR: #04 RED V5
+              </span>
+            </div>
+            <div class="matrix-climber-tag-trinitron" style="color: var(--climber-accent); font-size: 11px; margin-bottom: 6px;">
+              CLIMBER: DALE // 1,450 PTS
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <span class="retro-badge" style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #10b981; font-size: 10px;">
+                ✓ SENT [2T]
+              </span>
+              <span class="retro-badge" style="background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; color: #f59e0b; font-size: 10px;">
+                ⚡ FLASH [+25%]
+              </span>
+            </div>
+          </div>
+
+          <button class="action-btn-retro btn-press" style="width: 100%; font-size: 11px;" onclick="selectTheme('trinitron'); toggleViewMode('single');">
+            Select Trinitron Theme
+          </button>
+        </div>
+
+        <!-- Matrix 4: Rad Tape '91 Utilitarian Zine -->
+        <div class="matrix-card" data-theme="vhs" style="background: #090a0f; border: 1.5px solid #262d3d; box-shadow: 2px 2px 0 #000; padding: 18px; position: relative;">
+          <div class="vhs-tape-corner">SP ▶ 0:14:22</div>
+          <div style="font-family: 'Permanent Marker'; color: var(--climber-accent); font-size: 17px; margin-bottom: 4px;">
+            📼 04. RAD TAPE '91
+          </div>
+          <div style="font-size: 11px; color: #8892a4; margin-bottom: 12px; font-family: 'Space Mono';">
+            Utilitarian Crag Zine & Field Topo
+          </div>
+
+          <div class="vhs-box" style="padding: 12px; margin-bottom: 14px; font-family: 'Space Mono'; font-size: 11px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <div style="width: 14px; height: 14px; border-radius: 3px; background: #dc2626; border: 1.5px solid #000; flex-shrink: 0;" title="Red Hold"></div>
+              <span style="font-family: 'Space Mono'; font-weight: 700; font-size: 12px; color: #fffdf5;">
+                #04 CRIMP SLAB [V5]
+              </span>
+            </div>
+            <div class="matrix-climber-tag-vhs" style="color: var(--climber-accent); font-size: 11px; margin-top: 4px; margin-bottom: 8px;">
+              CLIMBER: DALE [1,450 PTS]
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <span class="retro-badge" style="background: #10b981; color: #000; border: 1px solid #000; box-shadow: 1px 1px 0 #000; font-size: 10px; font-weight: bold;">
+                ✓ SENT (2t)
+              </span>
+              <span class="retro-badge" style="background: #f59e0b; color: #000; border: 1px solid #000; box-shadow: 1px 1px 0 #000; font-size: 10px; font-weight: bold;">
+                ⚡ FLASH (1t)
+              </span>
+            </div>
+          </div>
+
+          <button class="action-btn-retro btn-press" style="width: 100%; font-size: 11px;" onclick="selectTheme('vhs'); toggleViewMode('single');">
+            Select Rad Tape Theme
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- =========================================================
+         MODALS (Native <dialog closedby="any">)
+         ========================================================= -->
+    
+    <!-- 1. Design Blueprint & Specs Modal -->
+    <dialog id="spec-modal" class="retro-modal" closedby="any" aria-labelledby="modal-theme-title">
+      <div class="modal-inner-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #1f2937; padding-bottom: 12px;">
+          <h3 style="font-size: 1.25rem; font-family: 'Space Mono', monospace; font-weight: 700; color: #fff;" id="modal-theme-title">
+            Theme Architecture & Implementation Guide
+          </h3>
+          <button class="control-toggle btn-press" onclick="closeSpecModal()" style="font-size: 14px; padding: 4px 12px;">
+            ✕ Close
+          </button>
+        </div>
+
+        <div id="modal-content-body" style="font-size: 13px; line-height: 1.6; color: #cbd5e1;">
+          <!-- Populated dynamically via JS -->
+        </div>
+
+        <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #1f2937; display: flex; justify-content: flex-end; gap: 12px;">
+          <button class="control-toggle active btn-press" id="btn-incorporate-theme" onclick="saveSelectedTheme()" style="padding: 8px 18px; font-weight: bold; background: var(--climber-accent); border-color: var(--climber-accent); color: var(--climber-accent-contrast);">
+            ⭐ Save This Theme For Wham Incorporation
+          </button>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- 2. Boulder Detail Modal (Tactile Retro Inspection) -->
+    <dialog id="boulder-modal" class="retro-modal" closedby="any" aria-labelledby="boulder-modal-title">
+      <div class="modal-inner-card" id="boulder-modal-inner">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #1f2937; padding-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div id="modal-hold-swatch" style="width: 22px; height: 22px; border-radius: 4px; background: #dc2626; border: 2px solid rgba(255,255,255,0.8);"></div>
+            <h3 style="font-size: 1.2rem; font-family: 'Space Mono', monospace; font-weight: 700; color: #fff;" id="boulder-modal-title">
+              #04 CRIMP SLAB [V5]
+            </h3>
+          </div>
+          <button class="control-toggle btn-press" onclick="closeBoulderModal()" style="font-size: 14px; padding: 4px 12px;">
+            ✕
+          </button>
+        </div>
+
+        <div id="boulder-modal-body" style="font-size: 13px; line-height: 1.6; color: #cbd5e1;">
+          <!-- Populated dynamically via JS -->
+        </div>
+
+        <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+          <button class="control-toggle active btn-press" onclick="logClimbFromModal('flash')" style="background: var(--climber-accent); color: var(--climber-accent-contrast); font-weight: bold;">
+            ⚡ Log Flash (+25%)
+          </button>
+          <button class="control-toggle active btn-press" onclick="logClimbFromModal('sent')" style="background: #10b981; color: #000; font-weight: bold;">
+            ✓ Log Send
+          </button>
+        </div>
+      </div>
+    </dialog>
+
+  </div>
+
+  <!-- =========================================================
+       INTERACTIVE JAVASCRIPT & AUDIO ENGINE
+       ========================================================= -->
+  <script>
+    // Climber Profiles Database (Canonically matches Wham AuthContext)
+    const CREW_PROFILES = {
+      dale: {
+        id: 'dale',
+        name: 'Dale',
+        initial: 'D',
+        color: '#F59E0B',
+        contrast: '#000000',
+        muted: 'rgba(245, 158, 11, 0.16)',
+        glow: 'rgba(245, 158, 11, 0.4)',
+        score: 1450,
+        rank: '1st',
+        tagText: 'CLIMBER: DALE • 1,450 PTS',
+        rackTag: 'CH 01 // DALE [1,450 PTS]',
+        trinitronTag: 'CLIMBER: DALE // 1,450 PTS',
+        vhsTag: 'CLIMBER: DALE [1,450 PTS]'
+      },
+      alex: {
+        id: 'alex',
+        name: 'Alex',
+        initial: 'A',
+        color: '#3B82F6',
+        contrast: '#FFFFFF',
+        muted: 'rgba(59, 130, 246, 0.16)',
+        glow: 'rgba(59, 130, 246, 0.4)',
+        score: 1325,
+        rank: '2nd',
+        tagText: 'CLIMBER: ALEX • 1,325 PTS',
+        rackTag: 'CH 02 // ALEX [1,325 PTS]',
+        trinitronTag: 'CLIMBER: ALEX // 1,325 PTS',
+        vhsTag: 'CLIMBER: ALEX [1,325 PTS]'
+      },
+      taiye: {
+        id: 'taiye',
+        name: 'Taiye',
+        initial: 'T',
+        color: '#EC4899',
+        contrast: '#FFFFFF',
+        muted: 'rgba(236, 72, 153, 0.16)',
+        glow: 'rgba(236, 72, 153, 0.4)',
+        score: 1100,
+        rank: '3rd',
+        tagText: 'CLIMBER: TAIYE • 1,100 PTS',
+        rackTag: 'CH 03 // TAIYE [1,100 PTS]',
+        trinitronTag: 'CLIMBER: TAIYE // 1,100 PTS',
+        vhsTag: 'CLIMBER: TAIYE [1,100 PTS]'
+      },
+      euan: {
+        id: 'euan',
+        name: 'Euan',
+        initial: 'E',
+        color: '#10B981',
+        contrast: '#000000',
+        muted: 'rgba(16, 185, 129, 0.16)',
+        glow: 'rgba(16, 185, 129, 0.4)',
+        score: 950,
+        rank: '4th',
+        tagText: 'CLIMBER: EUAN • 950 PTS',
+        rackTag: 'CH 04 // EUAN [950 PTS]',
+        trinitronTag: 'CLIMBER: EUAN // 950 PTS',
+        vhsTag: 'CLIMBER: EUAN [950 PTS]'
+      }
+    };
+
+    // Theme Specifications Database (Architectural & Semantic)
+    const THEME_SPECS = {
+      arcade: {
+        name: "ARCADE '84",
+        era: "1983–1987 Vector Arcade Cab & Precision Wireframe Terminal",
+        headline: "Precision Vector Deck & Wireframe CRT",
+        description: "Monochrome obsidian base with razor-sharp chamfered geometry, luminous vector phosphor linework, and climber accent illumination—leaving boulder hold colors 100% sacred.",
+        rationale: "Climbing gyms have real physical hold circuits. Competing neon fuchsias and cyan borders clash with Red, Bee, and Purple problems. Arcade '84 provides the exhilarating high-contrast vector aesthetic using neutral dark obsidian with illuminated lines and climber-accented controls, keeping all problem hold colors completely sacred.",
+        palette: [
+          { name: "Vector Obsidian", hex: "#06080e" },
+          { name: "Vector Bay Surface", hex: "#0e121a" },
+          { name: "Monochrome Slate Line", hex: "#232d3f" },
+          { name: "Active Climber Accent", hex: "var(--climber-accent)" },
+          { name: "Sacred Hold Colors", hex: "#dc2626 / #dda82b" }
+        ],
+        fonts: "Space Mono (Headings, Vector IDs & Telemetry), Plus Jakarta Sans (Beta Notes)",
+        cssTokens: `/* Wham Arcade '84 CSS Tokens */
+:root {
+  --color-bg: #06080e;
+  --color-surface: #0e121a;
+  --color-border: #232d3f;
+  --color-accent: var(--climber-accent); /* Driven by active climber */
+  --font-heading: 'Space Mono', monospace;
+  --font-body: 'Plus Jakarta Sans', sans-serif;
+  --crt-scanlines: 0.12;
+  --crt-bloom: drop-shadow(0 0 1px var(--climber-accent)) drop-shadow(0 0 6px var(--climber-accent-glow));
+}`
+      },
+      rack: {
+        name: "STUDIO RACK '93",
+        era: "1991–1996 Pro-Audio & Synthesizer Rack Gear (Akai, Roland, Moog)",
+        headline: "19-Inch Gunmetal Chassis & Tactile Studio Hardware",
+        description: "Brushed gunmetal faceplates, silkscreen monospace labels, 4-point corner hex bolts, discrete 8-segment LED meters, and debossed mechanical microswitches.",
+        rationale: "Climbers deeply appreciate tactile physical gear — from chalk buckets to cam devices. Studio Rack '93 gives Wham the satisfying feel of high-end Japanese studio equipment: razor-sharp legibility, zero distractions, warm LED indicators for sends and flashes, and pure utilitarian beauty.",
+        palette: [
+          { name: "Gunmetal Chassis", hex: "#0c0f14" },
+          { name: "Rack Faceplate", hex: "#141922" },
+          { name: "Silkscreen Steel", hex: "#f1f5f9" },
+          { name: "Active Climber Channel", hex: "var(--climber-accent)" },
+          { name: "Hardware LED Green", hex: "#10b981" }
+        ],
+        fonts: "Space Mono (Silkscreen Headings & Data), Plus Jakarta Sans (Legible Body)",
+        cssTokens: `/* Wham Studio Rack '93 CSS Tokens */
+:root {
+  --color-bg: #0c0f14;
+  --color-surface: #141922;
+  --color-border: #263242;
+  --color-accent: var(--climber-accent); /* Channel accent */
+  --font-heading: 'Space Mono', monospace;
+  --font-body: 'Plus Jakarta Sans', sans-serif;
+  --crt-scanlines: 0.10;
+}`
+      },
+      trinitron: {
+        name: "TRINITRON '97",
+        era: "1996–1999 Industrial Sci-Fi & Sony Multiscan Monitor",
+        headline: "Japanese Industrial Sci-Fi Telemetry HUD",
+        description: "Sony aperture grille phosphor wires, technical telemetry brackets [ // ... ], left status rule in climber accent, and high-visibility HUD framing.",
+        rationale: "Modern bouldering is technical, athletic, and spatially precise. Inspired by the golden era of futuristic Japanese telemetry and studio CRTs, this design frames wall sectors with clean technical crossbars and high-contrast acid highlights without sacrificing readability.",
+        palette: [
+          { name: "Stealth Graphite", hex: "#070a10" },
+          { name: "Industrial Slate", hex: "#0e141f" },
+          { name: "Technical Frame Line", hex: "#1d2b3c" },
+          { name: "Active Climber HUD", hex: "var(--climber-accent)" },
+          { name: "Sacred Hold Colors", hex: "#dc2626 / #9333ea" }
+        ],
+        fonts: "Orbitron (Logos & Section Badges), Space Mono (Technical Data), Plus Jakarta Sans (Body)",
+        cssTokens: `/* Wham Trinitron '97 CSS Tokens */
+:root {
+  --color-bg: #070a10;
+  --color-surface: #0e141f;
+  --color-border: #1d2b3c;
+  --color-accent: var(--climber-accent);
+  --font-heading: 'Orbitron', sans-serif;
+  --font-mono: 'Space Mono', monospace;
+  --crt-scanlines: 0.12; /* Aperture grille mode */
+}`
+      },
+      vhs: {
+        name: "RAD TAPE '91",
+        era: "1989–1994 Crag Topo Zine, Utilitarian Notebook & Camcorder OSD",
+        headline: "Utilitarian Crag Zine & Field Tape Topo",
+        description: "Analog camcorder OSD counter, authentic masking tape topo snippets, punchy solid-shadow stickers, and tactile field stamps on newsprint charcoal.",
+        rationale: "The early 90s marked the birth of modern bouldering culture: fluorescent chalk bags, loud lycra, hand-annotated topo zines, and camcorder tapes passed around climbers. Straightened cards ensure effortless scanning while capturing pure irreverent crag energy without competing color clashes.",
+        palette: [
+          { name: "Newsprint Charcoal", hex: "#090a0f" },
+          { name: "Zine Panel Slate", hex: "#11141c" },
+          { name: "Masking Tape Off-White", hex: "#ece8db" },
+          { name: "Active Climber Stamp", hex: "var(--climber-accent)" },
+          { name: "Solid Shadow Pitch", hex: "#000000" }
+        ],
+        fonts: "Permanent Marker (Brand Badges & Stamps), Space Mono (OSD & Data), Plus Jakarta Sans (Body)",
+        cssTokens: `/* Wham Rad Tape '91 CSS Tokens */
+:root {
+  --color-bg: #090a0f;
+  --color-surface: #11141c;
+  --color-border: #262d3d;
+  --color-accent: var(--climber-accent);
+  --font-heading: 'Space Mono', monospace;
+  --font-display: 'Permanent Marker', cursive;
+  --crt-scanlines: 0.12;
+}`
+      }
+    };
+
+    // State
+    let currentTheme = 'arcade';
+    let currentClimber = 'dale';
+    let scanlinesLevel = 2; // 0=off, 1=minimal (6%), 2=subtle (12% - default), 3=crisp (18%)
+    let bloomLevel = 1;     // 0=off, 1=subtle (default), 2=radiant
+    let bezelTubeMode = true;
+    let soundEnabled = true;
+    let powerOn = true;
+
+    // Comp Scores State
+    let b3Attempts = 3;
+    let selectedBoulderModalId = 'b1';
+
+    // Web Audio Synthesizer for Authentic Retro Audio
+    let audioCtx = null;
+    function getAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function playClickSound() {
+      if (!soundEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (currentTheme === 'arcade') {
+          // 8-bit crisp chime
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(880, ctx.currentTime);
+          osc.frequency.setValueAtTime(1320, ctx.currentTime + 0.03);
+          gain.gain.setValueAtTime(0.06, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.08);
+        } else if (currentTheme === 'rack') {
+          // Tactile mechanical push-button microswitch snap
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(1800, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + 0.025);
+          gain.gain.setValueAtTime(0.08, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.035);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.035);
+        } else if (currentTheme === 'trinitron') {
+          // High-tech digital HUD chirp
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(2400, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(900, ctx.currentTime + 0.04);
+          gain.gain.setValueAtTime(0.05, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.05);
+        } else {
+          // VHS / Tape mechanical clunk
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(140, ctx.currentTime);
+          gain.gain.setValueAtTime(0.08, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.05);
+        }
+      } catch (e) {}
+    }
+
+    function playDegaussSound() {
+      if (!soundEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(60, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(220, ctx.currentTime + 0.2);
+        osc.frequency.exponentialRampToValueAtTime(30, ctx.currentTime + 1.1);
+        
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.1);
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 1.1);
+      } catch (e) {}
+    }
+
+    function playFlashSound() {
+      if (!soundEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.04);
+          gain.gain.setValueAtTime(0.07, ctx.currentTime + idx * 0.04);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.04 + 0.15);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(ctx.currentTime + idx * 0.04);
+          osc.stop(ctx.currentTime + idx * 0.04 + 0.15);
+        });
+      } catch (e) {}
+    }
+
+    // Universal Send Status Badge Styling (Strict Semantic Separation)
+    function applyBadgeStyle(badgeEl, statusType) {
+      if (!badgeEl) return;
+      if (statusType === 'flash') {
+        badgeEl.innerText = '⚡ FLASH (1t)';
+        if (currentTheme === 'rack') {
+          badgeEl.style.background = 'rgba(245, 158, 11, 0.15)';
+          badgeEl.style.border = '1px solid #f59e0b';
+          badgeEl.style.color = '#f59e0b';
+          badgeEl.style.boxShadow = 'none';
+        } else if (currentTheme === 'trinitron') {
+          badgeEl.style.background = 'rgba(245, 158, 11, 0.15)';
+          badgeEl.style.border = '1px solid #f59e0b';
+          badgeEl.style.color = '#f59e0b';
+          badgeEl.style.boxShadow = 'none';
+        } else if (currentTheme === 'vhs') {
+          badgeEl.style.background = '#f59e0b';
+          badgeEl.style.color = '#000000';
+          badgeEl.style.border = '1px solid #000';
+          badgeEl.style.boxShadow = '2px 2px 0 #000';
+        } else {
+          // arcade
+          badgeEl.style.background = '#f59e0b';
+          badgeEl.style.color = '#000000';
+          badgeEl.style.border = 'none';
+          badgeEl.style.boxShadow = '0 0 8px rgba(245, 158, 11, 0.5)';
+        }
+      } else if (statusType === 'sent') {
+        badgeEl.innerText = currentTheme === 'rack' ? '● SENT (2t)' : '✓ SENT (2t)';
+        if (currentTheme === 'rack') {
+          badgeEl.style.background = '#13281e';
+          badgeEl.style.border = '1px solid #10b981';
+          badgeEl.style.color = '#10b981';
+          badgeEl.style.boxShadow = 'none';
+        } else if (currentTheme === 'trinitron') {
+          badgeEl.style.background = 'rgba(16, 185, 129, 0.15)';
+          badgeEl.style.border = '1px solid #10b981';
+          badgeEl.style.color = '#10b981';
+          badgeEl.style.boxShadow = 'none';
+        } else if (currentTheme === 'vhs') {
+          badgeEl.style.background = '#10b981';
+          badgeEl.style.color = '#000000';
+          badgeEl.style.border = '1px solid #000';
+          badgeEl.style.boxShadow = '2px 2px 0 #000';
+        } else {
+          // arcade
+          badgeEl.style.background = '#10b981';
+          badgeEl.style.color = '#000000';
+          badgeEl.style.border = 'none';
+          badgeEl.style.boxShadow = 'none';
+        }
+      } else if (statusType === 'project') {
+        badgeEl.innerHTML = `⏳ PROJECT (<span id="b3-attempts">${b3Attempts}</span>t)`;
+        if (currentTheme === 'rack') {
+          badgeEl.style.background = '#152438';
+          badgeEl.style.border = '1px solid #3b82f6';
+          badgeEl.style.color = '#60a5fa';
+          badgeEl.style.boxShadow = 'none';
+        } else if (currentTheme === 'trinitron') {
+          badgeEl.style.background = 'rgba(59, 130, 246, 0.15)';
+          badgeEl.style.border = '1px solid #3b82f6';
+          badgeEl.style.color = '#60a5fa';
+          badgeEl.style.boxShadow = 'none';
+        } else if (currentTheme === 'vhs') {
+          badgeEl.style.background = '#1e293b';
+          badgeEl.style.color = '#60a5fa';
+          badgeEl.style.border = '1px solid #000';
+          badgeEl.style.boxShadow = '2px 2px 0 #000';
+        } else {
+          // arcade
+          badgeEl.style.background = '#1e293b';
+          badgeEl.style.color = '#60a5fa';
+          badgeEl.style.border = '1px solid #3b82f6';
+          badgeEl.style.boxShadow = 'none';
+        }
+      }
+    }
+
+    function updateClimberStatusTag() {
+      const c = CREW_PROFILES[currentClimber];
+      const climberStatus = document.getElementById('climber-status-tag');
+      if (climberStatus) {
+        c.tagText = `CLIMBER: ${c.name.toUpperCase()} • ${c.score.toLocaleString()} PTS`;
+        c.rackTag = `CH 0${['dale','alex','taiye','euan'].indexOf(currentClimber)+1} // ${c.name.toUpperCase()} [${c.score.toLocaleString()} PTS]`;
+        c.trinitronTag = `CLIMBER: ${c.name.toUpperCase()} // ${c.score.toLocaleString()} PTS`;
+        c.vhsTag = `CLIMBER: ${c.name.toUpperCase()} [${c.score.toLocaleString()} PTS]`;
+
+        if (currentTheme === 'arcade') climberStatus.innerText = c.tagText;
+        else if (currentTheme === 'rack') climberStatus.innerText = c.rackTag;
+        else if (currentTheme === 'trinitron') climberStatus.innerText = c.trinitronTag;
+        else climberStatus.innerText = c.vhsTag;
+      }
+    }
+
+    function updateMatrixClimberTags() {
+      const c = CREW_PROFILES[currentClimber];
+      document.querySelectorAll('.matrix-climber-tag').forEach(el => {
+        el.innerText = `CLIMBER: ${c.name.toUpperCase()} • ${c.score.toLocaleString()} PTS`;
+        el.style.color = c.color;
+      });
+      document.querySelectorAll('.matrix-climber-tag-rack').forEach(el => {
+        el.innerText = `CH 0${['dale','alex','taiye','euan'].indexOf(currentClimber)+1} // ${c.name.toUpperCase()} [${c.score.toLocaleString()} PTS]`;
+      });
+      document.querySelectorAll('.matrix-climber-tag-trinitron').forEach(el => {
+        el.innerText = `CLIMBER: ${c.name.toUpperCase()} // ${c.score.toLocaleString()} PTS`;
+        el.style.color = c.color;
+      });
+      document.querySelectorAll('.matrix-climber-tag-vhs').forEach(el => {
+        el.innerText = `CLIMBER: ${c.name.toUpperCase()} [${c.score.toLocaleString()} PTS]`;
+        el.style.color = c.color;
+      });
+    }
+
+    // Set Active Climber (Dynamic preview across Dale, Alex, Taiye, Euan)
+    function setActiveClimber(climberKey) {
+      if (!CREW_PROFILES[climberKey]) return;
+      currentClimber = climberKey;
+      const c = CREW_PROFILES[climberKey];
+
+      // Update root CSS variables
+      document.documentElement.style.setProperty('--climber-accent', c.color);
+      document.documentElement.style.setProperty('--climber-accent-muted', c.muted);
+      document.documentElement.style.setProperty('--climber-accent-glow', c.glow);
+      document.documentElement.style.setProperty('--climber-accent-contrast', c.contrast);
+      document.documentElement.style.setProperty('--climber-name', `'${c.name}'`);
+
+      playClickSound();
+
+      // Update Climber selector buttons in Control Rack
+      document.querySelectorAll('.climber-select-pill').forEach(pill => {
+        const parentBtn = pill.closest('.control-toggle');
+        if (parentBtn) {
+          if (parentBtn.id === `btn-climber-${climberKey}`) {
+            parentBtn.classList.add('active');
+          } else {
+            parentBtn.classList.remove('active');
+          }
+        }
+      });
+
+      // Update In-App Avatars highlight
+      ['dale', 'alex', 'taiye', 'euan'].forEach(k => {
+        const av = document.getElementById(`avatar-${k[0]}`);
+        if (av) {
+          if (k === climberKey) {
+            av.style.outline = '2px solid #fff';
+            av.style.boxShadow = `0 0 10px ${c.glow}`;
+            av.style.opacity = '1';
+            av.style.scale = '1.08';
+          } else {
+            av.style.outline = 'none';
+            av.style.boxShadow = 'none';
+            av.style.opacity = '0.75';
+            av.style.scale = '1';
+          }
+        }
+      });
+
+      // Update In-App Climber Status Tag
+      updateClimberStatusTag();
+
+      // Update Podium Card spotlight
+      ['dale', 'alex', 'taiye', 'euan'].forEach(k => {
+        const pod = document.getElementById(`podium-${k}`);
+        const prof = CREW_PROFILES[k];
+        if (pod) {
+          if (k === climberKey) {
+            pod.style.borderColor = prof.color;
+            pod.style.background = prof.muted;
+            pod.style.boxShadow = `0 0 10px ${prof.muted}`;
+          } else {
+            pod.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+            pod.style.background = 'rgba(0, 0, 0, 0.4)';
+            pod.style.boxShadow = 'none';
+          }
+        }
+      });
+
+      // Update Express Logging Dock description
+      const dockDesc = document.getElementById('dock-status-desc');
+      if (dockDesc) {
+        dockDesc.innerText = `Active Climber: ${c.name} • Selected Problem: #04 Red V5`;
+      }
+
+      // Update Matrix View labels
+      updateMatrixClimberTags();
+
+      // Show non-intrusive confirmation toast
+      showToast(`👤 Active Climber: ${c.name} (${c.color}) – Hold colors remain 100% sacred!`, c.color);
+    }
+
+    // Switch Active Theme
+    function selectTheme(themeKey) {
+      currentTheme = themeKey;
+      document.body.setAttribute('data-theme', themeKey);
+      playClickSound();
+
+      // Update Nav Buttons
+      document.querySelectorAll('[data-set-theme]').forEach(btn => {
+        if (btn.getAttribute('data-set-theme') === themeKey) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
+      // Update Theme Info Banner
+      const spec = THEME_SPECS[themeKey];
+      document.getElementById('theme-badge').innerText = spec.name;
+      document.getElementById('theme-headline').innerText = spec.headline;
+      document.getElementById('theme-description').innerText = spec.description;
+
+      // Update Scanlines type (Trinitron aperture grille vs standard)
+      const scanLayer = document.getElementById('crt-scanlines-layer');
+      if (themeKey === 'trinitron') {
+        scanLayer.classList.add('scan-aperture');
+      } else {
+        scanLayer.classList.remove('scan-aperture');
+      }
+
+      // Update VHS tracking bar
+      const vhsBar = document.getElementById('vhs-glitch-bar');
+      if (themeKey === 'vhs') {
+        vhsBar.classList.remove('hidden');
+      } else {
+        vhsBar.classList.add('hidden');
+      }
+
+      // Update Theme-specific structural elements inside mock app
+      updateMockupThemeStyling(themeKey);
+    }
+
+    function updateMockupThemeStyling(themeKey) {
+      const c = CREW_PROFILES[currentClimber];
+      const compBox = document.getElementById('comp-banner-box');
+      const quickDock = document.getElementById('quick-log-dock');
+      const compTag = document.getElementById('comp-tag');
+      const compMode = document.getElementById('comp-mode-tag');
+      const dockIcon = document.getElementById('dock-icon');
+      const dockTitle = document.getElementById('dock-title');
+      const logoBadge = document.getElementById('app-logo-badge');
+      const navBoulders = document.getElementById('nav-item-boulders');
+
+      // Hold swatches & grade tags (Sacred physical climbing colors)
+      const hold1 = document.getElementById('hold-b1');
+      const hold2 = document.getElementById('hold-b2');
+      const hold3 = document.getElementById('hold-b3');
+      const grade1 = document.getElementById('grade-b1');
+      const grade2 = document.getElementById('grade-b2');
+      const grade3 = document.getElementById('grade-b3');
+      const badge1 = document.getElementById('badge-b1');
+      const badge2 = document.getElementById('badge-b2');
+      const badge3 = document.getElementById('badge-b3');
+      const compB3 = document.getElementById('comp-b3-badge');
+      const card1 = document.getElementById('card-b1');
+      const card2 = document.getElementById('card-b2');
+      const card3 = document.getElementById('card-b3');
+      const notesB1 = document.getElementById('notes-b1');
+
+      // Corner rack screw elements
+      const rackScrews = document.querySelectorAll('.rack-corner-screw');
+
+      // Sacred Hold Swatches: Red is crisp crimson, Bee is dual-tone yellow/black, Purple is deep violet
+      hold1.className = ''; hold1.style.background = '#dc2626';
+      hold2.className = ''; hold2.style.background = 'linear-gradient(90deg, #DDA82B 50%, #18181B 50%)';
+      hold3.className = ''; hold3.style.background = '#9333ea';
+
+      // Sacred Grade Pills
+      grade1.style.background = '#dc2626'; grade1.style.color = '#fff';
+      grade2.style.background = '#DDA82B'; grade2.style.color = '#000';
+      grade3.style.background = '#9333ea'; grade3.style.color = '#fff';
+
+      // Universal Status badges
+      applyBadgeStyle(badge1, 'sent');
+      applyBadgeStyle(badge2, 'flash');
+      applyBadgeStyle(badge3, 'project');
+
+      compB3.style.background = '#1e2638';
+      compB3.style.border = '1px solid #3b4759';
+      compB3.style.color = '#f1f5f9';
+
+      // Authentic Masking Tape Snippet for Rad Tape '91 Beta Notes
+      if (notesB1) {
+        if (themeKey === 'vhs') {
+          notesB1.style.background = '#ece8db';
+          notesB1.style.color = '#18181b';
+          notesB1.style.padding = '6px 10px';
+          notesB1.style.borderRadius = '2px';
+          notesB1.style.border = '1px dashed #71717a';
+          notesB1.style.boxShadow = '1px 1px 3px rgba(0,0,0,0.4)';
+          notesB1.style.fontFamily = "'Space Mono', monospace";
+        } else {
+          notesB1.style.background = 'transparent';
+          notesB1.style.color = 'inherit';
+          notesB1.style.padding = '8px 0 0 0';
+          notesB1.style.borderRadius = '0';
+          notesB1.style.border = 'none';
+          notesB1.style.borderTop = '1px dotted rgba(255, 255, 255, 0.15)';
+          notesB1.style.boxShadow = 'none';
+          notesB1.style.fontFamily = 'inherit';
+        }
+      }
+
+      if (themeKey === 'arcade') {
+        compBox.className = 'arcade-box';
+        quickDock.className = 'arcade-box';
+        rackScrews.forEach(el => el.classList.add('hidden'));
+
+        logoBadge.innerText = '⚡ WHAM.';
+        compMode.innerText = 'OCTOBER COMP // REDPOINT LEADERBOARD';
+        dockIcon.innerText = '⚡';
+        dockTitle.innerText = 'EXPRESS LOGGING DOCK';
+        navBoulders.style.color = 'var(--climber-accent)';
+
+        card1.style.borderLeft = '';
+        card2.style.borderLeft = '';
+        card3.style.borderLeft = '';
+
+      } else if (themeKey === 'rack') {
+        compBox.className = 'rack-box';
+        quickDock.className = 'rack-box';
+        rackScrews.forEach(el => el.classList.remove('hidden'));
+
+        logoBadge.innerText = '⚡ WHAM // RACK-93';
+        compMode.innerText = 'OCT COMP // 8-SEGMENT LEVEL LADDERS ACTIVE';
+        dockIcon.innerText = '🎛️';
+        dockTitle.innerText = 'HARDWARE TRACK CONTROLLER';
+        navBoulders.style.color = 'var(--climber-accent)';
+
+        card1.style.borderLeft = '';
+        card2.style.borderLeft = '';
+        card3.style.borderLeft = '';
+
+      } else if (themeKey === 'trinitron') {
+        compBox.className = 'trinitron-box';
+        quickDock.className = 'trinitron-box';
+        rackScrews.forEach(el => el.classList.add('hidden'));
+
+        logoBadge.innerText = '⚡ WHAM//TRINITRON';
+        compMode.innerText = 'REDPOINT COMP // SECTOR TELEMETRY';
+        dockIcon.innerText = '⚡';
+        dockTitle.innerText = 'TELEMETRY ACTUATOR DOCK';
+        navBoulders.style.color = 'var(--climber-accent)';
+
+        // Trinitron HUD: Left border rule uses the boulder's sacred hold color!
+        card1.style.borderLeft = '3px solid #dc2626';
+        card2.style.borderLeft = '3px solid #dda82b';
+        card3.style.borderLeft = '3px solid #9333ea';
+
+      } else if (themeKey === 'vhs') {
+        compBox.className = 'vhs-box';
+        quickDock.className = 'vhs-box';
+        rackScrews.forEach(el => el.classList.add('hidden'));
+
+        logoBadge.innerText = '⚡ WHAM! 91';
+        compMode.innerText = 'OCTOBER COMP // TOP TAPE STREAM';
+        dockIcon.innerText = '📼';
+        dockTitle.innerText = 'CAMCORDER LOGGING DOCK';
+        navBoulders.style.color = 'var(--climber-accent)';
+
+        card1.style.borderLeft = '';
+        card2.style.borderLeft = '';
+        card3.style.borderLeft = '';
+      }
+
+      updateClimberStatusTag();
+    }
+
+    // Toggle Hardware CRT FX
+    function toggleScanlines() {
+      playClickSound();
+      scanlinesLevel = (scanlinesLevel + 1) % 4;
+      const layer = document.getElementById('crt-scanlines-layer');
+      const status = document.getElementById('scanlines-status');
+      const btn = document.getElementById('toggle-scanlines');
+
+      if (scanlinesLevel === 0) {
+        layer.style.opacity = '0';
+        status.innerText = 'OFF';
+        btn.classList.remove('active');
+      } else if (scanlinesLevel === 1) {
+        layer.style.opacity = '0.06';
+        status.innerText = 'MINIMAL 6%';
+        btn.classList.add('active');
+      } else if (scanlinesLevel === 2) {
+        layer.style.opacity = '0.12';
+        status.innerText = 'SUBTLE 12%';
+        btn.classList.add('active');
+      } else {
+        layer.style.opacity = '0.18';
+        status.innerText = 'REFINED 18%';
+        btn.classList.add('active');
+      }
+    }
+
+    function toggleBloom() {
+      playClickSound();
+      bloomLevel = (bloomLevel + 1) % 3;
+      const status = document.getElementById('bloom-status');
+      const btn = document.getElementById('toggle-bloom');
+      const screen = document.getElementById('crt-screen');
+
+      screen.classList.remove('bloom-subtle', 'bloom-radiant');
+
+      if (bloomLevel === 0) {
+        status.innerText = 'OFF';
+        btn.classList.remove('active');
+      } else if (bloomLevel === 1) {
+        status.innerText = 'SUBTLE';
+        btn.classList.add('active');
+        screen.classList.add('bloom-subtle');
+      } else {
+        status.innerText = 'RADIANT';
+        btn.classList.add('active');
+        screen.classList.add('bloom-radiant');
+      }
+    }
+
+    function toggleBezel() {
+      playClickSound();
+      bezelTubeMode = !bezelTubeMode;
+      const status = document.getElementById('bezel-status');
+      const btn = document.getElementById('toggle-bezel');
+      const frame = document.getElementById('crt-frame');
+      const glare = document.getElementById('crt-glare-layer');
+      const vignette = document.getElementById('crt-vignette-layer');
+
+      if (bezelTubeMode) {
+        status.innerText = 'TUBE';
+        btn.classList.add('active');
+        frame.classList.remove('crt-bezel-flat');
+        frame.classList.add('crt-bezel');
+        glare.classList.remove('hidden');
+        vignette.classList.remove('hidden');
+      } else {
+        status.innerText = 'FLAT';
+        btn.classList.remove('active');
+        frame.classList.remove('crt-bezel');
+        frame.classList.add('crt-bezel-flat');
+        glare.classList.add('hidden');
+        vignette.classList.add('hidden');
+      }
+    }
+
+    function triggerDegauss() {
+      playDegaussSound();
+      const screen = document.getElementById('crt-screen');
+      screen.classList.remove('degauss-active');
+      void screen.offsetWidth; // Force Reflow
+      screen.classList.add('degauss-active');
+      showToast("🧲 DEGAUSS COIL DISCHARGE // MAGNETIC FLUX NEUTRALIZED", "var(--climber-accent)");
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      const status = document.getElementById('sound-status');
+      const btn = document.getElementById('toggle-sound');
+      if (soundEnabled) {
+        status.innerText = 'ON';
+        btn.classList.add('active');
+        playClickSound();
+        showToast("🔊 RETRO AUDIO SYNTHESIZER: ACTIVE", "var(--climber-accent)");
+      } else {
+        status.innerText = 'OFF';
+        btn.classList.remove('active');
+      }
+    }
+
+    function togglePower() {
+      powerOn = !powerOn;
+      const screen = document.getElementById('crt-screen');
+      const btn = document.getElementById('btn-power');
+      playClickSound();
+
+      if (powerOn) {
+        btn.classList.add('active');
+        screen.style.display = 'block';
+        screen.classList.add('crt-warmup');
+        setTimeout(() => screen.classList.remove('crt-warmup'), 600);
+      } else {
+        btn.classList.remove('active');
+        screen.style.display = 'none';
+      }
+    }
+
+    function toggleViewMode(mode) {
+      playClickSound();
+      const singleContainer = document.getElementById('single-view-container');
+      const matrixContainer = document.getElementById('matrix-view-container');
+      const matrixBtn = document.getElementById('btn-matrix-toggle');
+
+      if (mode === 'matrix') {
+        singleContainer.classList.add('hidden');
+        matrixContainer.classList.remove('hidden');
+        matrixBtn.classList.add('active');
+      } else {
+        singleContainer.classList.remove('hidden');
+        matrixContainer.classList.add('hidden');
+        matrixBtn.classList.remove('active');
+      }
+    }
+
+    // In-Screen Non-Blocking Toast
+    let toastTimeout = null;
+    function showToast(message, color = 'var(--climber-accent)') {
+      const toast = document.getElementById('score-toast');
+      toast.innerText = message;
+      toast.style.background = '#0a0d16';
+      toast.style.border = `1.5px solid ${color.startsWith('var') ? CREW_PROFILES[currentClimber].color : color}`;
+      toast.style.color = color.startsWith('var') ? CREW_PROFILES[currentClimber].color : color;
+      toast.classList.add('show');
+
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2600);
+    }
+
+    // Interactive App Actions with Dynamic Multi-Climber Feedback
+    function logClimb(boulderId, type) {
+      const c = CREW_PROFILES[currentClimber];
+      const boulderNames = {
+        b1: '#04 Red V5',
+        b2: '#05 The Prow V4',
+        b3: '#06 Roof Dynó V7'
+      };
+      const bName = boulderNames[boulderId] || 'boulder';
+
+      if (type === 'flash') {
+        playFlashSound();
+        c.score += 375;
+        const scoreEl = document.getElementById(`score-${currentClimber}`);
+        if (scoreEl) scoreEl.innerText = `${c.score.toLocaleString()} pts`;
+
+        if (boulderId === 'b1') {
+          const badge1 = document.getElementById('badge-b1');
+          const pts1 = document.getElementById('pts-b1');
+          applyBadgeStyle(badge1, 'flash');
+          if (pts1) pts1.innerText = '+375 pts (BONUS)';
+        } else if (boulderId === 'b2') {
+          const badge2 = document.getElementById('badge-b2');
+          const pts2 = document.getElementById('pts-b2');
+          applyBadgeStyle(badge2, 'flash');
+          if (pts2) pts2.innerText = '+375 pts (BONUS)';
+        } else if (boulderId === 'b3') {
+          const badge3 = document.getElementById('badge-b3');
+          applyBadgeStyle(badge3, 'flash');
+        }
+
+        // Peak LED flash on active climber's meter
+        const clipLed = document.getElementById(`led-clip-${currentClimber}`);
+        if (clipLed) {
+          clipLed.classList.add('on');
+          setTimeout(() => clipLed.classList.remove('on'), 1500);
+        }
+
+        updateClimberStatusTag();
+        updateMatrixClimberTags();
+        showToast(`⚡ FLASH LOGGED! +375 pts (25% First-Try Bonus) • ${c.name} flashed ${bName}!`, c.color);
+      } else {
+        playClickSound();
+        const pts = boulderId === 'b2' ? 250 : 300;
+        c.score += pts;
+        const scoreEl = document.getElementById(`score-${currentClimber}`);
+        if (scoreEl) scoreEl.innerText = `${c.score.toLocaleString()} pts`;
+
+        if (boulderId === 'b1') {
+          const badge1 = document.getElementById('badge-b1');
+          const pts1 = document.getElementById('pts-b1');
+          applyBadgeStyle(badge1, 'sent');
+          if (pts1) pts1.innerText = `+${pts} pts`;
+        } else if (boulderId === 'b2') {
+          const badge2 = document.getElementById('badge-b2');
+          const pts2 = document.getElementById('pts-b2');
+          applyBadgeStyle(badge2, 'sent');
+          if (pts2) pts2.innerText = `+${pts} pts`;
+        } else if (boulderId === 'b3') {
+          const badge3 = document.getElementById('badge-b3');
+          applyBadgeStyle(badge3, 'sent');
+        }
+
+        updateClimberStatusTag();
+        updateMatrixClimberTags();
+        showToast(`✓ SEND LOGGED! +${pts} pts • ${c.name} sent ${bName}!`, '#10b981');
+      }
+    }
+
+    function incrementAttempt(boulderId) {
+      playClickSound();
+      b3Attempts += 1;
+      const attemptEl = document.getElementById('b3-attempts');
+      if (attemptEl) attemptEl.innerText = b3Attempts;
+      showToast(`⏳ ATTEMPT RECORDED! Project #06 Roof Dynó now at ${b3Attempts} attempts.`, "#3b82f6");
+    }
+
+    // Boulder Detail Modal
+    function inspectBoulder(boulderId) {
+      playClickSound();
+      selectedBoulderModalId = boulderId;
+      const modal = document.getElementById('boulder-modal');
+      const title = document.getElementById('boulder-modal-title');
+      const swatch = document.getElementById('modal-hold-swatch');
+      const body = document.getElementById('boulder-modal-body');
+      const c = CREW_PROFILES[currentClimber];
+
+      let name = "#04 CRIMP SLAB [V5]";
+      let beta = "Greasy sloper on the right edge, high heel hook on the red chip unlocks the match.";
+      let neighbors = "← #03 Blue V3 (Left) • #05 Bee V4 (Right) →";
+      let status = `Sent in 2 attempts by ${c.name} (+300 pts)`;
+
+      if (boulderId === 'b1') {
+        swatch.style.background = '#dc2626';
+        swatch.title = 'Red Hold (#DC2626)';
+      } else if (boulderId === 'b2') {
+        name = "#05 THE PROW [V4]";
+        swatch.style.background = 'linear-gradient(90deg, #DDA82B 50%, #18181B 50%)';
+        swatch.title = 'Bee Hold (Yellow/Black dual tone)';
+        beta = "Pinch the prow firmly, campus move to jug finish.";
+        neighbors = "← #04 Red V5 • #06 Purple V7 →";
+        status = `Flashed by ${c.name} on 1st attempt (+375 pts)`;
+      } else if (boulderId === 'b3') {
+        name = "#06 ROOF DYNÓ [V7 - COMP #12]";
+        swatch.style.background = '#9333ea';
+        swatch.title = 'Purple Hold (#9333EA)';
+        beta = "Toe hook bicycle under roof, explosive dynamic deadpoint to crimp rail.";
+        neighbors = "← #05 Bee V4 • #07 Yellow V2 →";
+        status = `Projecting (${b3Attempts} attempts recorded by ${c.name})`;
+      }
+
+      title.innerText = name;
+      body.innerHTML = `
+        <div style="margin-bottom: 14px;">
+          <strong style="color: var(--climber-accent); text-transform: uppercase; font-size: 11px;">Clockwise Wall Neighbors:</strong>
+          <p style="color: #fff; font-size: 13px; font-family: 'Space Mono', monospace; margin-top: 2px;">${neighbors}</p>
+        </div>
+        <div style="margin-bottom: 14px;">
+          <strong style="color: var(--climber-accent); text-transform: uppercase; font-size: 11px;">Beta & Climber Notes:</strong>
+          <p style="font-size: 13px; color: #e2e8f0; margin-top: 4px;">💬 "${beta}"</p>
+        </div>
+        <div>
+          <strong style="color: var(--climber-accent); text-transform: uppercase; font-size: 11px;">Crew Status:</strong>
+          <p style="font-size: 13px; color: #10b981; font-weight: bold; margin-top: 2px;">${status}</p>
+        </div>
+      `;
+
+      modal.showModal();
+    }
+
+    function closeBoulderModal() {
+      playClickSound();
+      document.getElementById('boulder-modal').close();
+    }
+
+    function logClimbFromModal(type) {
+      closeBoulderModal();
+      logClimb(selectedBoulderModalId, type);
+    }
+
+    // Design Specs & Tokens Modal
+    function openSpecModal() {
+      playClickSound();
+      const spec = THEME_SPECS[currentTheme];
+      const c = CREW_PROFILES[currentClimber];
+      document.getElementById('modal-theme-title').innerText = `${spec.name} – Design Blueprint`;
+
+      let paletteHtml = '<div style="display: flex; gap: 10px; margin: 12px 0 20px; flex-wrap: wrap;">';
+      spec.palette.forEach(p => {
+        const displayHex = p.hex.includes('climber-accent') ? c.color : (p.hex.includes('/') ? '#DC2626' : p.hex);
+        paletteHtml += `
+          <div style="flex: 1; min-width: 110px; padding: 10px; background: rgba(0,0,0,0.5); border: 1px solid #374151; border-radius: 8px; text-align: center;">
+            <div style="width: 100%; height: 28px; background: ${displayHex}; border-radius: 4px; margin-bottom: 6px; border: 1px solid rgba(255,255,255,0.2);"></div>
+            <div style="font-weight: bold; font-size: 11px; color: #fff;">${p.name}</div>
+            <div style="font-family: monospace; font-size: 10px; color: #9ca3af;">${p.hex}</div>
+          </div>
+        `;
+      });
+      paletteHtml += '</div>';
+
+      document.getElementById('modal-content-body').innerHTML = `
+        <div style="margin-bottom: 16px;">
+          <strong style="color: var(--climber-accent); text-transform: uppercase; font-size: 11px;">Era & Inspiration:</strong>
+          <p style="color: #fff; font-size: 13px;">${spec.era}</p>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <strong style="color: var(--climber-accent); text-transform: uppercase; font-size: 11px;">Design Rationale (Semantic Colors & Zero Noise):</strong>
+          <p style="font-size: 13px; color: #e2e8f0; margin-top: 4px;">${spec.rationale}</p>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <strong style="color: var(--climber-accent); text-transform: uppercase; font-size: 11px;">Color Palette Architecture:</strong>
+          ${paletteHtml}
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <strong style="color: var(--climber-accent); text-transform: uppercase; font-size: 11px;">Typography System:</strong>
+          <p style="color: #fff; font-size: 13px; font-family: monospace;">${spec.fonts}</p>
+        </div>
+
+        <div>
+          <strong style="color: var(--climber-accent); text-transform: uppercase; font-size: 11px;">CSS Variable Incorporation Snippet:</strong>
+          <pre style="background: #080b12; padding: 12px; border-radius: 8px; border: 1px solid #1e293b; color: var(--climber-accent); font-size: 11px; overflow-x: auto; margin-top: 6px;"><code>${spec.cssTokens}</code></pre>
+        </div>
+      `;
+
+      document.getElementById('spec-modal').showModal();
+    }
+
+    function closeSpecModal() {
+      playClickSound();
+      document.getElementById('spec-modal').close();
+    }
+
+    function saveSelectedTheme() {
+      playClickSound();
+      localStorage.setItem('wham_retro_theme_preference', currentTheme);
+      showToast(`⭐ PREFERENCE SAVED: "${THEME_SPECS[currentTheme].name}" ready for Wham integration!`, "#10b981");
+      closeSpecModal();
+    }
+
+    // Light-dismiss fallback for <dialog> on browsers lacking closedby
+    ['spec-modal', 'boulder-modal'].forEach(dialogId => {
+      const dialog = document.getElementById(dialogId);
+      if (dialog && !('closedBy' in HTMLDialogElement.prototype)) {
+        dialog.addEventListener('click', (event) => {
+          if (event.target !== dialog) return;
+          const rect = dialog.getBoundingClientRect();
+          const isInside = (
+            rect.top <= event.clientY &&
+            event.clientY <= rect.top + rect.height &&
+            rect.left <= event.clientX &&
+            event.clientX <= rect.left + rect.width
+          );
+          if (!isInside) dialog.close();
+        });
+      }
+    });
+
+    // Initialize defaults on load
+    window.addEventListener('DOMContentLoaded', () => {
+      setActiveClimber('dale');
+      selectTheme('arcade');
+    });
+  </script>
+</body>
+</html>

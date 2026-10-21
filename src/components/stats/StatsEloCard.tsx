@@ -9,7 +9,10 @@ import {
   ChevronUp,
   Sparkles,
   HelpCircle,
-  Target
+  Target,
+  TrendingUp,
+  Milestone,
+  Check
 } from 'lucide-react';
 import { Boulder, Attempt, Profile, getClimberColor } from '../../types';
 import { ClimberAvatar } from '../ClimberAvatar';
@@ -17,7 +20,8 @@ import { HoldBadge } from '../boulders/HoldBadge';
 import {
   computeClimberRating,
   computeCrewRatings,
-  ClimberRating
+  ClimberRating,
+  ELO_DEMARCATIONS
 } from '../../lib/ratingEngine';
 
 interface StatsEloCardProps {
@@ -47,6 +51,7 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
 }) => {
   const [showScorecard, setShowScorecard] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
+  const [showDemarcations, setShowDemarcations] = useState(false);
 
   // Compute all crew ratings
   const crewRatings = useMemo(() => {
@@ -95,6 +100,210 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
         );
     }
   };
+
+  const renderDemarcationsTable = (mode: 'my' | 'group') => (
+    <div className="p-4 rounded-2xl bg-slate-900/90 border border-amber-500/25 space-y-3 animate-in fade-in duration-200">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <Milestone className="w-4 h-4 text-amber-400" />
+            <h4 className="text-xs font-heading font-black text-white uppercase tracking-wider">
+              {mode === 'group' ? 'Crew Elo Demarcations Ladder' : 'Elo Level Demarcations Reference'}
+            </h4>
+          </div>
+          <p className="text-[11px] text-slate-400 mt-0.5">
+            {mode === 'group'
+              ? 'Where each crew member sits on the 100-pt level ladder. Solid V4 = 1,450 – 1,550 pts.'
+              : 'Standardized performance brackets (100-pt steps). Solid V4 = 1,450 – 1,550 pts.'}
+          </p>
+        </div>
+
+        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-white/[0.08] shrink-0">
+          13 Tiers
+        </span>
+      </div>
+
+      <div className="space-y-1.5 pt-1">
+        {ELO_DEMARCATIONS.map((demarcation) => {
+          if (mode === 'group') {
+            // Find all crew members in this demarcation tier
+            const climbersInTier = crewRatings.filter((r) => r.currentLevel.id === demarcation.id);
+            const hasClimbers = climbersInTier.length > 0;
+
+            // Check if all crew members have cleared/surpassed this tier
+            const allCrewCleared = crewRatings.length > 0 && crewRatings.every((r) => r.elo >= demarcation.maxElo);
+
+            // Find crew member closest to this tier (for tiers above the whole crew)
+            const isAboveCrew = crewRatings.every((r) => r.elo < demarcation.minElo);
+            const closestClimber = isAboveCrew
+              ? [...crewRatings].sort((a, b) => b.elo - a.elo)[0]
+              : null;
+            const ptsNeeded = closestClimber ? Math.max(0, demarcation.minElo - closestClimber.elo) : 0;
+
+            return (
+              <div
+                key={demarcation.id}
+                className={`flex flex-col sm:flex-row sm:items-center justify-between p-2.5 rounded-xl border transition-all gap-2 ${
+                  hasClimbers
+                    ? 'bg-amber-950/20 border-amber-500/40 ring-1 ring-amber-500/20'
+                    : allCrewCleared
+                    ? 'bg-slate-900/40 border-white/[0.03] opacity-75'
+                    : 'bg-slate-900/70 border-white/[0.05]'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span
+                    className={`w-11 h-7 rounded-lg font-mono font-black text-xs flex items-center justify-center shrink-0 border ${
+                      hasClimbers
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                        : 'bg-slate-800 text-slate-200 border-white/[0.08]'
+                    }`}
+                  >
+                    {demarcation.shortGrade}
+                  </span>
+
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-xs font-bold ${hasClimbers ? 'text-amber-200' : 'text-white'}`}>
+                        {demarcation.title}
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-400">
+                        {demarcation.tagline}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-400 truncate">
+                      {demarcation.subGradeDescription}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-white/[0.03] flex-wrap">
+                  <div className="font-mono text-xs font-bold text-slate-200">
+                    {demarcation.minElo.toLocaleString()} –{' '}
+                    {demarcation.maxElo === Infinity ? '∞' : demarcation.maxElo.toLocaleString()}{' '}
+                    <span className="text-[10px] text-slate-400 font-normal">pts</span>
+                  </div>
+
+                  {hasClimbers ? (
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {climbersInTier.map((cr) => {
+                        const p = cr.profile || climbers.find((c) => c.id === cr.userId);
+                        const climberIdx = climbers.findIndex((c) => c.id === cr.userId);
+                        const color = p ? getClimberColor(p, climberIdx >= 0 ? climberIdx : 0) : { hex: '#f59e0b' };
+
+                        return (
+                          <button
+                            key={cr.userId}
+                            type="button"
+                            onClick={() => {
+                              onSetViewMode('my');
+                              onSelectClimberId(cr.userId);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all hover:scale-105 active-press"
+                            style={{
+                              backgroundColor: `${color.hex}20`,
+                              borderColor: `${color.hex}50`,
+                              color: color.hex
+                            }}
+                            title={`View ${p?.display_name || 'climber'}'s detailed scorecard`}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color.hex }} />
+                            <span>{p?.display_name || 'Climber'}</span>
+                            <span className="font-mono text-slate-300">({cr.elo.toLocaleString()})</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : allCrewCleared ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400/90 bg-emerald-950/40 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                      <Check className="w-2.5 h-2.5" />
+                      All cleared
+                    </span>
+                  ) : isAboveCrew && closestClimber ? (
+                    <span className="font-mono text-[10px] font-bold text-amber-400/90 bg-amber-950/30 border border-amber-500/20 px-2 py-0.5 rounded-md">
+                      +{ptsNeeded} pts to unlock
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      Unoccupied
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          }
+
+          // Individual Mode ('my')
+          const isCurrent = activeRating.currentLevel.id === demarcation.id;
+          const isAchieved = activeRating.elo >= demarcation.maxElo;
+          const ptsNeeded = Math.max(0, demarcation.minElo - activeRating.elo);
+
+          return (
+            <div
+              key={demarcation.id}
+              className={`flex flex-col sm:flex-row sm:items-center justify-between p-2.5 rounded-xl border transition-all gap-2 ${
+                isCurrent
+                  ? 'bg-amber-950/25 border-amber-500/50 ring-1 ring-amber-500/30'
+                  : isAchieved
+                  ? 'bg-slate-900/40 border-white/[0.03] opacity-75'
+                  : 'bg-slate-900/70 border-white/[0.05]'
+              }`}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span
+                  className={`w-11 h-7 rounded-lg font-mono font-black text-xs flex items-center justify-center shrink-0 border ${
+                    isCurrent
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                      : 'bg-slate-800 text-slate-200 border-white/[0.08]'
+                  }`}
+                >
+                  {demarcation.shortGrade}
+                </span>
+
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`text-xs font-bold ${isCurrent ? 'text-amber-200' : 'text-white'}`}>
+                      {demarcation.title}
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400">
+                      {demarcation.tagline}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-400 truncate">
+                    {demarcation.subGradeDescription}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-white/[0.03]">
+                <div className="font-mono text-xs font-bold text-slate-200">
+                  {demarcation.minElo.toLocaleString()} –{' '}
+                  {demarcation.maxElo === Infinity ? '∞' : demarcation.maxElo.toLocaleString()}{' '}
+                  <span className="text-[10px] text-slate-400 font-normal">pts</span>
+                </div>
+
+                {isCurrent ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                    Current ({activeRating.elo.toLocaleString()} pts)
+                  </span>
+                ) : isAchieved ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400 bg-emerald-950/40 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                    <Check className="w-2.5 h-2.5" />
+                    Achieved
+                  </span>
+                ) : (
+                  <span className="font-mono text-[10px] font-bold text-amber-400/90 bg-amber-950/30 border border-amber-500/20 px-2 py-0.5 rounded-md">
+                    +{ptsNeeded} pts needed
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   return (
     <div className="bg-surface border border-white/[0.08] rounded-3xl p-5 shadow-xs flex flex-col gap-5">
@@ -145,10 +354,16 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
             <span>How Wham Elo Works</span>
           </div>
           <p className="text-[11px] leading-relaxed text-slate-300">
+            • <strong>Level Demarcations</strong>: Elo ratings translate into calibrated bouldering levels (e.g. 1,450 – 1,550 pts = Solid V4 Climber). Every 100-pt demarcation marks a new climbing tier.
+          </p>
+          <p className="text-[11px] leading-relaxed text-slate-300">
+            • <strong>Next Level Target</strong>: Track exactly how many points you need to cross the next demarcation line. Flashes award +40 bonus Elo, and 2nd-try sends award +20.
+          </p>
+          <p className="text-[11px] leading-relaxed text-slate-300">
             • <strong>No Project Penalty</strong>: Trying hard boulders and falling never lowers your rating. Only your sends count.
           </p>
           <p className="text-[11px] leading-relaxed text-slate-300">
-            • <strong>Top 15 in 60 Days</strong>: Your score is the weighted average of your best 15 sends over the last 60 days, rewarding flashes (⚡ +40) and quick sends.
+            • <strong>Top 15 in 60 Days</strong>: Your score is the weighted average of your best 15 sends over the last 60 days.
           </p>
           <p className="text-[11px] leading-relaxed text-slate-300">
             • <strong>Regular Climber Tier</strong>: Calibrated against worldwide gym community data. The median regular gym climber is ~1,350 Elo (V3).
@@ -161,16 +376,26 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
         <div className="space-y-5">
           {/* Main Elo Banner */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/60 border border-white/[0.05]">
-            <div className="flex items-center gap-3.5">
+            <div className="flex items-center gap-3.5 min-w-0">
               <ClimberAvatar profile={activeClimber} size="lg" />
-              <div>
-                <div className="flex items-center gap-2">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-bold text-white text-base">{activeClimber.display_name}</span>
                   <span
                     className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full"
                     style={{ backgroundColor: `${activeColor}25`, color: activeColor }}
                   >
                     {activeRating.gradeEquivalent}
+                  </span>
+                  <span
+                    className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-800/90 text-amber-300/90 border border-amber-500/20"
+                    title="Current Level Demarcation Bracket"
+                  >
+                    {activeRating.currentLevel.minElo.toLocaleString()} –{' '}
+                    {activeRating.currentLevel.maxElo === Infinity
+                      ? '∞'
+                      : activeRating.currentLevel.maxElo.toLocaleString()}{' '}
+                    pts
                   </span>
                 </div>
                 <div className="text-xs font-semibold text-slate-300 mt-0.5">
@@ -183,7 +408,7 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
             </div>
 
             {/* Elo Score Metric */}
-            <div className="flex sm:flex-col items-baseline sm:items-end justify-between border-t sm:border-t-0 pt-2 sm:pt-0 border-white/[0.05]">
+            <div className="flex sm:flex-col items-baseline sm:items-end justify-between border-t sm:border-t-0 pt-2 sm:pt-0 border-white/[0.05] shrink-0">
               <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Wham Elo</span>
               <div className="flex items-baseline gap-1.5">
                 <span
@@ -199,6 +424,116 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
               )}
             </div>
           </div>
+
+          {/* NEXT LEVEL DEMARCATION PROGRESS CARD */}
+          <div className="p-4 rounded-2xl bg-slate-900/70 border border-white/[0.06] space-y-3">
+            <div className="flex items-start justify-between gap-3 flex-wrap sm:flex-nowrap">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                  <TrendingUp className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-heading font-black text-white uppercase tracking-wider">
+                      Level Demarcation Progress
+                    </span>
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-800 text-amber-300 border border-amber-500/20">
+                      {activeRating.currentLevel.minElo.toLocaleString()} –{' '}
+                      {activeRating.currentLevel.maxElo === Infinity
+                        ? '∞'
+                        : activeRating.currentLevel.maxElo.toLocaleString()}{' '}
+                      pts
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">
+                    {activeRating.nextLevel ? (
+                      <span>
+                        Next Demarcation:{' '}
+                        <strong className="text-slate-200">{activeRating.nextLevel.title}</strong> (
+                        {activeRating.nextLevel.minElo.toLocaleString()} pts)
+                      </span>
+                    ) : (
+                      <span className="text-emerald-400 font-semibold">Apex World Class tier achieved</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {activeRating.nextLevel && (
+                <div className="text-right shrink-0">
+                  <div className="flex items-baseline justify-end gap-1 font-mono text-sm sm:text-base font-black text-amber-400">
+                    <Zap className="w-3.5 h-3.5 fill-current shrink-0" />
+                    <span>{activeRating.pointsToNextLevel} pts</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-medium">
+                    to {activeRating.nextLevel.shortGrade}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Progress Bar with Demarcation Bounds */}
+            <div className="space-y-1.5 pt-1">
+              <div className="relative w-full h-3 bg-slate-800/90 rounded-full overflow-hidden p-0.5 border border-white/[0.05]">
+                <div
+                  className="h-full rounded-full transition-all duration-700 bg-gradient-to-r from-amber-500 via-amber-400 to-emerald-400 relative"
+                  style={{ width: `${Math.min(100, Math.max(3, activeRating.levelProgress))}%` }}
+                >
+                  <span className="absolute right-0.5 top-0 bottom-0 flex items-center">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_6px_rgba(255,255,255,0.9)] animate-pulse" />
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-0.5">
+                <span className="text-slate-400">
+                  {activeRating.currentLevel.shortGrade} ({activeRating.currentLevel.minElo.toLocaleString()} pts)
+                </span>
+                <span className="font-bold text-slate-200">
+                  {activeRating.elo.toLocaleString()} pts ({Math.round(activeRating.levelProgress)}%)
+                </span>
+                <span>
+                  {activeRating.nextLevel
+                    ? `${activeRating.nextLevel.shortGrade} (${activeRating.nextLevel.minElo.toLocaleString()} pts)`
+                    : '∞ (Max Tier)'}
+                </span>
+              </div>
+            </div>
+
+            {/* Contextual coaching footer with Demarcations toggle button */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-1 border-t border-white/[0.04]">
+              <div className="text-[11px] text-slate-400">
+                {activeRating.nextLevel ? (
+                  <span>
+                    <strong className="text-amber-300 font-mono">+{activeRating.pointsToNextLevel} pts</strong> needed
+                    to break into <strong className="text-white">{activeRating.nextLevel.title}</strong>. Flashes add
+                    +40 bonus.
+                  </span>
+                ) : (
+                  <span className="text-emerald-400">
+                    You have reached the maximum tracked grade tier in Wham!
+                  </span>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowDemarcations(!showDemarcations)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-750 border border-white/[0.08] text-xs font-semibold text-amber-300 hover:text-amber-200 transition-all shrink-0 active-press self-start sm:self-auto"
+              >
+                <Milestone className="w-3.5 h-3.5 text-amber-400" />
+                <span>{showDemarcations ? 'Hide Demarcations' : 'View Level Demarcations'}</span>
+                {showDemarcations ? (
+                  <ChevronUp className="w-3.5 h-3.5" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* EXPANDABLE: LEVEL DEMARCATIONS REFERENCE TABLE */}
+          {showDemarcations && renderDemarcationsTable('my')}
 
           {/* Global Percentile Bar */}
           <div className="space-y-2 p-3.5 rounded-2xl bg-slate-900/40 border border-white/[0.05]">
@@ -338,7 +673,7 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
         /* VIEW MODE 2: CREW LEADERBOARD */
         <div className="space-y-3">
           <div className="text-xs text-slate-400 font-semibold px-1">
-            Current 60-Day Crew Rankings & Form
+            Current 60-Day Crew Rankings & Level Status
           </div>
 
           <div className="space-y-2">
@@ -380,17 +715,35 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
                         {isFirst && <Crown className="w-3.5 h-3.5 text-amber-400 fill-amber-400 shrink-0" />}
                       </div>
 
-                      <div className="flex items-center gap-1.5 mt-0.5">
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                         <span
-                          className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded"
+                          className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded"
                           style={{ backgroundColor: `${color.hex}25`, color: color.hex }}
                         >
                           {rating.gradeEquivalent}
                         </span>
-                        <span className="text-[11px] text-slate-400 truncate">
+                        <span className="text-[11px] text-slate-300 truncate">
                           {rating.title}
                         </span>
+                        <span className="text-[10px] font-mono text-slate-400 bg-slate-800/80 px-1.5 py-0.5 rounded border border-white/[0.04]">
+                          {rating.currentLevel.minElo.toLocaleString()}–{rating.currentLevel.maxElo === Infinity ? '∞' : rating.currentLevel.maxElo.toLocaleString()} pts
+                        </span>
                       </div>
+
+                      {rating.nextLevel && (
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[10px] font-mono font-bold text-amber-400 flex items-center gap-1">
+                            <TrendingUp className="w-2.5 h-2.5" />
+                            <span>{rating.pointsToNextLevel} pts to {rating.nextLevel.shortGrade}</span>
+                          </span>
+                          <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden border border-white/[0.04]">
+                            <div
+                              className="h-full bg-gradient-to-r from-amber-500 to-emerald-400 rounded-full transition-all duration-500"
+                              style={{ width: `${Math.min(100, Math.max(5, rating.levelProgress))}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -412,6 +765,20 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
               );
             })}
           </div>
+
+          {/* Toggle Level Demarcations Table in Crew View */}
+          <button
+            type="button"
+            onClick={() => setShowDemarcations(!showDemarcations)}
+            className="w-full py-2.5 px-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-white/[0.06] text-xs font-semibold text-slate-300 flex items-center justify-center gap-2 transition-all active-press"
+          >
+            <Milestone className="w-3.5 h-3.5 text-amber-400" />
+            <span>{showDemarcations ? 'Hide Level Demarcations Table' : 'View Level Demarcations (VB – V10+)'}</span>
+            {showDemarcations ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
+
+          {/* EXPANDABLE: LEVEL DEMARCATIONS IN CREW VIEW */}
+          {showDemarcations && renderDemarcationsTable('group')}
         </div>
       )}
     </div>

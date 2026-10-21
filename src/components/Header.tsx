@@ -340,6 +340,22 @@ export const Header: React.FC<HeaderProps> = ({
                     </button>
                   )}
 
+                  <a
+                    href="./retro-themes.html"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setIsMoreMenuOpen(false)}
+                    className="flex items-center justify-between w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-amber-300 hover:bg-slate-800 transition-colors"
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <span className="text-sm">🕹️</span>
+                      <span>80s/90s CRT Themes</span>
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+                      NEW
+                    </span>
+                  </a>
+
                   <div className="h-px bg-slate-800 my-0.5" />
 
                   <button

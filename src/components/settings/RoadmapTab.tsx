@@ -162,6 +162,30 @@ export const RoadmapTab: React.FC<RoadmapTabProps> = ({
         </button>
       </div>
 
+      {/* 80s / 90s CRT Retro Themes Exploration Banner */}
+      <a
+        href="./retro-themes.html"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="p-3.5 rounded-2xl bg-slate-900 border border-amber-500/30 flex items-center justify-between gap-3 text-xs hover:border-amber-400/60 transition-all active-press"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">🕹️</span>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-heading font-black text-amber-300">80s & 90s CRT Retheming Lab</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">4 PROPOSALS</span>
+            </div>
+            <p className="text-slate-400 text-[11px] mt-0.5">
+              Explore 4 bold designs: Arcade '84, Studio Rack '93, Trinitron '97, and Rad VHS '91 with subtle scanlines & refined glow.
+            </p>
+          </div>
+        </div>
+        <span className="px-3 py-1.5 rounded-xl bg-amber-400 text-slate-950 font-bold font-heading text-[11px] shrink-0">
+          Launch Lab ↗
+        </span>
+      </a>
+
       {/* Filter Tabs: Open, Done, All */}
       <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
         {(

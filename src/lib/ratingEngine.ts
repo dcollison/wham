@@ -66,6 +66,156 @@ export interface ScorecardSendItem {
   daysRemaining: number; // Days left before expiring from 60-day window
 }
 
+export interface EloDemarcation {
+  id: string;
+  minElo: number;
+  maxElo: number; // Infinity for the top tier
+  title: string;
+  gradeEquivalent: string;
+  shortGrade: string;
+  subGradeDescription: string;
+  tagline: string;
+}
+
+/**
+ * Official Wham Elo Level Demarcations.
+ * Calibrated around community benchmarks so that:
+ * - 1,450 – 1,550 = Solid V4 Climber
+ * - Clear 100-pt progression milestones from V0 to V10+
+ */
+export const ELO_DEMARCATIONS: EloDemarcation[] = [
+  {
+    id: 'vb',
+    minElo: 0,
+    maxElo: 1000,
+    title: 'Base Builder',
+    gradeEquivalent: 'VB',
+    shortGrade: 'VB',
+    subGradeDescription: 'Learning the fundamentals & footwork',
+    tagline: 'Foundation'
+  },
+  {
+    id: 'v0',
+    minElo: 1000,
+    maxElo: 1150,
+    title: 'Solid V0 Climber',
+    gradeEquivalent: 'V0',
+    shortGrade: 'V0',
+    subGradeDescription: 'Dialling in core gym movement',
+    tagline: 'Intro'
+  },
+  {
+    id: 'v1',
+    minElo: 1150,
+    maxElo: 1250,
+    title: 'Solid V1 Climber',
+    gradeEquivalent: 'V1',
+    shortGrade: 'V1',
+    subGradeDescription: 'Building body tension & flow',
+    tagline: 'Developing'
+  },
+  {
+    id: 'v2',
+    minElo: 1250,
+    maxElo: 1350,
+    title: 'Solid V2 Climber',
+    gradeEquivalent: 'V2',
+    shortGrade: 'V2',
+    subGradeDescription: 'Reliable on dynamic moves & crimps',
+    tagline: 'Intermediate'
+  },
+  {
+    id: 'v3',
+    minElo: 1350,
+    maxElo: 1450,
+    title: 'Solid V3 Climber',
+    gradeEquivalent: 'V3',
+    shortGrade: 'V3',
+    subGradeDescription: 'Consistent tickrate across V3 circuits',
+    tagline: 'Gym Regular'
+  },
+  {
+    id: 'v4',
+    minElo: 1450,
+    maxElo: 1550,
+    title: 'Solid V4 Climber',
+    gradeEquivalent: 'V4',
+    shortGrade: 'V4',
+    subGradeDescription: 'Solid tickrate across V4 circuits, projecting V5',
+    tagline: 'Seasoned Regular'
+  },
+  {
+    id: 'v5',
+    minElo: 1550,
+    maxElo: 1650,
+    title: 'Solid V5 Climber',
+    gradeEquivalent: 'V5',
+    shortGrade: 'V5',
+    subGradeDescription: 'Consistent on steep boards & technical beta',
+    tagline: 'Strong Regular'
+  },
+  {
+    id: 'v6',
+    minElo: 1650,
+    maxElo: 1750,
+    title: 'Solid V6 Climber',
+    gradeEquivalent: 'V6',
+    shortGrade: 'V6',
+    subGradeDescription: 'Unlocking difficult micro-crimps & power moves',
+    tagline: 'Advanced'
+  },
+  {
+    id: 'v7',
+    minElo: 1750,
+    maxElo: 1850,
+    title: 'Solid V7 Climber',
+    gradeEquivalent: 'V7',
+    shortGrade: 'V7',
+    subGradeDescription: 'High finger strength & high-angle board proficiency',
+    tagline: 'High Advanced'
+  },
+  {
+    id: 'v8',
+    minElo: 1850,
+    maxElo: 1950,
+    title: 'Solid V8 Climber',
+    gradeEquivalent: 'V8',
+    shortGrade: 'V8',
+    subGradeDescription: 'Local crusher benchmark; sends hardest sets with ease',
+    tagline: 'Local Crusher'
+  },
+  {
+    id: 'v9',
+    minElo: 1950,
+    maxElo: 2050,
+    title: 'Solid V9 Climber',
+    gradeEquivalent: 'V9',
+    shortGrade: 'V9',
+    subGradeDescription: 'Routesetter & competition-tier execution',
+    tagline: 'Elite'
+  },
+  {
+    id: 'v10_plus',
+    minElo: 2050,
+    maxElo: 2200,
+    title: 'Solid V10+ Crusher',
+    gradeEquivalent: 'V10+',
+    shortGrade: 'V10+',
+    subGradeDescription: 'National competition finalist territory',
+    tagline: 'Master'
+  },
+  {
+    id: 'apex',
+    minElo: 2200,
+    maxElo: Infinity,
+    title: 'Apex World Class',
+    gradeEquivalent: 'V12+',
+    shortGrade: 'Apex',
+    subGradeDescription: 'World cup & international peak performance',
+    tagline: 'Legend'
+  }
+];
+
 export interface ClimberRating {
   userId: string;
   profile?: Profile;
@@ -81,6 +231,72 @@ export interface ClimberRating {
   topSends: ScorecardSendItem[];
   hardestSendGrade: Grade | null;
   formStatus: 'peak' | 'active' | 'calibrating' | 'dormant';
+  // Level Demarcations
+  currentLevel: EloDemarcation;
+  nextLevel: EloDemarcation | null;
+  pointsToNextLevel: number;
+  levelProgress: number; // 0 to 100 percentage
+}
+
+/**
+ * Finds the level demarcation corresponding to a given Elo rating.
+ */
+export function getLevelDemarcation(elo: number): EloDemarcation {
+  const safeElo = Number.isFinite(elo) ? Math.max(0, elo) : 1000;
+  const found = ELO_DEMARCATIONS.find((d) => {
+    if (d.maxElo === Infinity) {
+      return safeElo >= d.minElo;
+    }
+    return safeElo >= d.minElo && safeElo < d.maxElo;
+  });
+  return found || ELO_DEMARCATIONS[0];
+}
+
+/**
+ * Gets the next level demarcation above the current rating (or null if max tier).
+ */
+export function getNextLevelDemarcation(elo: number): EloDemarcation | null {
+  const current = getLevelDemarcation(elo);
+  const currentIndex = ELO_DEMARCATIONS.findIndex((d) => d.id === current.id);
+  if (currentIndex >= 0 && currentIndex < ELO_DEMARCATIONS.length - 1) {
+    return ELO_DEMARCATIONS[currentIndex + 1];
+  }
+  return null;
+}
+
+/**
+ * Computes exact progress metrics toward the next level demarcation.
+ */
+export function getDemarcationProgress(elo: number): {
+  currentLevel: EloDemarcation;
+  nextLevel: EloDemarcation | null;
+  pointsToNextLevel: number;
+  levelProgress: number;
+} {
+  const safeElo = Number.isFinite(elo) ? Math.max(0, elo) : 1000;
+  const currentLevel = getLevelDemarcation(safeElo);
+  const nextLevel = getNextLevelDemarcation(safeElo);
+
+  if (!nextLevel || currentLevel.maxElo === Infinity) {
+    return {
+      currentLevel,
+      nextLevel: null,
+      pointsToNextLevel: 0,
+      levelProgress: 100
+    };
+  }
+
+  const range = currentLevel.maxElo - currentLevel.minElo;
+  const progressRaw = range > 0 ? ((safeElo - currentLevel.minElo) / range) * 100 : 0;
+  const levelProgress = Math.min(100, Math.max(0, Math.round(progressRaw * 10) / 10));
+  const pointsToNextLevel = Math.max(0, currentLevel.maxElo - safeElo);
+
+  return {
+    currentLevel,
+    nextLevel,
+    pointsToNextLevel,
+    levelProgress
+  };
 }
 
 /**
@@ -90,47 +306,35 @@ export function getClimberTitleFromElo(elo: number): {
   title: string;
   gradeEquivalent: string;
   subGradeDescription: string;
+  levelDemarcation: EloDemarcation;
 } {
-  // If below V0
-  if (elo < 850) {
-    return {
-      title: 'Base Builder',
-      gradeEquivalent: 'VB',
-      subGradeDescription: 'Learning the fundamentals & footwork'
-    };
-  }
-  if (elo < 975) {
-    return {
-      title: 'V0 Crusher',
-      gradeEquivalent: 'V0',
-      subGradeDescription: 'Dialling in core gym movement'
-    };
-  }
+  const safeElo = Number.isFinite(elo) ? Math.max(0, elo) : 1000;
+  const demarcation = getLevelDemarcation(safeElo);
 
-  // Calculate continuous grade level: 900 = V0, 1050 = V1, 1200 = V2, 1350 = V3, etc.
-  const vNum = (elo - 900) / 150;
-  const baseGrade = Math.floor(vNum);
-  const remainder = vNum - baseGrade;
+  let subGradeDescription = demarcation.subGradeDescription;
+  let gradeEquivalent = demarcation.gradeEquivalent;
 
-  let title = '';
-  let gradeEquivalent = `V${baseGrade}`;
-  let subGradeDescription = '';
+  // Nuance for progress within demarcation band
+  if (demarcation.maxElo !== Infinity && demarcation.maxElo - demarcation.minElo >= 100) {
+    const range = demarcation.maxElo - demarcation.minElo;
+    const progress = (safeElo - demarcation.minElo) / range;
 
-  if (remainder < 0.25) {
-    title = `Solid V${baseGrade} Climber`;
-    gradeEquivalent = `V${baseGrade}`;
-    subGradeDescription = `Consistent tickrate across V${baseGrade} circuits`;
-  } else if (remainder < 0.65) {
-    title = `Strong V${baseGrade} Climber`;
-    gradeEquivalent = `V${baseGrade}+`;
-    subGradeDescription = `High flash confidence on V${baseGrade}, projecting V${baseGrade + 1}`;
-  } else {
-    title = `Breaking into V${baseGrade + 1}`;
-    gradeEquivalent = `V${baseGrade} – V${baseGrade + 1}`;
-    subGradeDescription = `Transitioning into solid V${baseGrade + 1} territory`;
+    if (progress >= 0.7) {
+      gradeEquivalent = demarcation.gradeEquivalent.endsWith('+') || demarcation.id === 'vb'
+        ? demarcation.gradeEquivalent
+        : `${demarcation.gradeEquivalent}+`;
+      subGradeDescription = `High flash confidence on ${demarcation.gradeEquivalent}, projecting the next level`;
+    } else if (progress <= 0.25) {
+      subGradeDescription = `Consolidating ${demarcation.gradeEquivalent} tickrate across gym circuits`;
+    }
   }
 
-  return { title, gradeEquivalent, subGradeDescription };
+  return {
+    title: demarcation.title,
+    gradeEquivalent,
+    subGradeDescription,
+    levelDemarcation: demarcation
+  };
 }
 
 /**
@@ -271,6 +475,7 @@ export function computeClimberRating(
   }
 
   const { title, gradeEquivalent, subGradeDescription } = getClimberTitleFromElo(calculatedElo);
+  const { currentLevel, nextLevel, pointsToNextLevel, levelProgress } = getDemarcationProgress(calculatedElo);
   const percentile = calculateClimberPercentile(calculatedElo);
   const topPercentile = Math.max(0.1, Math.round((100 - percentile) * 10) / 10);
 
@@ -299,7 +504,11 @@ export function computeClimberRating(
     totalSendsInWindow,
     topSends: top15,
     hardestSendGrade,
-    formStatus
+    formStatus,
+    currentLevel,
+    nextLevel,
+    pointsToNextLevel,
+    levelProgress
   };
 }
 
