@@ -1,4 +1,4 @@
-import { Boulder, Attempt, Profile, Grade } from '../types';
+import { Boulder, Attempt, Profile, Grade, GRADES } from '../types';
 
 /**
  * Base Elo anchor for each V-grade.
@@ -220,6 +220,7 @@ export interface ClimberRating {
   userId: string;
   profile?: Profile;
   elo: number;
+  rawElo?: number; // Uncapped tournament score before pyramid depth gating
   title: string;
   gradeEquivalent: string;
   subGradeDescription: string;
@@ -236,27 +237,93 @@ export interface ClimberRating {
   nextLevel: EloDemarcation | null;
   pointsToNextLevel: number;
   levelProgress: number; // 0 to 100 percentage
+  depthNeededForNextLevel?: number; // Sends needed at nextLevel grade to prove pyramid depth
 }
 
 /**
- * Finds the level demarcation corresponding to a given Elo rating.
+ * Minimum number of sends at or above grade required in the active scorecard
+ * to demonstrate consistent pyramid volume and depth for that level demarcation.
+ * Without consistent pyramid depth, one-off breakthrough or outlier sends cannot
+ * crown a climber as a solid/strong climber of that grade.
  */
-export function getLevelDemarcation(elo: number): EloDemarcation {
+export function getRequiredPyramidDepth(demarcationId: string): number {
+  switch (demarcationId) {
+    case 'vb':
+      return 0; // Base builder entry tier
+    case 'v0':
+      return 1; // 1 send needed to establish gym baseline
+    case 'v1':
+      return 2; // 2 sends to confirm out of intro
+    default:
+      // For V2 through V10+ and Apex: requires consistent pyramid depth
+      // of at least 3 sends at or above that grade.
+      return 3;
+  }
+}
+
+/**
+ * Checks if a climber has demonstrated consistent pyramid volume and depth
+ * for a given level demarcation.
+ */
+export function hasPyramidDepthForDemarcation(
+  demarcation: EloDemarcation,
+  topSends?: ScorecardSendItem[]
+): boolean {
+  if (topSends === undefined) return true;
+  const requiredCount = getRequiredPyramidDepth(demarcation.id);
+  if (requiredCount === 0) return true;
+
+  const targetGradeIndex = GRADES.indexOf(demarcation.gradeEquivalent as Grade);
+  const minGradeIdx = targetGradeIndex >= 0 ? targetGradeIndex : GRADES.indexOf('V10+');
+
+  const sendsAtOrAbove = topSends.filter((s) => {
+    const gIdx = GRADES.indexOf(s.grade);
+    return gIdx >= minGradeIdx;
+  }).length;
+
+  return sendsAtOrAbove >= requiredCount;
+}
+
+/**
+ * Finds the level demarcation corresponding to a given Elo rating,
+ * gated by consistent pyramid volume and depth when top sends are provided.
+ */
+export function getLevelDemarcation(elo: number, topSends?: ScorecardSendItem[]): EloDemarcation {
   const safeElo = Number.isFinite(elo) ? Math.max(0, elo) : 1000;
-  const found = ELO_DEMARCATIONS.find((d) => {
+  const nominal = ELO_DEMARCATIONS.find((d) => {
     if (d.maxElo === Infinity) {
       return safeElo >= d.minElo;
     }
     return safeElo >= d.minElo && safeElo < d.maxElo;
-  });
-  return found || ELO_DEMARCATIONS[0];
+  }) || ELO_DEMARCATIONS[0];
+
+  if (topSends === undefined) {
+    return nominal;
+  }
+
+  // Check if climber has consistent pyramid volume and depth for nominal tier
+  if (hasPyramidDepthForDemarcation(nominal, topSends)) {
+    return nominal;
+  }
+
+  // If not, step down to the highest demarcation tier where pyramid depth is proven
+  const nominalIndex = ELO_DEMARCATIONS.findIndex((d) => d.id === nominal.id);
+  for (let i = nominalIndex - 1; i >= 0; i--) {
+    const lowerTier = ELO_DEMARCATIONS[i];
+    if (hasPyramidDepthForDemarcation(lowerTier, topSends)) {
+      return lowerTier;
+    }
+  }
+
+  return ELO_DEMARCATIONS[0];
 }
 
 /**
- * Gets the next level demarcation above the current rating (or null if max tier).
+ * Gets the next level demarcation above the current rating (or null if max tier),
+ * taking into account pyramid depth.
  */
-export function getNextLevelDemarcation(elo: number): EloDemarcation | null {
-  const current = getLevelDemarcation(elo);
+export function getNextLevelDemarcation(elo: number, topSends?: ScorecardSendItem[]): EloDemarcation | null {
+  const current = getLevelDemarcation(elo, topSends);
   const currentIndex = ELO_DEMARCATIONS.findIndex((d) => d.id === current.id);
   if (currentIndex >= 0 && currentIndex < ELO_DEMARCATIONS.length - 1) {
     return ELO_DEMARCATIONS[currentIndex + 1];
@@ -267,15 +334,19 @@ export function getNextLevelDemarcation(elo: number): EloDemarcation | null {
 /**
  * Computes exact progress metrics toward the next level demarcation.
  */
-export function getDemarcationProgress(elo: number): {
+export function getDemarcationProgress(
+  elo: number,
+  topSends?: ScorecardSendItem[]
+): {
   currentLevel: EloDemarcation;
   nextLevel: EloDemarcation | null;
   pointsToNextLevel: number;
   levelProgress: number;
+  depthNeededForNextLevel?: number;
 } {
   const safeElo = Number.isFinite(elo) ? Math.max(0, elo) : 1000;
-  const currentLevel = getLevelDemarcation(safeElo);
-  const nextLevel = getNextLevelDemarcation(safeElo);
+  const currentLevel = getLevelDemarcation(safeElo, topSends);
+  const nextLevel = getNextLevelDemarcation(safeElo, topSends);
 
   if (!nextLevel || currentLevel.maxElo === Infinity) {
     return {
@@ -291,25 +362,40 @@ export function getDemarcationProgress(elo: number): {
   const levelProgress = Math.min(100, Math.max(0, Math.round(progressRaw * 10) / 10));
   const pointsToNextLevel = Math.max(0, currentLevel.maxElo - safeElo);
 
+  let depthNeededForNextLevel: number | undefined;
+  if (topSends && nextLevel) {
+    const required = getRequiredPyramidDepth(nextLevel.id);
+    const nextGradeIdx = GRADES.indexOf(nextLevel.gradeEquivalent as Grade);
+    const minG = nextGradeIdx >= 0 ? nextGradeIdx : GRADES.indexOf('V10+');
+    const existing = topSends.filter((s) => GRADES.indexOf(s.grade) >= minG).length;
+    depthNeededForNextLevel = Math.max(0, required - existing);
+  }
+
   return {
     currentLevel,
     nextLevel,
     pointsToNextLevel,
-    levelProgress
+    levelProgress,
+    depthNeededForNextLevel
   };
 }
 
 /**
- * Translates an Elo number into an intuitive bouldering title and bracket.
+ * Translates an Elo number into an intuitive bouldering title and bracket,
+ * taking into account pyramid depth when available.
  */
-export function getClimberTitleFromElo(elo: number): {
+export function getClimberTitleFromElo(
+  elo: number,
+  topSends?: ScorecardSendItem[],
+  rawElo?: number
+): {
   title: string;
   gradeEquivalent: string;
   subGradeDescription: string;
   levelDemarcation: EloDemarcation;
 } {
   const safeElo = Number.isFinite(elo) ? Math.max(0, elo) : 1000;
-  const demarcation = getLevelDemarcation(safeElo);
+  const demarcation = getLevelDemarcation(safeElo, topSends);
 
   let subGradeDescription = demarcation.subGradeDescription;
   let gradeEquivalent = demarcation.gradeEquivalent;
@@ -319,13 +405,24 @@ export function getClimberTitleFromElo(elo: number): {
     const range = demarcation.maxElo - demarcation.minElo;
     const progress = (safeElo - demarcation.minElo) / range;
 
-    if (progress >= 0.7) {
+    if (progress >= 0.7 && (!topSends || topSends.length > 0)) {
       gradeEquivalent = demarcation.gradeEquivalent.endsWith('+') || demarcation.id === 'vb'
         ? demarcation.gradeEquivalent
         : `${demarcation.gradeEquivalent}+`;
-      subGradeDescription = `High flash confidence on ${demarcation.gradeEquivalent}, projecting the next level`;
-    } else if (progress <= 0.25) {
-      subGradeDescription = `Consolidating ${demarcation.gradeEquivalent} tickrate across gym circuits`;
+
+      // Check if they need pyramid depth for the next tier
+      const nextTier = getNextLevelDemarcation(safeElo, topSends);
+      const isPointsQualifiedForNext =
+        (rawElo !== undefined && nextTier && rawElo >= nextTier.minElo) ||
+        (demarcation.maxElo !== Infinity && safeElo >= demarcation.maxElo - 1);
+
+      if (topSends && nextTier && isPointsQualifiedForNext && !hasPyramidDepthForDemarcation(nextTier, topSends)) {
+        subGradeDescription = `High flash confidence on ${demarcation.gradeEquivalent}, projecting ${nextTier.gradeEquivalent} (needs pyramid depth at ${nextTier.gradeEquivalent})`;
+      } else {
+        subGradeDescription = `High flash confidence on ${demarcation.gradeEquivalent}, projecting the next level`;
+      }
+    } else if (progress <= 0.25 || (topSends && topSends.length === 0)) {
+      subGradeDescription = demarcation.subGradeDescription;
     }
   }
 
@@ -474,9 +571,21 @@ export function computeClimberRating(
     calculatedElo = Math.round(weightedScore);
   }
 
-  const { title, gradeEquivalent, subGradeDescription } = getClimberTitleFromElo(calculatedElo);
-  const { currentLevel, nextLevel, pointsToNextLevel, levelProgress } = getDemarcationProgress(calculatedElo);
-  const percentile = calculateClimberPercentile(calculatedElo);
+  // Consistent Pyramid Volume & Depth Requirement:
+  // A climber cannot be crowned a solid/strong climber of a grade without demonstrating
+  // consistent pyramid volume and depth at that level (at least 3 sends at or above grade).
+  // If their raw Elo score would nominally place them in a higher tier than their proven
+  // pyramid depth qualifies for, cap their Elo at the upper boundary of their qualified tier
+  // (e.g. 1549 for V4) until consistent volume is proven.
+  const uncappedElo = calculatedElo;
+  const qualifiedDemarcation = getLevelDemarcation(calculatedElo, top15);
+  if (qualifiedDemarcation.maxElo !== Infinity && calculatedElo >= qualifiedDemarcation.maxElo) {
+    calculatedElo = qualifiedDemarcation.maxElo - 1;
+  }
+
+  const { title, gradeEquivalent, subGradeDescription } = getClimberTitleFromElo(calculatedElo, top15, uncappedElo);
+  const { currentLevel, nextLevel, pointsToNextLevel, levelProgress, depthNeededForNextLevel } = getDemarcationProgress(calculatedElo, top15);
+  const percentile = calculateClimberPercentile(uncappedElo > calculatedElo ? uncappedElo : calculatedElo);
   const topPercentile = Math.max(0.1, Math.round((100 - percentile) * 10) / 10);
 
   let formStatus: 'peak' | 'active' | 'calibrating' | 'dormant' = 'dormant';
@@ -494,6 +603,7 @@ export function computeClimberRating(
     userId,
     profile,
     elo: calculatedElo,
+    rawElo: uncappedElo > calculatedElo ? uncappedElo : undefined,
     title,
     gradeEquivalent,
     subGradeDescription,
@@ -508,7 +618,8 @@ export function computeClimberRating(
     currentLevel,
     nextLevel,
     pointsToNextLevel,
-    levelProgress
+    levelProgress,
+    depthNeededForNextLevel
   };
 }
 

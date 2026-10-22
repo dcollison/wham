@@ -219,7 +219,11 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
                     </span>
                   ) : isAboveCrew && closestClimber ? (
                     <span className="font-mono text-[10px] font-bold text-amber-400/90 bg-amber-950/30 border border-amber-500/20 px-2 py-0.5 rounded-md">
-                      +{ptsNeeded} pts to unlock
+                      {closestClimber.nextLevel?.id === demarcation.id &&
+                      closestClimber.depthNeededForNextLevel &&
+                      closestClimber.pointsToNextLevel <= 1
+                        ? `${closestClimber.depthNeededForNextLevel} ${closestClimber.depthNeededForNextLevel === 1 ? 'send' : 'sends'} to unlock`
+                        : `+${ptsNeeded} pts to unlock`}
                     </span>
                   ) : (
                     <span className="text-[10px] text-slate-400 font-mono">
@@ -290,6 +294,12 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
                     <Check className="w-2.5 h-2.5" />
                     Achieved
                   </span>
+                ) : demarcation.id === activeRating.nextLevel?.id &&
+                  activeRating.depthNeededForNextLevel &&
+                  activeRating.pointsToNextLevel <= 1 ? (
+                  <span className="font-mono text-[10px] font-bold text-amber-400/90 bg-amber-950/30 border border-amber-500/20 px-2 py-0.5 rounded-md">
+                    {activeRating.depthNeededForNextLevel} {activeRating.depthNeededForNextLevel === 1 ? 'send' : 'sends'} needed
+                  </span>
                 ) : (
                   <span className="font-mono text-[10px] font-bold text-amber-400/90 bg-amber-950/30 border border-amber-500/20 px-2 py-0.5 rounded-md">
                     +{ptsNeeded} pts needed
@@ -353,6 +363,9 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
           </div>
           <p className="text-[11px] leading-relaxed text-slate-300">
             • <strong>Level Demarcations</strong>: Elo ratings translate into calibrated bouldering levels (e.g. 1,450 – 1,550 pts = Solid V4 Climber). Every 100-pt demarcation marks a new climbing tier.
+          </p>
+          <p className="text-[11px] leading-relaxed text-slate-300">
+            • <strong>Pyramid Depth Requirement</strong>: A climber cannot be crowned a solid climber of a grade without demonstrating consistent pyramid volume and depth (at least 3 sends at or above that level). One-off breakthrough sends reflect projecting ability but do not elevate your certified level.
           </p>
           <p className="text-[11px] leading-relaxed text-slate-300">
             • <strong>Next Level Target</strong>: Track exactly how many points you need to cross the next demarcation line. Flashes award +40 bonus Elo, and 2nd-try sends award +20.
@@ -437,7 +450,9 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
 
               {activeRating.nextLevel && (
                 <span className="font-mono text-xs font-bold text-amber-400 shrink-0">
-                  {activeRating.pointsToNextLevel} pts to {activeRating.nextLevel.shortGrade}
+                  {activeRating.depthNeededForNextLevel && activeRating.pointsToNextLevel <= 1
+                    ? `${activeRating.depthNeededForNextLevel} ${activeRating.depthNeededForNextLevel === 1 ? 'send' : 'sends'} at ${activeRating.nextLevel.shortGrade}+ to unlock`
+                    : `${activeRating.pointsToNextLevel} pts to ${activeRating.nextLevel.shortGrade}`}
                 </span>
               )}
             </div>
@@ -453,7 +468,14 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
 
               <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
                 <span>{activeRating.currentLevel.shortGrade} ({activeRating.currentLevel.minElo.toLocaleString()})</span>
-                <span className="font-bold text-slate-300">{activeRating.elo.toLocaleString()} pts ({Math.round(activeRating.levelProgress)}%)</span>
+                <span className="font-bold text-slate-300">
+                  {activeRating.elo.toLocaleString()} pts ({Math.round(activeRating.levelProgress)}%)
+                  {activeRating.rawElo && (
+                    <span className="text-[9px] text-amber-400/90 font-normal ml-1" title="Raw tournament score before pyramid depth gating">
+                      (raw: {activeRating.rawElo.toLocaleString()})
+                    </span>
+                  )}
+                </span>
                 <span>
                   {activeRating.nextLevel
                     ? `${activeRating.nextLevel.shortGrade} (${activeRating.nextLevel.minElo.toLocaleString()})`
@@ -682,7 +704,11 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-[10px] font-mono font-bold text-amber-400 flex items-center gap-1">
                             <TrendingUp className="w-2.5 h-2.5" />
-                            <span>{rating.pointsToNextLevel} pts to {rating.nextLevel.shortGrade}</span>
+                            <span>
+                              {rating.depthNeededForNextLevel && rating.pointsToNextLevel <= 1
+                                ? `${rating.depthNeededForNextLevel} ${rating.depthNeededForNextLevel === 1 ? 'send' : 'sends'} to ${rating.nextLevel.shortGrade}`
+                                : `${rating.pointsToNextLevel} pts to ${rating.nextLevel.shortGrade}`}
+                            </span>
                           </span>
                           <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden border border-white/[0.04]">
                             <div
