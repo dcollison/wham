@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Attempt, Boulder, Profile, Gym, GymArea } from '../../types';
 import { HoldBadge } from '../boulders/HoldBadge';
 import { ClimberAvatar } from '../ClimberAvatar';
+import { isWinterSeriesBoulder } from '../../lib/winterSeries';
 import {
   Zap,
   Check,
@@ -370,30 +371,30 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                               </span>
                             )}
 
-                            {/* Status badge: Short form "F", "S 2", "P 2" */}
+                            {/* Status badge: Short form "F", "S 2", "P 2" or Winter Series "F·3", "T·2", "Z·1" */}
                             {isFlash ? (
                               <span
                                 className="inline-flex items-center gap-1 text-[10px] font-heading font-black text-slate-950 bg-amber-400 px-2 py-0.5 rounded-full shadow-xs"
-                                title="Flashed on 1st try"
+                                title={isWinterSeriesBoulder(boulder) ? 'Flashed (3 pts)' : 'Flashed on 1st try'}
                               >
                                 <Zap className="w-3 h-3 fill-current" />
-                                <span>F</span>
+                                <span>{isWinterSeriesBoulder(boulder) ? 'F·3' : 'F'}</span>
                               </span>
                             ) : isSent ? (
                               <span
                                 className="inline-flex items-center gap-1 text-[10px] font-heading font-black text-slate-950 bg-emerald-400 px-2 py-0.5 rounded-full shadow-xs"
-                                title={`Sent on try ${attempt.attempt_count}`}
+                                title={isWinterSeriesBoulder(boulder) ? 'Topped (2 pts)' : `Sent on try ${attempt.attempt_count}`}
                               >
                                 <Check className="w-3 h-3 stroke-[3]" />
-                                <span>S {attempt.attempt_count}</span>
+                                <span>{isWinterSeriesBoulder(boulder) ? 'T·2' : `S ${attempt.attempt_count}`}</span>
                               </span>
                             ) : (
                               <span
                                 className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-sky-300 bg-sky-500/15 border border-sky-500/35 px-2 py-0.5 rounded-full"
-                                title={`Projecting on try ${attempt.attempt_count}`}
+                                title={isWinterSeriesBoulder(boulder) ? 'Zone reached (1 pt)' : `Projecting on try ${attempt.attempt_count}`}
                               >
                                 <Clock className="w-3 h-3 text-sky-400" />
-                                <span>P {attempt.attempt_count}</span>
+                                <span>{isWinterSeriesBoulder(boulder) ? 'Z·1' : `P ${attempt.attempt_count}`}</span>
                               </span>
                             )}
                           </div>
@@ -403,7 +404,13 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                             <span className="font-mono text-[10px] text-slate-400 font-semibold tabular-nums">
                               #{boulder.comp_number ?? Math.round(boulder.position_order)}
                             </span>
-                            <HoldBadge color={boulder.hold_colour} grade={boulder.grade} size="sm" />
+                            <HoldBadge
+                              color={boulder.hold_colour}
+                              grade={boulder.grade}
+                              size="sm"
+                              isComp={boulder.is_comp}
+                              compNumber={boulder.comp_number}
+                            />
                             <span className="truncate text-slate-400 text-[11px]">
                               {area?.name || 'Wall'}{gym ? ` • ${gym.name}` : ''}
                             </span>

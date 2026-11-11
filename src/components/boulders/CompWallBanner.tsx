@@ -3,6 +3,11 @@ import { GymArea, Boulder, Attempt, Profile } from '../../types';
 import { ClimberAvatar } from '../ClimberAvatar';
 import { HoldSwatch } from './HoldSwatch';
 import { computeCompWallStandings, computeCompWallScorecard } from '../../lib/compWallScoring';
+import {
+  isWinterSeriesAreaId,
+  computeWinterRoundStandings,
+  computeWinterRoundScorecard
+} from '../../lib/winterSeries';
 import { Trophy, ChevronDown, ChevronUp, Zap, Check, Clock, Award } from 'lucide-react';
 
 interface CompWallBannerProps {
@@ -25,6 +30,7 @@ export const CompWallBanner: React.FC<CompWallBannerProps> = ({
   onOpenDetails
 }) => {
   const [isMatrixOpen, setIsMatrixOpen] = useState<boolean>(false);
+  const isWinterArea = isWinterSeriesAreaId(area.id);
 
   const activeCompBoulders = useMemo(() => {
     return compBoulders
@@ -37,12 +43,16 @@ export const CompWallBanner: React.FC<CompWallBannerProps> = ({
   }, [compBoulders]);
 
   const standings = useMemo(() => {
-    return computeCompWallStandings(activeCompBoulders, attempts, climbers);
-  }, [activeCompBoulders, attempts, climbers]);
+    return isWinterArea
+      ? computeWinterRoundStandings(activeCompBoulders, attempts, climbers, false)
+      : computeCompWallStandings(activeCompBoulders, attempts, climbers, false);
+  }, [activeCompBoulders, attempts, climbers, isWinterArea]);
 
   const scorecard = useMemo(() => {
-    return computeCompWallScorecard(activeCompBoulders, attempts);
-  }, [activeCompBoulders, attempts]);
+    return isWinterArea
+      ? computeWinterRoundScorecard(activeCompBoulders, attempts, false)
+      : computeCompWallScorecard(activeCompBoulders, attempts, false);
+  }, [activeCompBoulders, attempts, isWinterArea]);
 
   const activeUser = climbers.find((c) => c.id === currentUserId);
   const activeColor = activeUser?.accent_color || '#F59E0B';
@@ -82,7 +92,7 @@ export const CompWallBanner: React.FC<CompWallBannerProps> = ({
                 <span>{area.name} Comp</span>
               </span>
               <span className="text-[10px] px-2 py-0.5 font-mono font-bold rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                10 / 7 / 4 festival pts
+                {isWinterArea ? '3 / 2 / 1 comp pts' : '10 / 7 / 4 festival pts'}
               </span>
             </div>
 
@@ -152,9 +162,15 @@ export const CompWallBanner: React.FC<CompWallBannerProps> = ({
                     {standing.totalPoints}{' '}
                     <span className="text-[10px] font-sans font-normal text-slate-400">pts</span>
                   </span>
-                  <span className="font-mono text-[11px] text-slate-400 tabular-nums">
-                    {standing.topsCount}T • {standing.flashesCount}F
-                  </span>
+                  {isWinterArea ? (
+                    <span className="font-mono text-[10px] text-slate-400 tabular-nums">
+                      {standing.flashesCount}F • {standing.topsCount - standing.flashesCount}T • {standing.zonesCount}Z
+                    </span>
+                  ) : (
+                    <span className="font-mono text-[11px] text-slate-400 tabular-nums">
+                      {standing.topsCount}T • {standing.flashesCount}F
+                    </span>
+                  )}
                 </div>
               </div>
             );
@@ -221,7 +237,7 @@ export const CompWallBanner: React.FC<CompWallBannerProps> = ({
                         const att = item.userAttempts[climber.id];
                         const isFlash = att?.status === 'flashed';
                         const isSent = att?.status === 'sent';
-                        const isProj = att?.status === 'attempted';
+                        const isAttempted = att?.status === 'attempted';
 
                         return (
                           <td
@@ -233,18 +249,24 @@ export const CompWallBanner: React.FC<CompWallBannerProps> = ({
                             {isFlash ? (
                               <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md font-mono font-bold text-[11px] bg-amber-500/20 text-amber-300 border border-amber-500/40">
                                 <Zap className="w-2.5 h-2.5 fill-current" />
-                                <span>10</span>
+                                <span>{isWinterArea ? '3' : '10'}</span>
                               </span>
                             ) : isSent ? (
                               <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md font-mono font-bold text-[11px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
                                 <Check className="w-2.5 h-2.5 stroke-[3]" />
-                                <span>{att.points}</span>
+                                <span>{isWinterArea ? '2' : att.points}</span>
                               </span>
-                            ) : isProj ? (
-                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md font-mono text-[10px] bg-blue-500/15 text-blue-300 border border-blue-500/30">
-                                <Clock className="w-2.5 h-2.5" />
-                                <span>{att.attemptCount}t</span>
-                              </span>
+                            ) : isAttempted ? (
+                              isWinterArea ? (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md font-mono font-bold text-[10px] bg-sky-500/15 text-sky-300 border border-sky-500/30">
+                                  <span>Z·1</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md font-mono text-[10px] bg-blue-500/15 text-blue-300 border border-blue-500/30">
+                                  <Clock className="w-2.5 h-2.5" />
+                                  <span>{att.attemptCount}t</span>
+                                </span>
+                              )
                             ) : (
                               <span className="text-slate-600 font-mono text-[11px]">-</span>
                             )}

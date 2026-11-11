@@ -121,9 +121,23 @@ export interface CompWallStanding {
   totalPoints: number;
   topsCount: number;
   flashesCount: number;
+  zonesCount: number;
+  unattemptedCount: number;
+  pointsUpForGrabs: number;
+  maxPossiblePoints: number;
+  bouldersLeftToScore: number;
   attemptsOnTops: number;
   highestTopNumber: number | null;
-  completedBoulders: Array<{ boulderId: string; compNumber: number; points: number; isFlash: boolean; attempts: number }>;
+  completedBoulders: Array<{
+    boulderId: string;
+    compNumber: number;
+    points: number;
+    status: AttemptStatus;
+    isFlash: boolean;
+    isTop: boolean;
+    isZone: boolean;
+    attempts: number;
+  }>;
 }
 
 export interface Attempt {

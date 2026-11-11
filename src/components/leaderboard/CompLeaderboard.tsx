@@ -1,8 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { Boulder, Attempt, Profile, Gym } from '../../types';
+import { Boulder, Attempt, Profile, Gym, GymArea, LogAttemptParams } from '../../types';
 import { ClimberAvatar } from '../ClimberAvatar';
 import { HoldBadge } from '../boulders/HoldBadge';
 import { useAuth } from '../../context/AuthContext';
+import { useGym } from '../../context/GymContext';
+import { WinterSeriesView } from './WinterSeriesView';
 import {
   computeGymCompLeaderboard,
   computeMonthlyHallOfFame,
@@ -33,10 +35,14 @@ interface CompLeaderboardProps {
   attempts: Attempt[];
   climbers: Profile[];
   gyms: Gym[];
+  areas?: GymArea[];
   initialGymId?: string;
   initialMonthKey?: string;
+  initialMode?: 'winter_series' | 'monthly_comp';
   currentUserId?: string;
   onSelectBoulder?: (boulder: Boulder) => void;
+  onLogAttempt?: (params: LogAttemptParams) => Promise<void>;
+  onDeleteAttempt?: (boulderId: string, userId?: string) => Promise<void>;
   showGymSelector?: boolean;
 }
 
@@ -45,12 +51,22 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
   attempts,
   climbers,
   gyms,
+  areas: areasProp,
   initialGymId = 'all',
   initialMonthKey,
+  initialMode = 'winter_series',
   currentUserId,
   onSelectBoulder,
+  onLogAttempt,
+  onDeleteAttempt,
   showGymSelector = true
 }) => {
+  const gymCtx = useGym();
+  const effectiveAreas = areasProp || gymCtx.areas;
+  const effectiveLogAttempt = onLogAttempt || gymCtx.logAttempt;
+  const effectiveDeleteAttempt = onDeleteAttempt || gymCtx.deleteAttempt;
+
+  const [compMode, setCompMode] = useState<'winter_series' | 'monthly_comp'>(initialMode);
   const currentMonth = useMemo(() => getCurrentCompMonth(), []);
   const availableMonths = useMemo(() => getAvailableCompMonths(attempts), [attempts]);
 
@@ -96,6 +112,49 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
 
   return (
     <div className="flex flex-col gap-4 sm:gap-5">
+      {/* Top Mode Switcher: Winter Boulder Series 2026/27 vs Monthly Redpoint Comp */}
+      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-1.5 flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => setCompMode('winter_series')}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-black font-heading transition-all ${
+            compMode === 'winter_series'
+              ? 'bg-amber-500 text-slate-950 shadow-sm'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+          }`}
+        >
+          <Sparkles className="w-3.5 h-3.5 shrink-0" />
+          <span>Winter Boulder Series (3/2/1)</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setCompMode('monthly_comp')}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-black font-heading transition-all ${
+            compMode === 'monthly_comp'
+              ? 'bg-amber-500 text-slate-950 shadow-sm'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+          }`}
+        >
+          <Trophy className="w-3.5 h-3.5 shrink-0" />
+          <span>Monthly V-Grade Comp</span>
+        </button>
+      </div>
+
+      {compMode === 'winter_series' ? (
+        <WinterSeriesView
+          boulders={boulders}
+          attempts={attempts}
+          climbers={climbers}
+          currentUser={activeUser}
+          gyms={gyms}
+          areas={effectiveAreas}
+          onLogAttempt={effectiveLogAttempt}
+          onDeleteAttempt={effectiveDeleteAttempt}
+          onSelectBoulder={onSelectBoulder}
+        />
+      ) : (
+        <>
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-surface/90 border border-slate-800/80 rounded-3xl p-5 shadow-sm">
         <div>
@@ -775,6 +834,8 @@ export const CompLeaderboard: React.FC<CompLeaderboardProps> = ({
           })}
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 };

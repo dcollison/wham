@@ -467,6 +467,69 @@ WHERE id IN (
     'e0000000-0000-0000-0000-000000000003'
 );
 
+-- Seed Winter Boulder Series 2026/27 areas (4 rounds) and 100 pre-populated boulders (#1 - #25 per round)
+ALTER TABLE public.gym_areas ADD COLUMN IF NOT EXISTS is_comp_wall BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE public.boulders ADD COLUMN IF NOT EXISTS is_comp BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE public.boulders ADD COLUMN IF NOT EXISTS comp_number INT;
+
+INSERT INTO public.gym_areas (id, gym_id, name, sort_order, is_comp_wall)
+VALUES
+    ('c0000000-0000-0000-0000-000000000101', 'b0000000-0000-0000-0000-000000000001', 'Winter Series R1', 21, true),
+    ('c0000000-0000-0000-0000-000000000102', 'b0000000-0000-0000-0000-000000000002', 'Winter Series R2', 22, true),
+    ('c0000000-0000-0000-0000-000000000103', 'b0000000-0000-0000-0000-000000000001', 'Winter Series R3', 23, true),
+    ('c0000000-0000-0000-0000-000000000104', 'b0000000-0000-0000-0000-000000000002', 'Winter Series R4', 24, true)
+ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name,
+    sort_order = EXCLUDED.sort_order,
+    is_comp_wall = true;
+
+UPDATE public.gym_areas
+SET is_comp_wall = true
+WHERE id IN (
+    'c0000000-0000-0000-0000-000000000005',
+    'c0000000-0000-0000-0000-000000000009',
+    'c0000000-0000-0000-0000-000000000012'
+);
+
+INSERT INTO public.boulders (
+    id,
+    gym_id,
+    area_id,
+    hold_colour,
+    grade,
+    position_order,
+    notes,
+    date_added,
+    is_archived,
+    is_comp,
+    comp_number
+)
+SELECT
+    ('d0000000-0000-0000-' || lpad(r.round_num::text, 4, '0') || '-' || lpad(gs.num::text, 12, '0'))::uuid AS id,
+    r.gym_id::uuid AS gym_id,
+    r.area_id::uuid AS area_id,
+    (ARRAY['Yellow', 'Mint', 'Green', 'Orange', 'Blue', 'Purple', 'Red', 'Pink', 'Black', 'White', 'Bee', 'Wood'])[((gs.num - 1) % 12) + 1] AS hold_colour,
+    'VB' AS grade,
+    gs.num::float8 AS position_order,
+    'Big Rock Winter Boulder Series • Round ' || r.round_num || ' (' || r.gym_name || ') #' || gs.num AS notes,
+    r.start_date::date AS date_added,
+    (CURRENT_DATE < r.start_date::date OR CURRENT_DATE > r.end_date::date) AS is_archived,
+    true AS is_comp,
+    gs.num AS comp_number
+FROM (
+    VALUES
+        (1, 'b0000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000101', 'Bond', '2026-11-09', '2026-11-29'),
+        (2, 'b0000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000102', 'Hub',  '2026-11-30', '2026-12-20'),
+        (3, 'b0000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000103', 'Bond', '2027-01-04', '2027-01-24'),
+        (4, 'b0000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000104', 'Hub',  '2027-01-25', '2027-02-14')
+) AS r(round_num, gym_id, area_id, gym_name, start_date, end_date)
+CROSS JOIN generate_series(1, 25) AS gs(num)
+ON CONFLICT (id) DO UPDATE SET
+    is_comp = true,
+    comp_number = EXCLUDED.comp_number,
+    area_id = EXCLUDED.area_id,
+    gym_id = EXCLUDED.gym_id;
+
 -- Re-enable Row-Level Security across all tables
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.gyms ENABLE ROW LEVEL SECURITY;
@@ -474,3 +537,4 @@ ALTER TABLE public.gym_areas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.boulders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.attempts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
+

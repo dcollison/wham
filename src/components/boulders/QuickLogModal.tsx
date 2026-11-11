@@ -5,6 +5,7 @@ import { BoulderReviewPicker } from './BoulderReviewPicker';
 import { HoldBadge } from './HoldBadge';
 import { HoldSwatch } from './HoldSwatch';
 import { ClimberAvatar } from '../ClimberAvatar';
+import { isWinterSeriesBoulder } from '../../lib/winterSeries';
 import {
   Zap,
   Check,
@@ -165,7 +166,12 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
 
   // Selected climber's existing attempt on this boulder
   const selectedAttempt = boulder && selectedClimber
-    ? attempts.find(a => a.boulder_id === boulder.id && a.user_id === selectedClimber.id)
+    ? attempts.find(
+        a =>
+          a.boulder_id === boulder.id &&
+          a.user_id === selectedClimber.id &&
+          (a.status as string) !== 'untried'
+      )
     : undefined;
 
   // Selected climber's existing review on this boulder
@@ -177,7 +183,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
   useEffect(() => {
     if (selectedAttempt) {
       setIsSent(selectedAttempt.status === 'flashed' || selectedAttempt.status === 'sent');
-      setAttemptCount(selectedAttempt.attempt_count);
+      setAttemptCount(Math.max(1, selectedAttempt.attempt_count || 1));
       // If it was already sent/flashed in the past, display the date it was sent.
       // If it was an unfinished project ('attempted') from a past session, default session date to today
       // because the climber is continuing or sending the project in their current gym session.
@@ -500,7 +506,10 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                 const isSelected = climber.id === selectedUserId;
                 const isMe = climber.id === currentUserId;
                 const climberAttempt = attempts.find(
-                  (a) => a.boulder_id === boulder.id && a.user_id === climber.id
+                  (a) =>
+                    a.boulder_id === boulder.id &&
+                    a.user_id === climber.id &&
+                    (a.status as string) !== 'untried'
                 );
 
                 return (
@@ -526,11 +535,11 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                       </span>
                       <span className="text-[10px] font-mono mt-0.5 opacity-80">
                         {climberAttempt?.status === 'flashed'
-                          ? 'Flash'
+                          ? (isWinterSeriesBoulder(boulder) ? 'Flash · 3pt' : 'Flash')
                           : climberAttempt?.status === 'sent'
-                          ? `Sent ${climberAttempt.attempt_count}`
+                          ? (isWinterSeriesBoulder(boulder) ? 'Top · 2pt' : `Sent ${climberAttempt.attempt_count}`)
                           : climberAttempt?.status === 'attempted'
-                          ? `Proj ${climberAttempt.attempt_count}`
+                          ? (isWinterSeriesBoulder(boulder) ? 'Zone · 1pt' : `Proj ${climberAttempt.attempt_count}`)
                           : 'Untried'}
                       </span>
                     </div>
@@ -559,7 +568,13 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                 <span className="text-slate-400 text-[11px]">
                   Previous log:{' '}
                   <strong className="uppercase font-mono text-slate-200">
-                    {selectedAttempt.status} {selectedAttempt.attempt_count}
+                    {isWinterSeriesBoulder(boulder)
+                      ? selectedAttempt.status === 'flashed'
+                        ? 'FLASH (3 PTS)'
+                        : selectedAttempt.status === 'sent'
+                        ? 'TOP (2 PTS)'
+                        : 'ZONE (1 PT)'
+                      : `${selectedAttempt.status} ${selectedAttempt.attempt_count}`}
                   </strong>
                 </span>
               ) : (
@@ -579,48 +594,107 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
             )}
           </div>
 
-          {/* Question 1: Did you send/top it? */}
-          <div className="flex flex-col gap-2">
-            <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between px-1">
-              <span>Did you send it?</span>
-              <span className="text-[11px] font-normal text-slate-400">Topped vs Working</span>
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              {/* Sent / Topped */}
-              <button
-                type="button"
-                onClick={() => setIsSent(true)}
-                className={`p-4 rounded-3xl border-2 flex items-center justify-center gap-3 transition-all active-press ${
-                  isSent
-                    ? 'bg-emerald-500/15 border-emerald-400 text-emerald-300 shadow-md ring-1 ring-emerald-400/40'
-                    : 'bg-slate-850/60 border-slate-800 text-slate-400 hover:border-slate-700'
-                }`}
-              >
-                <CheckCircle2 className={`w-5 h-5 ${isSent ? 'text-emerald-400 stroke-[2.5]' : 'text-slate-500'}`} />
-                <div className="text-left">
-                  <span className="font-bold text-sm block font-heading">Sent / Topped</span>
-                  <span className="text-[10px] opacity-75">Completed boulder</span>
-                </div>
-              </button>
+          {/* Winter Series 3 / 2 / 1 Quick Score Selector when logging a Winter Series boulder */}
+          {isWinterSeriesBoulder(boulder) ? (
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between px-1">
+                <span>Winter Series Score (3 / 2 / 1)</span>
+                <span className="text-[11px] font-normal text-amber-300 font-mono">Flash 3 • Top 2 • Zone 1</span>
+              </label>
+              <div className="grid grid-cols-3 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSent(true);
+                    setAttemptCount(1);
+                  }}
+                  className={`p-3.5 rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all active-press ${
+                    computedStatus === 'flashed'
+                      ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-md ring-1 ring-amber-400/40'
+                      : 'bg-slate-850/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                  }`}
+                >
+                  <span className="font-mono font-black text-base">⚡ 3 pts</span>
+                  <span className="font-heading font-bold text-xs">Flash</span>
+                </button>
 
-              {/* Still Projecting */}
-              <button
-                type="button"
-                onClick={() => setIsSent(false)}
-                className={`p-4 rounded-3xl border-2 flex items-center justify-center gap-3 transition-all active-press ${
-                  !isSent
-                    ? 'bg-blue-500/15 border-blue-400 text-blue-300 shadow-md ring-1 ring-blue-400/40'
-                    : 'bg-slate-850/60 border-slate-800 text-slate-400 hover:border-slate-700'
-                }`}
-              >
-                <CircleDashed className={`w-5 h-5 ${!isSent ? 'text-blue-400 stroke-[2.5]' : 'text-slate-500'}`} />
-                <div className="text-left">
-                  <span className="font-bold text-sm block font-heading">Still Projecting</span>
-                  <span className="text-[10px] opacity-75">Work in progress</span>
-                </div>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSent(true);
+                    if (attemptCount < 2) setAttemptCount(2);
+                  }}
+                  className={`p-3.5 rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all active-press ${
+                    computedStatus === 'sent'
+                      ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 shadow-md ring-1 ring-emerald-400/40'
+                      : 'bg-slate-850/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                  }`}
+                >
+                  <span className="font-mono font-black text-base">✓ 2 pts</span>
+                  <span className="font-heading font-bold text-xs">Top</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSent(false);
+                    if (attemptCount < 1) setAttemptCount(1);
+                  }}
+                  className={`p-3.5 rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all active-press ${
+                    computedStatus === 'attempted'
+                      ? 'bg-sky-500/20 border-sky-400 text-sky-300 shadow-md ring-1 ring-sky-400/40'
+                      : 'bg-slate-850/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                  }`}
+                >
+                  <span className="font-mono font-black text-base">◐ 1 pt</span>
+                  <span className="font-heading font-bold text-xs">Zone</span>
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            /* Question 1: Did you send/top it? */
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between px-1">
+                <span>Did you send it?</span>
+                <span className="text-[11px] font-normal text-slate-400">Topped vs Working</span>
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                {/* Sent / Topped */}
+                <button
+                  type="button"
+                  onClick={() => setIsSent(true)}
+                  className={`p-4 rounded-3xl border-2 flex items-center justify-center gap-3 transition-all active-press ${
+                    isSent
+                      ? 'bg-emerald-500/15 border-emerald-400 text-emerald-300 shadow-md ring-1 ring-emerald-400/40'
+                      : 'bg-slate-850/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                  }`}
+                >
+                  <CheckCircle2 className={`w-5 h-5 ${isSent ? 'text-emerald-400 stroke-[2.5]' : 'text-slate-500'}`} />
+                  <div className="text-left">
+                    <span className="font-bold text-sm block font-heading">Sent / Topped</span>
+                    <span className="text-[10px] opacity-75">Completed boulder</span>
+                  </div>
+                </button>
+
+                {/* Still Projecting */}
+                <button
+                  type="button"
+                  onClick={() => setIsSent(false)}
+                  className={`p-4 rounded-3xl border-2 flex items-center justify-center gap-3 transition-all active-press ${
+                    !isSent
+                      ? 'bg-blue-500/15 border-blue-400 text-blue-300 shadow-md ring-1 ring-blue-400/40'
+                      : 'bg-slate-850/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                  }`}
+                >
+                  <CircleDashed className={`w-5 h-5 ${!isSent ? 'text-blue-400 stroke-[2.5]' : 'text-slate-500'}`} />
+                  <div className="text-left">
+                    <span className="font-bold text-sm block font-heading">Still Projecting</span>
+                    <span className="text-[10px] opacity-75">Work in progress</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Question 2: How many tries? (Pixel Calculator aesthetic) */}
           <div className="bg-slate-850/60 border border-slate-800/80 rounded-3xl p-5 flex flex-col items-center gap-4">
@@ -681,7 +755,13 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
               <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono font-bold mt-1 animate-in fade-in">
                 <Trophy className="w-3.5 h-3.5" />
                 <span>
-                  {computedStatus === 'flashed'
+                  {isWinterSeriesBoulder(boulder)
+                    ? computedStatus === 'flashed'
+                      ? 'Flashed: +3 Comp Points'
+                      : computedStatus === 'sent'
+                      ? `Topped (${attemptCount} tries): +2 Comp Points`
+                      : 'Zone Reached: +1 Comp Point'
+                    : computedStatus === 'flashed'
                     ? 'Flashed: +10 Comp Points'
                     : computedStatus === 'sent'
                     ? attemptCount === 2

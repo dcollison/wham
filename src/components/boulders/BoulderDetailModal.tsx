@@ -7,6 +7,8 @@ import { HoldSwatch } from './HoldSwatch';
 import { ClimberStatusPills } from './ClimberStatusPills';
 import { ClimberAvatar } from '../ClimberAvatar';
 import { getBoulderAgeInfo } from '../../lib/resetStatus';
+import { isWinterSeriesBoulder } from '../../lib/winterSeries';
+import { getCompProblemPoints } from '../../lib/compWallScoring';
 import {
   X,
   Send,
@@ -242,7 +244,9 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
     const unique = Array.from(new Map(matching.map(c => [c.id, c])).values());
     return unique.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
   }, [comments, boulder?.id]);
-  const userAttempt = attempts.find(a => a.user_id === currentUserId);
+  const userAttempt = attempts.find(
+    a => a.user_id === currentUserId && (a.status as string) !== 'untried'
+  );
   const activeColor = climbers.find(c => c.id === currentUserId)?.accent_color || '#3B82F6';
 
   useEffect(() => {
@@ -594,7 +598,9 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                         Problem number on wall:
                       </span>
                       <span className="text-[11px] text-amber-400/90 font-mono">
-                        Scored with 10 / 7 / 4 festival points
+                        {isWinterSeriesBoulder({ id: boulder.id, area_id: editAreaId || boulder.area_id })
+                          ? 'Scored with 3 / 2 / 1 comp points (Flash / Top / Zone)'
+                          : 'Scored with 10 / 7 / 4 festival points'}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -822,15 +828,15 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
               <div className="mt-1">
                 {userAttempt?.status === 'flashed' ? (
                   <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
-                    <Zap className="w-3.5 h-3.5 fill-current" /> Flashed (1 try{(boulder.is_comp && boulder.comp_number != null) ? ' • 10 pts' : ''})
+                    <Zap className="w-3.5 h-3.5 fill-current" /> Flashed (1 try{isWinterSeriesBoulder(boulder) ? ' • 3 pts' : (boulder.is_comp && boulder.comp_number != null) ? ` • ${getCompProblemPoints(userAttempt.status, userAttempt.attempt_count)} pts` : ''})
                   </span>
                 ) : userAttempt?.status === 'sent' ? (
                   <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                    <Check className="w-3.5 h-3.5 stroke-[3]" /> Sent ({userAttempt.attempt_count} {userAttempt.attempt_count === 1 ? 'try' : 'tries'}{(boulder.is_comp && boulder.comp_number != null) ? ` • ${userAttempt.attempt_count === 2 ? '7' : '4'} pts` : ''})
+                    <Check className="w-3.5 h-3.5 stroke-[3]" /> {isWinterSeriesBoulder(boulder) ? `Topped (${userAttempt.attempt_count} tries • 2 pts)` : `Sent (${userAttempt.attempt_count} ${userAttempt.attempt_count === 1 ? 'try' : 'tries'}${(boulder.is_comp && boulder.comp_number != null) ? ` • ${getCompProblemPoints(userAttempt.status, userAttempt.attempt_count)} pts` : ''})`}
                   </span>
                 ) : userAttempt?.status === 'attempted' ? (
                   <span className="text-xs font-bold text-blue-400 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5" /> Projecting ({userAttempt.attempt_count} {userAttempt.attempt_count === 1 ? 'try' : 'tries'}{(boulder.is_comp && boulder.comp_number != null) ? ' • 0 pts' : ''})
+                    <Clock className="w-3.5 h-3.5" /> {isWinterSeriesBoulder(boulder) ? 'Zone reached (1 pt)' : `Projecting (${userAttempt.attempt_count} ${userAttempt.attempt_count === 1 ? 'try' : 'tries'}${(boulder.is_comp && boulder.comp_number != null) ? ' • 0 pts' : ''})`}
                   </span>
                 ) : (
                   <span className="text-xs text-slate-400">Not logged yet</span>
@@ -961,6 +967,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                 attempts={attempts}
                 currentUserId={currentUserId}
                 size="md"
+                isWinterSeries={isWinterSeriesBoulder(boulder)}
                 onClimberClick={(climberId) => {
                   onClose();
                   onQuickLog(boulder, climberId);

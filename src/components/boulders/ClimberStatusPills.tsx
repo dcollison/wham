@@ -8,6 +8,7 @@ interface ClimberStatusPillsProps {
   attempts: Attempt[];
   currentUserId?: string;
   size?: 'sm' | 'md';
+  isWinterSeries?: boolean;
   onClimberClick?: (climberId: string) => void;
 }
 
@@ -16,12 +17,13 @@ const ClimberStatusPillsComponent: React.FC<ClimberStatusPillsProps> = ({
   attempts,
   currentUserId,
   size = 'sm',
+  isWinterSeries = false,
   onClimberClick
 }) => {
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
       {climbers.map((climber) => {
-        const attempt = attempts.find(a => a.user_id === climber.id);
+        const attempt = attempts.find(a => a.user_id === climber.id && (a.status as string) !== 'untried');
         const isCurrent = climber.id === currentUserId;
         const isClickable = Boolean(onClimberClick);
 
@@ -33,23 +35,23 @@ const ClimberStatusPillsComponent: React.FC<ClimberStatusPillsProps> = ({
         if (attempt?.status === 'flashed') {
           badgeBg = 'bg-amber-500/15 border-amber-500/40 text-amber-300 font-bold';
           icon = <Zap className="w-2.5 h-2.5 text-amber-400 fill-amber-400 shrink-0" />;
-          detail = 'F';
+          detail = isWinterSeries ? 'F·3' : 'F';
         } else if (attempt?.status === 'sent') {
           badgeBg = 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 font-semibold';
           icon = <Check className="w-2.5 h-2.5 text-emerald-400 stroke-[3] shrink-0" />;
-          detail = `S ${attempt.attempt_count}`;
+          detail = isWinterSeries ? 'T·2' : `S ${attempt.attempt_count}`;
         } else if (attempt?.status === 'attempted') {
           badgeBg = 'bg-blue-500/15 border-blue-500/40 text-blue-300 font-medium';
           icon = <Clock className="w-2.5 h-2.5 text-blue-400 shrink-0" />;
-          detail = `P ${attempt.attempt_count}`;
+          detail = isWinterSeries ? 'Z·1' : `P ${attempt.attempt_count}`;
         }
 
         const statusText = attempt?.status === 'flashed'
-          ? 'Flashed (1 try)'
+          ? (isWinterSeries ? 'Flashed (3 pts)' : 'Flashed (1 try)')
           : attempt?.status === 'sent'
-          ? `Sent (${attempt.attempt_count} tries)`
+          ? (isWinterSeries ? `Topped (2 pts)` : `Sent (${attempt.attempt_count} tries)`)
           : attempt?.status === 'attempted'
-          ? `Projecting (${attempt.attempt_count} tries)`
+          ? (isWinterSeries ? 'Zone reached (1 pt)' : `Projecting (${attempt.attempt_count} tries)`)
           : 'Untried';
 
         return (

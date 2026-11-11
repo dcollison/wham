@@ -110,7 +110,13 @@ export function App() {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.toLowerCase();
-      if (hash.includes('leaderboard') || hash.includes('comp') || hash.includes('standings')) {
+      if (
+        hash.includes('leaderboard') ||
+        hash.includes('comp') ||
+        hash.includes('standings') ||
+        hash.includes('winter') ||
+        hash.includes('series')
+      ) {
         setCurrentTab('comp');
       } else if (hash.includes('stats') || hash.includes('analytics')) {
         setCurrentTab('stats');
@@ -273,7 +279,10 @@ export function App() {
       // Status filtering (Done / Not Done / Projecting / Untouched)
       if (boulderFilters.statusFilter !== 'all') {
         const userAttempt = attempts.find(
-          (a) => a.boulder_id === boulder.id && a.user_id === targetId
+          (a) =>
+            a.boulder_id === boulder.id &&
+            a.user_id === targetId &&
+            (a.status as string) !== 'untried'
         );
         const isCompleted = userAttempt && (userAttempt.status === 'flashed' || userAttempt.status === 'sent');
         const isProject = userAttempt && userAttempt.status === 'attempted';
@@ -664,16 +673,19 @@ export function App() {
           </React.Suspense>
         )}
 
-        {/* TAB 3: Comp Leaderboard & Standings */}
+        {/* TAB 3: Comp Leaderboard & Winter Boulder Series */}
         {currentTab === 'comp' && (
           <CompLeaderboard
             boulders={boulders}
             attempts={attempts}
             climbers={climbers}
             gyms={gyms}
+            areas={areas}
             initialGymId={currentGym?.id || 'all'}
             currentUserId={currentUser?.id}
             onSelectBoulder={(b) => setDetailBoulder(b)}
+            onLogAttempt={logAttempt}
+            onDeleteAttempt={deleteAttempt}
             showGymSelector={true}
           />
         )}

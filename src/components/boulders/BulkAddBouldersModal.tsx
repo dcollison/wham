@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Boulder, Grade, GRADES, HOLD_COLORS, GymArea, BulkAddBoulderItem, BulkAddBouldersParams } from '../../types';
 import { compressImage } from '../../lib/imageCompressor';
+import { isWinterSeriesAreaId } from '../../lib/winterSeries';
 import { HoldSwatch } from './HoldSwatch';
 import {
   X,
@@ -501,7 +502,9 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                 </span>
                 <p className="text-[11px] text-slate-400 truncate">
                   {isCompClimbs
-                    ? 'Switch from V-grades to numbered comp problems (10 / 7 / 4 festival points).'
+                    ? isWinterSeriesAreaId(effectiveAreaId)
+                      ? 'Switch from V-grades to numbered comp problems (3 / 2 / 1 comp points).'
+                      : 'Switch from V-grades to numbered comp problems (10 / 7 / 4 festival points).'
                     : 'Standard V-graded set. Climbs appear in career grade charts.'}
                 </p>
               </div>
@@ -605,7 +608,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                       <span>Comp Problem Number:</span>
                     </span>
                     <span className="text-[10px] font-mono text-amber-300/80 font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20">
-                      10 / 7 / 4 points
+                      {isWinterSeriesAreaId(effectiveAreaId) ? '3 / 2 / 1 points' : '10 / 7 / 4 points'}
                     </span>
                   </div>
 

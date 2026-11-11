@@ -4,6 +4,7 @@ import { ClimberAvatar } from './ClimberAvatar';
 import { ChevronDown, Plus, Archive, Layers, Trophy, MoreHorizontal, Eye, ShieldCheck, Clock, Lightbulb, Check } from 'lucide-react';
 import { WhamBadge } from './WhamLogo';
 import { getAreaResetInfo } from '../lib/resetStatus';
+import { isWinterSeriesAreaId, isWinterRoundActiveForArea } from '../lib/winterSeries';
 
 interface HeaderProps {
   currentTab?: 'boulders' | 'beta' | 'comp' | 'stats' | 'settings';
@@ -69,7 +70,7 @@ export const Header: React.FC<HeaderProps> = ({
   }, [isMoreMenuOpen]);
 
   const currentGymAreas = areas
-    .filter(a => a.gym_id === currentGym?.id)
+    .filter(a => a.gym_id === currentGym?.id && (!isWinterSeriesAreaId(a.id) || isWinterRoundActiveForArea(a.id)))
     .sort((a, b) => a.sort_order - b.sort_order);
 
   return (

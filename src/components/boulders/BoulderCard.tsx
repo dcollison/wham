@@ -6,6 +6,7 @@ import { ClimberStatusPills } from './ClimberStatusPills';
 import { Zap, Check, Clock, MessageSquare, Camera, FileText, Plus } from 'lucide-react';
 import { getBoulderAgeInfo } from '../../lib/resetStatus';
 import { calcBoulderReviewSummary, GRADE_OPINION_CONFIG, REVIEW_RATING_CONFIG, BoulderReviewSummary } from '../../lib/reviews';
+import { isWinterSeriesBoulder } from '../../lib/winterSeries';
 
 const EMPTY_REVIEW_SUMMARY: BoulderReviewSummary = calcBoulderReviewSummary([]);
 
@@ -37,7 +38,9 @@ const BoulderCardComponent: React.FC<BoulderCardProps> = ({
 
   const reviewSummary = propReviewSummary ?? EMPTY_REVIEW_SUMMARY;
 
-  const userAttempt = attempts.find(a => a.user_id === currentUserId);
+  const userAttempt = attempts.find(
+    a => a.user_id === currentUserId && (a.status as string) !== 'untried'
+  );
   const cardStyle = getHoldCardStyle(boulder.hold_colour);
   const resetInfo = getBoulderAgeInfo(boulder.date_added);
 
@@ -153,10 +156,10 @@ const BoulderCardComponent: React.FC<BoulderCardProps> = ({
               title="Flashed on 1st attempt. Tap to view or edit."
             >
               <Zap className="w-3.5 h-3.5 fill-current" />
-              <span>FLASHED</span>
+              <span>{isWinterSeriesBoulder(boulder) ? 'FLASH · 3pt' : 'FLASHED'}</span>
             </button>
           ) : isSent ? (
-            /* COMPLETED: Solid Emerald Sent Pill with number of tries (no parentheses or t) */
+            /* COMPLETED: Solid Emerald Sent Pill */
             <button
               type="button"
               onClick={() => onQuickLog(boulder, currentUserId)}
@@ -164,42 +167,90 @@ const BoulderCardComponent: React.FC<BoulderCardProps> = ({
               title={`Sent in ${userAttempt.attempt_count} tries. Tap to view or edit.`}
             >
               <Check className="w-3.5 h-3.5 stroke-[3]" />
-              <span>SENT {userAttempt.attempt_count}</span>
+              <span>{isWinterSeriesBoulder(boulder) ? 'TOP · 2pt' : `SENT ${userAttempt.attempt_count}`}</span>
             </button>
           ) : isProject ? (
-            /* PROJECTING: [ PROJ N ] | [ + ] | [ SENT ] (Order: Status -> Quick Increment -> Quick Send) */
+            /* PROJECTING / ZONE */
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={() => onQuickLog(boulder, currentUserId)}
                 className="inline-flex items-center gap-1 text-xs font-mono font-bold text-sky-300 bg-sky-500/15 hover:bg-sky-500/25 px-2.5 py-1.5 rounded-full border border-sky-500/35 transition-all active-press"
-                title={`Projecting with ${userAttempt.attempt_count} tries. Tap to view details.`}
+                title={isWinterSeriesBoulder(boulder) ? 'Zone reached (1 pt). Tap to edit.' : `Projecting with ${userAttempt.attempt_count} tries. Tap to view details.`}
               >
                 <Clock className="w-3.5 h-3.5 text-sky-400" />
-                <span>PROJ {userAttempt.attempt_count}</span>
+                <span>{isWinterSeriesBoulder(boulder) ? 'ZONE · 1pt' : `PROJ ${userAttempt.attempt_count}`}</span>
               </button>
 
-              {/* Position 2: Quick '+' increment attempt */}
-              <button
-                type="button"
-                onClick={handleQuickIncrement}
-                disabled={isLoggingInstant}
-                className="w-7 h-7 rounded-full bg-surface hover:bg-surface-elevated border border-white/[0.08] hover:border-white/[0.16] text-slate-300 hover:text-white flex items-center justify-center transition-all active-press"
-                title={`Add 1 try (now ${userAttempt.attempt_count + 1})`}
-              >
-                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-              </button>
+              {!isWinterSeriesBoulder(boulder) && (
+                /* Position 2: Quick '+' increment attempt */
+                <button
+                  type="button"
+                  onClick={handleQuickIncrement}
+                  disabled={isLoggingInstant}
+                  className="w-7 h-7 rounded-full bg-surface hover:bg-surface-elevated border border-white/[0.08] hover:border-white/[0.16] text-slate-300 hover:text-white flex items-center justify-center transition-all active-press"
+                  title={`Add 1 try (now ${userAttempt.attempt_count + 1})`}
+                >
+                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                </button>
+              )}
 
-              {/* Position 3: Quick Sent action (increments tries and logs send) */}
+              {/* Position 3: Quick Sent / Top action */}
               <button
                 type="button"
                 onClick={handleQuickSend}
                 disabled={isLoggingInstant}
                 className="inline-flex items-center gap-1 text-xs font-heading font-semibold text-slate-300 hover:text-emerald-300 bg-surface hover:bg-emerald-500/15 border border-white/[0.08] hover:border-emerald-400/40 px-2.5 py-1.5 rounded-full transition-all active-press"
-                title={`Send on try ${userAttempt.attempt_count + 1}`}
+                title={isWinterSeriesBoulder(boulder) ? 'Upgrade to Top (2 pts)' : `Send on try ${userAttempt.attempt_count + 1}`}
               >
                 <Check className="w-3.5 h-3.5 stroke-[2.5] text-emerald-400" />
-                <span>SENT</span>
+                <span>{isWinterSeriesBoulder(boulder) ? 'TOP · 2' : 'SENT'}</span>
+              </button>
+            </div>
+          ) : isWinterSeriesBoulder(boulder) ? (
+            /* UNTRIED WINTER SERIES BOULDER: [ ZONE 1 ] | [ TOP 2 ] | [ FLASH 3 ] */
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={handleQuickIncrement}
+                disabled={isLoggingInstant}
+                className="px-2 py-1 rounded-full bg-surface hover:bg-sky-500/15 border border-white/[0.08] hover:border-sky-400/40 text-sky-300 font-mono text-[11px] font-bold transition-all active-press"
+                title="Mark Zone (1 pt)"
+              >
+                Z·1
+              </button>
+              <button
+                type="button"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  if (!currentUserId || isLoggingInstant || !onLogAttempt) return;
+                  setIsLoggingInstant(true);
+                  try {
+                    await onLogAttempt({
+                      boulderId: boulder.id,
+                      status: 'sent',
+                      attemptCount: 2,
+                      loggedAt: new Date().toISOString(),
+                      userId: currentUserId
+                    });
+                  } finally {
+                    setIsLoggingInstant(false);
+                  }
+                }}
+                disabled={isLoggingInstant}
+                className="px-2 py-1 rounded-full bg-surface hover:bg-emerald-500/15 border border-white/[0.08] hover:border-emerald-400/40 text-emerald-300 font-mono text-[11px] font-bold transition-all active-press"
+                title="Mark Top (2 pts)"
+              >
+                T·2
+              </button>
+              <button
+                type="button"
+                onClick={handleQuickSend}
+                disabled={isLoggingInstant}
+                className="px-2.5 py-1 rounded-full bg-surface hover:bg-amber-500/15 border border-white/[0.08] hover:border-amber-400/40 text-amber-300 font-mono text-[11px] font-bold transition-all active-press"
+                title="Mark Flash (3 pts)"
+              >
+                ⚡ 3
               </button>
             </div>
           ) : (
@@ -349,6 +400,7 @@ const BoulderCardComponent: React.FC<BoulderCardProps> = ({
           attempts={attempts}
           currentUserId={currentUserId}
           size="sm"
+          isWinterSeries={isWinterSeriesBoulder(boulder)}
           onClimberClick={(climberId) => onQuickLog(boulder, climberId)}
         />
       </div>

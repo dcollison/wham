@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Boulder, Grade, GRADES, HOLD_COLORS, GymArea } from '../../types';
 import { compressImage, CompressionResult } from '../../lib/imageCompressor';
+import { isWinterSeriesAreaId } from '../../lib/winterSeries';
 import { HoldSwatch } from './HoldSwatch';
 import { X, Camera, Plus, AlertCircle, Layers, Trophy } from 'lucide-react';
 
@@ -264,7 +265,11 @@ export const AddBoulderModal: React.FC<AddBoulderModalProps> = ({
                   {isComp ? 'Numbered Comp Problem' : 'Standard V-Graded Problem'}
                 </span>
                 <span className="text-[11px] text-slate-400">
-                  {isComp ? 'Scored with 10 / 7 / 4 points • No V-grade' : 'Standard circuit climb with career stats'}
+                  {isComp
+                    ? isWinterSeriesAreaId(effectiveAreaId)
+                      ? 'Scored with 3 / 2 / 1 points (Flash / Top / Zone) • No V-grade'
+                      : 'Scored with 10 / 7 / 4 points • No V-grade'
+                    : 'Standard circuit climb with career stats'}
                 </span>
               </div>
             </div>
