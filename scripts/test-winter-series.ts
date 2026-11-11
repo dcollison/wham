@@ -15,6 +15,7 @@ import {
   getActiveWinterRound,
   isWinterRoundActiveForArea,
   isWinterSeriesBoulder,
+  isWinterSeriesBoulderId,
   mergeWinterSeriesAreas,
   mergeWinterSeriesBoulders,
   getRoundBoulders,
@@ -246,13 +247,34 @@ assert(edgeScorecard[0].userAttempts[euan.id]?.points === 2, 'Scorecard should p
 // Test local edits preservation in mergeWinterSeriesBoulders when remote DB does not have Winter Series boulders yet
 const localEditedBoulders = mergedBoulders.map(b =>
   b.id === getWinterRoundBoulderId(1, 1)
-    ? { ...b, hold_colour: 'Purple' as const, notes: 'Crimpy start beta' }
+    ? { ...b, hold_colour: 'Purple' as const, grade: 'V4' as const, notes: 'Crimpy start beta' }
     : b
 );
 const remergedFromEmptyRemote = mergeWinterSeriesBoulders([], nov11, localEditedBoulders);
 const r1b1AfterMerge = remergedFromEmptyRemote.find(b => b.id === getWinterRoundBoulderId(1, 1))!;
 assert(r1b1AfterMerge.hold_colour === 'Purple', `Expected local hold_colour 'Purple' to be preserved, got ${r1b1AfterMerge.hold_colour}`);
+assert(r1b1AfterMerge.grade === 'V4', `Expected local grade 'V4' to be preserved, got ${r1b1AfterMerge.grade}`);
 assert(r1b1AfterMerge.notes === 'Crimpy start beta', `Expected local notes to be preserved, got ${r1b1AfterMerge.notes}`);
-console.log('✓ Edge cases (untried records, duplicate attempts, local merge preservation) verified');
 
+// Verify missingWinterBoulders derived from mergedFromRemote preserves local customizations
+const remoteBoulderIds = new Set<string>();
+const missingToSeed = remergedFromEmptyRemote.filter(
+  b => isWinterSeriesBoulderId(b.id) && !remoteBoulderIds.has(b.id)
+);
+assert(missingToSeed.length === 100, `Expected 100 missing Winter Series boulders to seed, got ${missingToSeed.length}`);
+const r1b1ToSeed = missingToSeed.find(b => b.id === getWinterRoundBoulderId(1, 1))!;
+assert(r1b1ToSeed.hold_colour === 'Purple' && r1b1ToSeed.grade === 'V4', 'Auto-seeded Winter Series boulders must preserve local customizations');
 
+// Verify SQL migration generator parity (100 deterministic UUIDs and 12 hold colours)
+const sqlHoldColours = ['Yellow', 'Mint', 'Green', 'Orange', 'Blue', 'Purple', 'Red', 'Pink', 'Black', 'White', 'Bee', 'Wood'];
+for (const round of WINTER_SERIES_ROUNDS) {
+  for (let num = 1; num <= 25; num++) {
+    const sqlUuid = `d0000000-0000-0000-${String(round.roundNumber).padStart(4, '0')}-${String(num).padStart(12, '0')}`;
+    const tsUuid = getWinterRoundBoulderId(round.roundNumber, num);
+    assert(sqlUuid === tsUuid && isWinterSeriesBoulderId(sqlUuid), `SQL UUID mismatch for R${round.roundNumber} #${num}`);
+    const seededBoulder = mergedBoulders.find(b => b.id === tsUuid)!;
+    const sqlColour = sqlHoldColours[(num - 1) % 12];
+    assert(seededBoulder.hold_colour === sqlColour, `Hold colour mismatch for R${round.roundNumber} #${num}: expected ${sqlColour}, got ${seededBoulder.hold_colour}`);
+  }
+}
+console.log('✓ Edge cases (untried records, duplicate attempts, local merge preservation & SQL parity) verified');

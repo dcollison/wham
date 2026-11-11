@@ -318,6 +318,83 @@ export const GymProvider: React.FC<{ children: React.ReactNode; isLocked?: boole
 
   const isFlushingPendingRef = useRef(false);
 
+  // Helper to seed Winter Series areas and boulders sequentially with schema fallback
+  const ensureWinterSeriesInSupabase = async (areasToSeed: GymArea[], bouldersToSeed: Boulder[]) => {
+    if (!supabase) return;
+    if (areasToSeed.length > 0) {
+      const cleanAreas = areasToSeed.map((a) => ({
+        id: a.id,
+        gym_id: a.gym_id,
+        name: a.name,
+        sort_order: a.sort_order,
+        is_comp_wall: true
+      }));
+      const { error: areaErr } = await supabase
+        .from('gym_areas')
+        .upsert(cleanAreas, { onConflict: 'id' });
+      if (areaErr) {
+        // Fallback if remote schema has not migrated is_comp_wall yet
+        const minimalAreas = areasToSeed.map((a) => ({
+          id: a.id,
+          gym_id: a.gym_id,
+          name: a.name,
+          sort_order: a.sort_order
+        }));
+        await supabase.from('gym_areas').upsert(minimalAreas, { onConflict: 'id' });
+      }
+    }
+    if (bouldersToSeed.length > 0) {
+      const fullPayload = bouldersToSeed.map((b) => ({
+        id: b.id,
+        gym_id: b.gym_id,
+        area_id: b.area_id,
+        hold_colour: b.hold_colour,
+        grade: b.grade,
+        position_order: b.position_order,
+        notes: b.notes,
+        image_url: b.image_url,
+        date_added: b.date_added,
+        is_archived: b.is_archived,
+        is_comp: b.is_comp ?? true,
+        comp_number: b.comp_number
+      }));
+      const { error: boulderErr } = await supabase
+        .from('boulders')
+        .upsert(fullPayload, { onConflict: 'id' });
+      if (boulderErr) {
+        // Fallback if remote schema has not migrated is_comp / comp_number yet
+        const minimalBoulders = bouldersToSeed.map((b) => ({
+          id: b.id,
+          gym_id: b.gym_id,
+          area_id: b.area_id,
+          hold_colour: b.hold_colour,
+          grade: b.grade,
+          position_order: b.position_order,
+          notes: b.notes,
+          image_url: b.image_url,
+          date_added: b.date_added,
+          is_archived: b.is_archived
+        }));
+        await supabase.from('boulders').upsert(minimalBoulders, { onConflict: 'id' });
+      }
+    }
+  };
+
+  const ensureWinterBoulderInSupabase = async (boulderId: string, overrideBoulder?: Boulder) => {
+    if (!isWinterSeriesBoulderId(boulderId)) return;
+    const cachedBoulders = getStorageJson<Boulder[]>(STORAGE_KEYS.BOULDERS, []);
+    const targetBoulder =
+      overrideBoulder ||
+      boulders.find((b) => b.id === boulderId) ||
+      cachedBoulders.find((b) => b.id === boulderId) ||
+      buildWinterSeriesBoulders().find((b) => b.id === boulderId);
+    if (!targetBoulder) return;
+    const targetArea =
+      areas.find((a) => a.id === targetBoulder.area_id) ||
+      buildWinterSeriesAreas().find((a) => a.id === targetBoulder.area_id);
+    await ensureWinterSeriesInSupabase(targetArea ? [targetArea] : [], [targetBoulder]);
+  };
+
   // Background retry queue for offline or stalled writes
   const flushPendingQueue = async () => {
     if (isFlushingPendingRef.current) return;
@@ -354,61 +431,6 @@ export const GymProvider: React.FC<{ children: React.ReactNode; isLocked?: boole
         setStorageJson(STORAGE_KEYS.PENDING_DELETES, remainingDeletes);
       }
 
-      // Helper to seed Winter Series areas and boulders sequentially with schema fallback
-      const ensureWinterSeriesInSupabase = async (areasToSeed: GymArea[], bouldersToSeed: Boulder[]) => {
-        if (!supabase) return;
-        if (areasToSeed.length > 0) {
-          const { error: areaErr } = await supabase
-            .from('gym_areas')
-            .upsert(areasToSeed, { onConflict: 'id' });
-          if (areaErr) {
-            // Fallback if remote schema has not migrated is_comp_wall yet
-            const minimalAreas = areasToSeed.map((a) => ({
-              id: a.id,
-              gym_id: a.gym_id,
-              name: a.name,
-              sort_order: a.sort_order
-            }));
-            await supabase.from('gym_areas').upsert(minimalAreas, { onConflict: 'id' });
-          }
-        }
-        if (bouldersToSeed.length > 0) {
-          const fullPayload = bouldersToSeed.map((b) => ({
-            id: b.id,
-            gym_id: b.gym_id,
-            area_id: b.area_id,
-            hold_colour: b.hold_colour,
-            grade: b.grade,
-            position_order: b.position_order,
-            notes: b.notes,
-            image_url: b.image_url,
-            date_added: b.date_added,
-            is_archived: b.is_archived,
-            is_comp: b.is_comp ?? true,
-            comp_number: b.comp_number
-          }));
-          const { error: boulderErr } = await supabase
-            .from('boulders')
-            .upsert(fullPayload, { onConflict: 'id' });
-          if (boulderErr) {
-            // Fallback if remote schema has not migrated is_comp / comp_number yet
-            const minimalBoulders = bouldersToSeed.map((b) => ({
-              id: b.id,
-              gym_id: b.gym_id,
-              area_id: b.area_id,
-              hold_colour: b.hold_colour,
-              grade: b.grade,
-              position_order: b.position_order,
-              notes: b.notes,
-              image_url: b.image_url,
-              date_added: b.date_added,
-              is_archived: b.is_archived
-            }));
-            await supabase.from('boulders').upsert(minimalBoulders, { onConflict: 'id' });
-          }
-        }
-      };
-
       // 2. Process pending attempts
       const pendingAttempts = getStorageJson<PendingAttempt[]>(STORAGE_KEYS.PENDING_ATTEMPTS, []);
       if (pendingAttempts.length > 0) {
@@ -427,23 +449,19 @@ export const GymProvider: React.FC<{ children: React.ReactNode; isLocked?: boole
               'Sync attempt timed out'
             );
             if (error && isWinterSeriesBoulderId(item.boulder_id)) {
-              const wBoulder = buildWinterSeriesBoulders().find((b) => b.id === item.boulder_id);
-              const wArea = wBoulder ? buildWinterSeriesAreas().find((a) => a.id === wBoulder.area_id) : undefined;
-              if (wArea && wBoulder) {
-                await ensureWinterSeriesInSupabase([wArea], [wBoulder]);
-                const retryRes = await withTimeout(
-                  supabase.from('attempts').upsert({
-                    boulder_id: item.boulder_id,
-                    user_id: item.user_id,
-                    status: item.status,
-                    attempt_count: item.attempt_count,
-                    logged_at: item.logged_at
-                  }, { onConflict: 'boulder_id,user_id' }),
-                  6000,
-                  'Retry sync attempt timed out'
-                );
-                error = retryRes.error;
-              }
+              await ensureWinterBoulderInSupabase(item.boulder_id);
+              const retryRes = await withTimeout(
+                supabase.from('attempts').upsert({
+                  boulder_id: item.boulder_id,
+                  user_id: item.user_id,
+                  status: item.status,
+                  attempt_count: item.attempt_count,
+                  logged_at: item.logged_at
+                }, { onConflict: 'boulder_id,user_id' }),
+                6000,
+                'Retry sync attempt timed out'
+              );
+              error = retryRes.error;
             }
             if (error) {
               console.warn('Pending attempt sync error:', error.message);
@@ -462,7 +480,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode; isLocked?: boole
         const remainingReviews: PendingReview[] = [];
         for (const item of pendingReviews) {
           try {
-            const { error } = await withTimeout(
+            let { error } = await withTimeout(
               supabase.from('boulder_reviews').upsert({
                 boulder_id: item.boulder_id,
                 user_id: item.user_id,
@@ -474,6 +492,22 @@ export const GymProvider: React.FC<{ children: React.ReactNode; isLocked?: boole
               6000,
               'Sync review timed out'
             );
+            if (error && isWinterSeriesBoulderId(item.boulder_id)) {
+              await ensureWinterBoulderInSupabase(item.boulder_id);
+              const retryRes = await withTimeout(
+                supabase.from('boulder_reviews').upsert({
+                  boulder_id: item.boulder_id,
+                  user_id: item.user_id,
+                  rating: item.rating,
+                  grade_opinion: item.grade_opinion,
+                  comment: item.comment,
+                  updated_at: item.updated_at
+                }, { onConflict: 'boulder_id,user_id' }),
+                6000,
+                'Retry sync review timed out'
+              );
+              error = retryRes.error;
+            }
             if (error) {
               remainingReviews.push({ ...item, retry_count: item.retry_count + 1 });
             }
@@ -538,97 +572,57 @@ export const GymProvider: React.FC<{ children: React.ReactNode; isLocked?: boole
         if (gymsRes.data && gymsRes.data.length > 0) setGyms(gymsRes.data);
 
         let missingWinterAreas: GymArea[] = [];
-        if (areasRes.data && areasRes.data.length > 0) {
-          const hasRemoteImageCol = areasRes.data.some((a: any) => 'image_url' in a);
-          setAreas((prev) => {
-            const remoteWithImages = areasRes.data.map((remote: GymArea) => {
-              const local = prev.find((p) => p.id === remote.id);
-              if (!hasRemoteImageCol && local?.image_url) {
-                return { ...remote, image_url: local.image_url };
-              }
-              return remote;
+        if (!areasRes.error && Array.isArray(areasRes.data)) {
+          if (areasRes.data.length > 0) {
+            const hasRemoteImageCol = areasRes.data.some((a: any) => 'image_url' in a);
+            setAreas((prev) => {
+              const remoteWithImages = areasRes.data.map((remote: GymArea) => {
+                const local = prev.find((p) => p.id === remote.id);
+                if (!hasRemoteImageCol && local?.image_url) {
+                  return { ...remote, image_url: local.image_url };
+                }
+                return remote;
+              });
+              const merged = mergeWinterSeriesAreas(remoteWithImages);
+              setStorageJson(STORAGE_KEYS.AREAS, merged);
+              return merged;
             });
-            const merged = mergeWinterSeriesAreas(remoteWithImages);
-            setStorageJson(STORAGE_KEYS.AREAS, merged);
-            return merged;
-          });
-          setCurrentAreaState((prev) => {
-            if (!prev) return prev;
-            const fresh = areasRes.data.find((a: GymArea) => a.id === prev.id);
-            if (!fresh) return prev;
-            const image = hasRemoteImageCol ? fresh.image_url : (prev.image_url || fresh.image_url);
-            return { ...fresh, image_url: image };
-          });
+            setCurrentAreaState((prev) => {
+              if (!prev) return prev;
+              const fresh = areasRes.data.find((a: GymArea) => a.id === prev.id);
+              if (!fresh) return prev;
+              const image = hasRemoteImageCol ? fresh.image_url : (prev.image_url || fresh.image_url);
+              return { ...fresh, image_url: image };
+            });
+          }
 
           const remoteAreaIds = new Set(areasRes.data.map((a: GymArea) => a.id));
           missingWinterAreas = buildWinterSeriesAreas().filter(a => !remoteAreaIds.has(a.id));
         }
 
         let missingWinterBoulders: Boulder[] = [];
-        if (bouldersRes.data && bouldersRes.data.length > 0) {
-          setBoulders((prev) => {
-            const mergedBoulders = mergeWinterSeriesBoulders(bouldersRes.data, new Date(), prev);
-            setStorageJson(STORAGE_KEYS.BOULDERS, mergedBoulders);
-            return mergedBoulders;
-          });
+        if (!bouldersRes.error && Array.isArray(bouldersRes.data)) {
+          const cachedBoulders = getStorageJson<Boulder[]>(STORAGE_KEYS.BOULDERS, []);
+          const mergedFromRemote = mergeWinterSeriesBoulders(bouldersRes.data, new Date(), cachedBoulders);
+          if (bouldersRes.data.length > 0) {
+            setBoulders((prev) => {
+              const mergedBoulders = mergeWinterSeriesBoulders(bouldersRes.data, new Date(), prev);
+              setStorageJson(STORAGE_KEYS.BOULDERS, mergedBoulders);
+              return mergedBoulders;
+            });
+          }
 
           const remoteBoulderIds = new Set(bouldersRes.data.map((b: Boulder) => b.id));
-          missingWinterBoulders = buildWinterSeriesBoulders().filter(b => !remoteBoulderIds.has(b.id));
+          missingWinterBoulders = mergedFromRemote.filter(
+            (b) => isWinterSeriesBoulderId(b.id) && !remoteBoulderIds.has(b.id)
+          );
         }
 
         // Sequentially seed missing Winter Series areas BEFORE boulders for foreign-key integrity
-        if ((missingWinterAreas.length > 0 || missingWinterBoulders.length > 0) && supabase) {
-          const client = supabase;
-          (async () => {
-            if (missingWinterAreas.length > 0) {
-              const { error: areaErr } = await client
-                .from('gym_areas')
-                .upsert(missingWinterAreas, { onConflict: 'id' });
-              if (areaErr) {
-                const minimalAreas = missingWinterAreas.map((a) => ({
-                  id: a.id,
-                  gym_id: a.gym_id,
-                  name: a.name,
-                  sort_order: a.sort_order
-                }));
-                await client.from('gym_areas').upsert(minimalAreas, { onConflict: 'id' });
-              }
-            }
-            if (missingWinterBoulders.length > 0) {
-              const fullBoulders = missingWinterBoulders.map((b) => ({
-                id: b.id,
-                gym_id: b.gym_id,
-                area_id: b.area_id,
-                hold_colour: b.hold_colour,
-                grade: b.grade,
-                position_order: b.position_order,
-                notes: b.notes,
-                image_url: b.image_url,
-                date_added: b.date_added,
-                is_archived: b.is_archived,
-                is_comp: b.is_comp ?? true,
-                comp_number: b.comp_number
-              }));
-              const { error: bErr } = await client
-                .from('boulders')
-                .upsert(fullBoulders, { onConflict: 'id' });
-              if (bErr) {
-                const minimalBoulders = missingWinterBoulders.map((b) => ({
-                  id: b.id,
-                  gym_id: b.gym_id,
-                  area_id: b.area_id,
-                  hold_colour: b.hold_colour,
-                  grade: b.grade,
-                  position_order: b.position_order,
-                  notes: b.notes,
-                  image_url: b.image_url,
-                  date_added: b.date_added,
-                  is_archived: b.is_archived
-                }));
-                await client.from('boulders').upsert(minimalBoulders, { onConflict: 'id' });
-              }
-            }
-          })().catch((e) => console.warn('Note: could not seed Winter Series in Supabase:', e));
+        if (missingWinterAreas.length > 0 || missingWinterBoulders.length > 0) {
+          ensureWinterSeriesInSupabase(missingWinterAreas, missingWinterBoulders).catch((e) =>
+            console.warn('Note: could not seed Winter Series in Supabase:', e)
+          );
         }
         if (!attemptsRes.error && Array.isArray(attemptsRes.data)) {
           const mergedAttempts = mergeRemoteAttemptsWithPending(attemptsRes.data);
@@ -1301,62 +1295,22 @@ export const GymProvider: React.FC<{ children: React.ReactNode; isLocked?: boole
       )
         .then(async ({ error }) => {
           if (error) {
-            if (isWinterSeriesBoulderId(boulderId)) {
-              const targetBoulder = boulders.find(b => b.id === boulderId);
-              const targetArea = targetBoulder ? areas.find(a => a.id === targetBoulder.area_id) : null;
-              if (targetArea && targetBoulder && supabase) {
-                const areaUpsert = await supabase.from('gym_areas').upsert(targetArea, { onConflict: 'id' });
-                if (areaUpsert.error) {
-                  await supabase.from('gym_areas').upsert({
-                    id: targetArea.id,
-                    gym_id: targetArea.gym_id,
-                    name: targetArea.name,
-                    sort_order: targetArea.sort_order
-                  }, { onConflict: 'id' });
-                }
-                const boulderUpsert = await supabase.from('boulders').upsert({
-                  id: targetBoulder.id,
-                  gym_id: targetBoulder.gym_id,
-                  area_id: targetBoulder.area_id,
-                  hold_colour: targetBoulder.hold_colour,
-                  grade: targetBoulder.grade,
-                  position_order: targetBoulder.position_order,
-                  notes: targetBoulder.notes,
-                  image_url: targetBoulder.image_url,
-                  date_added: targetBoulder.date_added,
-                  is_archived: targetBoulder.is_archived,
-                  is_comp: targetBoulder.is_comp ?? true,
-                  comp_number: targetBoulder.comp_number
-                }, { onConflict: 'id' });
-                if (boulderUpsert.error) {
-                  await supabase.from('boulders').upsert({
-                    id: targetBoulder.id,
-                    gym_id: targetBoulder.gym_id,
-                    area_id: targetBoulder.area_id,
-                    hold_colour: targetBoulder.hold_colour,
-                    grade: targetBoulder.grade,
-                    position_order: targetBoulder.position_order,
-                    notes: targetBoulder.notes,
-                    image_url: targetBoulder.image_url,
-                    date_added: targetBoulder.date_added,
-                    is_archived: targetBoulder.is_archived
-                  }, { onConflict: 'id' });
-                }
-                const retry = await supabase.from('attempts').upsert({
-                  boulder_id: boulderId,
-                  user_id: targetUserId,
-                  status,
-                  attempt_count: attemptCount,
-                  logged_at: effectiveLoggedAt
-                }, { onConflict: 'boulder_id,user_id' });
-                if (!retry.error) {
-                  const currentPending = getStorageJson<PendingAttempt[]>(STORAGE_KEYS.PENDING_ATTEMPTS, []);
-                  const remaining = currentPending.filter(
-                    p => !(p.boulder_id === boulderId && p.user_id === targetUserId && p.logged_at === effectiveLoggedAt)
-                  );
-                  setStorageJson(STORAGE_KEYS.PENDING_ATTEMPTS, remaining);
-                  return;
-                }
+            if (isWinterSeriesBoulderId(boulderId) && supabase) {
+              await ensureWinterBoulderInSupabase(boulderId);
+              const retry = await supabase.from('attempts').upsert({
+                boulder_id: boulderId,
+                user_id: targetUserId,
+                status,
+                attempt_count: attemptCount,
+                logged_at: effectiveLoggedAt
+              }, { onConflict: 'boulder_id,user_id' });
+              if (!retry.error) {
+                const currentPending = getStorageJson<PendingAttempt[]>(STORAGE_KEYS.PENDING_ATTEMPTS, []);
+                const remaining = currentPending.filter(
+                  p => !(p.boulder_id === boulderId && p.user_id === targetUserId && p.logged_at === effectiveLoggedAt)
+                );
+                setStorageJson(STORAGE_KEYS.PENDING_ATTEMPTS, remaining);
+                return;
               }
             }
             console.warn('Supabase attempt upsert note (queued offline):', error.message);
@@ -1760,36 +1714,14 @@ export const GymProvider: React.FC<{ children: React.ReactNode; isLocked?: boole
         if (isWinterSeriesBoulderId(boulderId)) {
           const existing = boulders.find(b => b.id === boulderId) || buildWinterSeriesBoulders().find(b => b.id === boulderId);
           if (existing) {
-            const targetArea = areas.find(a => a.id === existing.area_id) || buildWinterSeriesAreas().find(a => a.id === existing.area_id);
-            if (targetArea) {
-              await supabase.from('gym_areas').upsert({
-                id: targetArea.id,
-                gym_id: targetArea.gym_id,
-                name: targetArea.name,
-                sort_order: targetArea.sort_order,
-                is_comp_wall: true
-              }, { onConflict: 'id' });
-            }
-            const { error } = await supabase
-              .from('boulders')
-              .upsert({
-                id: existing.id,
-                gym_id: existing.gym_id,
-                area_id: existing.area_id,
-                hold_colour: updates.holdColour ?? existing.hold_colour,
-                grade: updates.grade ?? existing.grade,
-                position_order: existing.position_order,
-                notes: updates.notes !== undefined ? updates.notes : existing.notes,
-                image_url: existing.image_url,
-                date_added: existing.date_added,
-                is_archived: existing.is_archived,
-                is_comp: updates.isComp ?? existing.is_comp ?? true,
-                comp_number: updates.compNumber ?? existing.comp_number
-              }, { onConflict: 'id' });
-            if (error) {
-              console.error('Failed to upsert Winter Series boulder in Supabase:', error);
-              throw error;
-            }
+            await ensureWinterBoulderInSupabase(boulderId, {
+              ...existing,
+              hold_colour: updates.holdColour ?? existing.hold_colour,
+              grade: updates.grade ?? existing.grade,
+              notes: updates.notes !== undefined ? updates.notes : existing.notes,
+              is_comp: updates.isComp ?? existing.is_comp ?? true,
+              comp_number: updates.compNumber ?? existing.comp_number
+            });
             return;
           }
         }
@@ -2165,7 +2097,7 @@ export const GymProvider: React.FC<{ children: React.ReactNode; isLocked?: boole
 
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase
+        let { data, error } = await supabase
           .from('comments')
           .insert({
             boulder_id: boulderId,
@@ -2174,6 +2106,21 @@ export const GymProvider: React.FC<{ children: React.ReactNode; isLocked?: boole
           })
           .select('*, profile:profiles(*)')
           .single();
+
+        if (error && isWinterSeriesBoulderId(boulderId)) {
+          await ensureWinterBoulderInSupabase(boulderId);
+          const retry = await supabase
+            .from('comments')
+            .insert({
+              boulder_id: boulderId,
+              user_id: currentUser.id,
+              content: trimmed
+            })
+            .select('*, profile:profiles(*)')
+            .single();
+          data = retry.data;
+          error = retry.error;
+        }
 
         if (error) {
           console.error('Failed to insert comment in Supabase:', error);
@@ -2325,15 +2272,23 @@ export const GymProvider: React.FC<{ children: React.ReactNode; isLocked?: boole
         7000,
         'Review upsert timed out'
       )
-        .then(({ error }) => {
-          if (!error) {
+        .then(async ({ error }) => {
+          let finalError = error;
+          if (finalError && isWinterSeriesBoulderId(boulderId) && supabase) {
+            await ensureWinterBoulderInSupabase(boulderId);
+            const retry = await supabase
+              .from('boulder_reviews')
+              .upsert(payload, { onConflict: 'boulder_id,user_id' });
+            finalError = retry.error;
+          }
+          if (!finalError) {
             const currentPending = getStorageJson<PendingReview[]>(STORAGE_KEYS.PENDING_REVIEWS, []);
             setStorageJson(
               STORAGE_KEYS.PENDING_REVIEWS,
               currentPending.filter(r => !(r.boulder_id === boulderId && r.user_id === userId && r.updated_at === now))
             );
           } else {
-            console.warn('Supabase review upsert note (queued offline):', error.message);
+            console.warn('Supabase review upsert note (queued offline):', finalError.message);
           }
         })
         .catch(err => {

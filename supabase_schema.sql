@@ -532,7 +532,7 @@ INSERT INTO public.gyms (id, name)
 VALUES
     ('b0000000-0000-0000-0000-000000000001', 'Bond'),
     ('b0000000-0000-0000-0000-000000000002', 'Hub')
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- Upsert the 4 Winter Series round areas
 INSERT INTO public.gym_areas (id, gym_id, name, sort_order, is_comp_wall)
