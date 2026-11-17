@@ -188,24 +188,19 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
     <div className="flex flex-col gap-4 pb-20 animate-in fade-in duration-300">
       {/* Header & Stats Strip */}
       <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-heading font-bold text-white flex items-center gap-2">
-              <Zap className="w-5 h-5 text-amber-400 fill-amber-400" />
-              Recent Sends
-            </h2>
-            <p className="text-xs text-slate-400">
-              Live crew activity stream
-            </p>
-          </div>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <Zap className="w-5 h-5 text-amber-400 fill-amber-400" />
+            <span>Recent Sends</span>
+          </h2>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-3 py-1 rounded-full flex items-center gap-1.5 tabular-nums">
+          <div className="flex items-center gap-3 text-xs font-semibold tabular-nums">
+            <span className="text-amber-300 flex items-center gap-1">
               <Zap className="w-3.5 h-3.5 fill-amber-400" />
               <span>{stats.totalCrewFlashes} Flashes</span>
             </span>
-            <span className="text-xs font-mono font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 rounded-full flex items-center gap-1.5 tabular-nums">
-              <Check className="w-3.5 h-3.5 stroke-[3]" />
+            <span className="text-emerald-300 flex items-center gap-1">
+              <Check className="w-3.5 h-3.5 stroke-[2.5]" />
               <span>{stats.totalCrewSends} Sends</span>
             </span>
           </div>
@@ -243,7 +238,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
               >
                 <ClimberAvatar profile={c} size="xs" />
                 <span>{c.display_name}</span>
-                <span className="font-mono text-[10px] opacity-75 font-bold tabular-nums">
+                <span className={`font-mono text-[10px] font-bold tabular-nums ${isSelected ? 'text-slate-300' : 'text-slate-400'}`}>
                   {climberSendsCount}
                 </span>
               </button>
@@ -280,7 +275,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                 sendTypeFilter === 'sends' ? 'bg-emerald-500/20 text-emerald-300 font-bold' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <Check className="w-3 h-3 stroke-[3] text-emerald-400" />
+              <Check className="w-3 h-3 stroke-[2.5] text-emerald-400" />
               <span>Sends Only</span>
             </button>
             <button
@@ -290,19 +285,19 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                 sendTypeFilter === 'projects' ? 'bg-sky-500/20 text-sky-300 font-bold' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <Clock className="w-3 h-3 text-sky-400" />
+              <Clock className="w-3 h-3 text-sky-400 stroke-[2.5]" />
               <span>Working</span>
             </button>
           </div>
 
           <div className="relative flex-1 sm:max-w-xs">
-            <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search climber, grade, hold..."
-              className="w-full bg-surface border border-white/[0.08] text-slate-100 placeholder:text-slate-500 text-xs rounded-full pl-9 pr-4 py-1.5 outline-none focus:border-white/[0.2] focus:ring-1 focus:ring-white/[0.1] transition-all"
+              className="w-full ds-input text-xs rounded-full pl-9 pr-4 py-1.5"
             />
           </div>
         </div>
@@ -311,7 +306,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
       {/* Condensed Send List */}
       {filteredSends.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-8 bg-surface border border-white/[0.08] rounded-2xl text-center gap-3 my-6">
-          <div className="p-3 bg-surface-elevated rounded-2xl" style={{ color: activeColor }}>
+          <div className="p-3 bg-surface-elevated rounded-lg" style={{ color: activeColor }}>
             <Trophy className="w-6 h-6 opacity-60" />
           </div>
           <div>
@@ -328,10 +323,10 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
               {/* Date Group Header */}
               <div className="flex items-center gap-2 px-1 pt-1">
                 <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-xs font-bold text-slate-300 tracking-wide uppercase">
+                <span className="text-xs font-bold text-slate-200 tracking-wide uppercase">
                   {dateLabel}
                 </span>
-                <span className="text-[11px] font-mono text-slate-500 tabular-nums">
+                <span className="text-xs text-slate-400 tabular-nums">
                   {items.length} {items.length === 1 ? 'send' : 'sends'}
                 </span>
                 <div className="flex-1 h-px bg-white/[0.06] ml-2" />
@@ -344,13 +339,12 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
 
                   const isFlash = attempt.status === 'flashed';
                   const isSent = attempt.status === 'sent';
-                  const isYou = climber?.id === currentUserId;
 
                   return (
                     <div
                       key={attempt.id}
                       onClick={() => onSelectBoulder(boulder)}
-                      className="feed-card-deferred group flex items-center justify-between gap-3 p-2.5 sm:px-3.5 sm:py-2.5 rounded-2xl bg-surface/90 hover:bg-surface-elevated border border-white/[0.06] hover:border-white/[0.14] transition-all cursor-pointer active-press"
+                      className="feed-card-deferred group flex items-center justify-between gap-3 p-2.5 sm:px-3.5 sm:py-2.5 rounded-2xl bg-surface hover:bg-surface-elevated border border-white/[0.07] hover:border-white/[0.14] transition-all cursor-pointer active-press"
                     >
                       {/* Left: Climber & Action info */}
                       <div className="flex items-center gap-2.5 min-w-0">
@@ -362,19 +356,11 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                             <span className="text-xs font-bold text-white truncate">
                               {climber?.display_name || 'Climber'}
                             </span>
-                            {isYou && (
-                              <span
-                                className="text-[9px] font-semibold px-1.5 py-0.2 rounded-full"
-                                style={{ backgroundColor: `${activeColor}20`, color: activeColor }}
-                              >
-                                You
-                              </span>
-                            )}
 
                             {/* Status badge: Short form "F", "S 2", "P 2" or Winter Series "F·3", "T·2", "Z·1" */}
                             {isFlash ? (
                               <span
-                                className="inline-flex items-center gap-1 text-[10px] font-heading font-black text-slate-950 bg-amber-400 px-2 py-0.5 rounded-full shadow-xs"
+                                className="inline-flex items-center gap-1 text-[10px] font-black text-slate-950 bg-amber-400 px-2 py-0.5 rounded-full tabular-nums"
                                 title={isWinterSeriesBoulder(boulder) ? 'Flashed (3 pts)' : 'Flashed on 1st try'}
                               >
                                 <Zap className="w-3 h-3 fill-current" />
@@ -382,18 +368,18 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                               </span>
                             ) : isSent ? (
                               <span
-                                className="inline-flex items-center gap-1 text-[10px] font-heading font-black text-slate-950 bg-emerald-400 px-2 py-0.5 rounded-full shadow-xs"
+                                className="inline-flex items-center gap-1 text-[10px] font-black text-slate-950 bg-emerald-400 px-2 py-0.5 rounded-full tabular-nums"
                                 title={isWinterSeriesBoulder(boulder) ? 'Topped (2 pts)' : `Sent on try ${attempt.attempt_count}`}
                               >
-                                <Check className="w-3 h-3 stroke-[3]" />
+                                <Check className="w-3 h-3 stroke-[2.5]" />
                                 <span>{isWinterSeriesBoulder(boulder) ? 'T·2' : `S ${attempt.attempt_count}`}</span>
                               </span>
                             ) : (
                               <span
-                                className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-sky-300 bg-sky-500/15 border border-sky-500/35 px-2 py-0.5 rounded-full"
+                                className="inline-flex items-center gap-1 text-[10px] font-mono tabular-nums font-bold text-sky-300 bg-sky-500/15 border border-sky-500/35 px-2 py-0.5 rounded-full"
                                 title={isWinterSeriesBoulder(boulder) ? 'Zone reached (1 pt)' : `Projecting on try ${attempt.attempt_count}`}
                               >
-                                <Clock className="w-3 h-3 text-sky-400" />
+                                <Clock className="w-3 h-3 text-sky-400 stroke-[2.5]" />
                                 <span>{isWinterSeriesBoulder(boulder) ? 'Z·1' : `P ${attempt.attempt_count}`}</span>
                               </span>
                             )}
@@ -401,7 +387,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
 
                           {/* Row 2: Boulder details (position, hold badge, area) */}
                           <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-1 min-w-0">
-                            <span className="font-mono text-[10px] text-slate-400 font-semibold tabular-nums">
+                            <span className="font-mono tabular-nums text-[11px] text-slate-400 font-semibold">
                               #{boulder.comp_number ?? Math.round(boulder.position_order)}
                             </span>
                             <HoldBadge
@@ -411,12 +397,12 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                               isComp={boulder.is_comp}
                               compNumber={boulder.comp_number}
                             />
-                            <span className="truncate text-slate-400 text-[11px]">
+                            <span className="truncate text-slate-300 text-[11px]">
                               {area?.name || 'Wall'}{gym ? ` • ${gym.name}` : ''}
                             </span>
                             {boulder.notes && (
-                              <span className="hidden sm:inline text-[11px] text-slate-500 truncate max-w-xs italic">
-                                "{boulder.notes}"
+                              <span className="hidden sm:inline text-[11px] text-slate-400 truncate max-w-xs">
+                                — {boulder.notes}
                               </span>
                             )}
                           </div>
@@ -426,7 +412,7 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                       {/* Right: Photo thumbnail, Timestamp, Chevron */}
                       <div className="flex items-center gap-2 shrink-0">
                         {boulder.image_url && (
-                          <div className="w-8 h-8 rounded-lg overflow-hidden border border-white/[0.08] bg-carbon shrink-0">
+                          <div className="w-8 h-8 rounded-md overflow-hidden border border-white/[0.1] bg-carbon shrink-0">
                             <img
                               src={boulder.image_url}
                               alt={`${boulder.hold_colour} ${boulder.grade}`}
@@ -435,10 +421,10 @@ export const RecentSendsFeed: React.FC<RecentSendsFeedProps> = ({
                             />
                           </div>
                         )}
-                        <span className="text-[11px] font-mono text-slate-400 tabular-nums">
+                        <span className="text-[11px] text-slate-400 tabular-nums">
                           {formatRelativeTime(attempt.logged_at)}
                         </span>
-                        <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-slate-300 transition-colors" />
+                        <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-white transition-colors" />
                       </div>
                     </div>
                   );

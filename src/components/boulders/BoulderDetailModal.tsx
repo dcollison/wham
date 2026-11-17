@@ -29,8 +29,9 @@ import {
   AlertTriangle,
   AlertCircle,
   Trophy,
-  SlidersHorizontal,
-  Scale
+  Star,
+  Scale,
+  Loader2
 } from 'lucide-react';
 import { useGym } from '../../context/GymContext';
 import { PhotoLightboxModal } from './PhotoLightboxModal';
@@ -116,6 +117,9 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
   // Delete Climb confirmation state
   const [isConfirmingDelete, setIsConfirmingDelete] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [isArchiving, setIsArchiving] = useState<boolean>(false);
+  const [isSavingReview, setIsSavingReview] = useState<boolean>(false);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
 
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
@@ -147,32 +151,62 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
   }, [boulderReviews, currentUserId, boulder?.id]);
 
   const handleRatingChange = async (newRating: ReviewRating | null) => {
-    if (!boulder || !currentUserId) return;
-    if (newRating === null && !userReview?.grade_opinion && !userReview?.comment) {
-      await deleteReview(boulder.id, currentUserId);
-    } else {
-      await saveReview({
-        boulderId: boulder.id,
-        userId: currentUserId,
-        rating: newRating,
-        gradeOpinion: userReview?.grade_opinion,
-        comment: userReview?.comment
-      });
+    if (!boulder || !currentUserId || isSavingReview) return;
+    setIsSavingReview(true);
+    try {
+      if (newRating === null && !userReview?.grade_opinion && !userReview?.comment) {
+        await deleteReview(boulder.id, currentUserId);
+      } else {
+        await saveReview({
+          boulderId: boulder.id,
+          userId: currentUserId,
+          rating: newRating,
+          gradeOpinion: userReview?.grade_opinion,
+          comment: userReview?.comment
+        });
+      }
+    } finally {
+      setIsSavingReview(false);
     }
   };
 
   const handleGradeOpinionChange = async (newGrade: GradeOpinion | null) => {
-    if (!boulder || !currentUserId) return;
-    if (newGrade === null && !userReview?.rating && !userReview?.comment) {
+    if (!boulder || !currentUserId || isSavingReview) return;
+    setIsSavingReview(true);
+    try {
+      if (newGrade === null && !userReview?.rating && !userReview?.comment) {
+        await deleteReview(boulder.id, currentUserId);
+      } else {
+        await saveReview({
+          boulderId: boulder.id,
+          userId: currentUserId,
+          rating: userReview?.rating,
+          gradeOpinion: newGrade,
+          comment: userReview?.comment
+        });
+      }
+    } finally {
+      setIsSavingReview(false);
+    }
+  };
+
+  const handleClearReview = async () => {
+    if (!boulder || !currentUserId || isSavingReview) return;
+    setIsSavingReview(true);
+    try {
       await deleteReview(boulder.id, currentUserId);
-    } else {
-      await saveReview({
-        boulderId: boulder.id,
-        userId: currentUserId,
-        rating: userReview?.rating,
-        gradeOpinion: newGrade,
-        comment: userReview?.comment
-      });
+    } finally {
+      setIsSavingReview(false);
+    }
+  };
+
+  const handleToggleArchive = async (archive: boolean) => {
+    if (!boulder || isArchiving) return;
+    setIsArchiving(true);
+    try {
+      await onToggleArchive(boulder.id, archive);
+    } finally {
+      setIsArchiving(false);
     }
   };
 
@@ -247,7 +281,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
   const userAttempt = attempts.find(
     a => a.user_id === currentUserId && (a.status as string) !== 'untried'
   );
-  const activeColor = climbers.find(c => c.id === currentUserId)?.accent_color || '#3B82F6';
+  const activeColor = climbers.find(c => c.id === currentUserId)?.accent_color || '#F59E0B';
 
   useEffect(() => {
     if (boulder) {
@@ -358,7 +392,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
     >
       <div
-        className="w-full max-w-lg bg-surface border-t sm:border border-slate-800/80 rounded-t-[32px] sm:rounded-4xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden sheet-elevated pb-safe overscroll-contain"
+        className="w-full max-w-lg ds-sheet shadow-2xl flex flex-col max-h-[92vh] overflow-hidden pb-safe overscroll-contain animate-in slide-in-from-bottom-6"
         style={{
           transform: dragOffset > 0 ? `translateY(${dragOffset}px)` : undefined,
           transition: isDragging ? 'none' : 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
@@ -374,11 +408,11 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
           onClick={onClose}
           title="Drag down or tap to dismiss"
         >
-          <div className="w-12 h-1.5 bg-slate-700/80 hover:bg-slate-600 rounded-full transition-colors" />
+          <div className="w-12 h-1.5 bg-surface-higher hover:bg-white/25 rounded-full transition-colors" />
         </div>
 
         {/* Sticky Header */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-slate-800/80 bg-surface/95 sticky top-0 z-10 gap-2">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-white/[0.08] bg-surface/95 sticky top-0 z-10 gap-2">
           <div className="flex items-center gap-2 min-w-0 flex-wrap sm:flex-nowrap">
             <HoldBadge
               color={isEditing ? editHoldColour : boulder.hold_colour}
@@ -388,16 +422,16 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
               size="md"
             />
             {!(isEditing ? editIsComp && editCompNumber != null : boulder.is_comp && boulder.comp_number != null) && (
-              <span className="font-mono text-xs font-bold px-2.5 py-0.5 rounded-full shrink-0 tabular-nums text-slate-300 bg-slate-800/90 border border-slate-700/60">
+              <span className="font-mono text-xs font-bold px-2.5 py-0.5 rounded-full shrink-0 tabular-nums text-slate-200 bg-surface-elevated border border-white/[0.08]">
                 #{boulder.display_order ?? Math.round(boulder.position_order)}
               </span>
             )}
             {resolvedAreaName && (
               <span
-                className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-slate-300 bg-slate-800/90 px-3 py-1 rounded-full border border-slate-700/70 truncate max-w-[120px] sm:max-w-[180px]"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-slate-300 truncate max-w-[130px] sm:max-w-[180px]"
                 title={`Wall Sector: ${resolvedAreaName}${resolvedGymName ? ` • ${resolvedGymName}` : ''}`}
               >
-                <MapPin className="w-3 h-3 text-amber-400 shrink-0" />
+                <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                 <span className="truncate">{resolvedAreaName}</span>
               </span>
             )}
@@ -405,31 +439,31 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
 
           {/* Filter navigation strip: Tactile Stepper */}
           {hasFilter && (
-            <div className="flex items-center gap-1 bg-slate-800/90 p-1 rounded-full border border-slate-700/80 text-xs shadow-md shrink-0">
+            <div className="flex items-center gap-1 bg-surface-elevated p-1 rounded-full border border-white/[0.08] text-xs shrink-0">
               <button
                 type="button"
                 onClick={() => prevBoulder && onNavigateBoulder?.(prevBoulder)}
                 disabled={!prevBoulder}
-                className="px-3 py-1 sm:px-3.5 sm:py-1 rounded-full hover:bg-slate-700 text-slate-200 hover:text-white disabled:opacity-25 disabled:pointer-events-none transition-colors flex items-center gap-1.5 active-press touch-manipulation font-heading font-bold"
+                className="px-2.5 py-1 rounded-full hover:bg-surface-high text-slate-200 hover:text-white disabled:opacity-25 disabled:pointer-events-none transition-colors flex items-center gap-1.5 active-press touch-manipulation font-bold"
                 title={prevBoulder ? `Previous Boulder: #${prevBoulder.display_order ?? Math.round(prevBoulder.position_order)} ${prevBoulder.hold_colour} ${prevBoulder.grade}` : 'First boulder in filter'}
               >
-                <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                <ChevronLeft className="w-4 h-4 shrink-0" />
                 {prevBoulder && <HoldSwatch color={prevBoulder.hold_colour} size="sm" />}
                 <span className="hidden sm:inline text-xs">Prev</span>
               </button>
-              <span className="font-mono text-xs sm:text-sm text-slate-300 font-bold px-2 select-none whitespace-nowrap">
-                {currentIndex + 1} / {totalFiltered}
+              <span className="font-mono tabular-nums text-xs sm:text-sm text-slate-200 font-bold px-2 select-none whitespace-nowrap">
+                {currentIndex + 1}/{totalFiltered}
               </span>
               <button
                 type="button"
                 onClick={() => nextBoulder && onNavigateBoulder?.(nextBoulder)}
                 disabled={!nextBoulder}
-                className="px-3 py-1 sm:px-3.5 sm:py-1 rounded-full hover:bg-slate-700 text-slate-200 hover:text-white disabled:opacity-25 disabled:pointer-events-none transition-colors flex items-center gap-1.5 active-press touch-manipulation font-heading font-bold"
+                className="px-2.5 py-1 rounded-full hover:bg-surface-high text-slate-200 hover:text-white disabled:opacity-25 disabled:pointer-events-none transition-colors flex items-center gap-1.5 active-press touch-manipulation font-bold"
                 title={nextBoulder ? `Next Boulder: #${nextBoulder.display_order ?? Math.round(nextBoulder.position_order)} ${nextBoulder.hold_colour} ${nextBoulder.grade}` : 'Last boulder in filter'}
               >
                 <span className="hidden sm:inline text-xs">Next</span>
                 {nextBoulder && <HoldSwatch color={nextBoulder.hold_colour} size="sm" />}
-                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                <ChevronRight className="w-4 h-4 shrink-0" />
               </button>
             </div>
           )}
@@ -444,7 +478,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
               className={`p-2 rounded-full transition-colors active-press ${
                 isEditing
                   ? 'bg-amber-400 text-slate-950 font-bold shadow'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  : 'text-slate-400 hover:text-white hover:bg-surface-high'
               }`}
               title={isEditing ? 'Cancel Editing' : 'Edit Climb (Colour, Grade, Beta)'}
             >
@@ -452,11 +486,12 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => onToggleArchive(boulder.id, !boulder.is_archived)}
-              className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors active-press"
+              disabled={isArchiving}
+              onClick={() => handleToggleArchive(!boulder.is_archived)}
+              className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-surface-high transition-colors active-press disabled:opacity-50"
               title={boulder.is_archived ? 'Restore / Unarchive Climb' : 'Archive Climb'}
             >
-              <Archive className="w-4 h-4" />
+              {isArchiving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Archive className="w-4 h-4" />}
             </button>
             <button
               type="button"
@@ -472,7 +507,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors active-press"
+              className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-surface-high transition-colors active-press"
             >
               <X className="w-5 h-5" />
             </button>
@@ -483,19 +518,19 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-5">
           {/* Permanent Delete Confirmation Dialog */}
           {isConfirmingDelete && (
-            <div className="p-4 rounded-2xl bg-rose-950/80 border-2 border-rose-500/80 text-rose-200 flex flex-col gap-3 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-4 rounded-lg bg-rose-950/80 border border-rose-500/70 text-rose-200 flex flex-col gap-3 animate-in fade-in zoom-in-95">
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-xl bg-rose-900 text-rose-200 shrink-0">
+                <div className="p-2 rounded-md bg-rose-900 text-rose-200 shrink-0">
                   <AlertTriangle className="w-5 h-5 text-rose-300" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-bold text-white font-mono">
+                  <h4 className="text-sm font-bold text-white tabular-nums">
                     Permanently delete climb #{boulder.display_order ?? Math.round(boulder.position_order)}?
                   </h4>
-                  <p className="text-xs text-rose-200/90 mt-1 leading-relaxed">
+                  <p className="text-xs text-rose-200 mt-1 leading-relaxed">
                     This will permanently remove <span className="font-bold text-white">{boulder.hold_colour} {boulder.grade}</span> from the gym wall, including all logged attempts, flashes, and beta comments.
                   </p>
-                  <p className="text-[11px] text-rose-400 font-semibold mt-1">
+                  <p className="text-[11px] text-rose-300 font-semibold mt-1">
                     This action cannot be undone.
                   </p>
                 </div>
@@ -506,7 +541,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                   type="button"
                   disabled={isDeleting}
                   onClick={() => setIsConfirmingDelete(false)}
-                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-semibold active-press transition-colors"
+                  className="px-3.5 py-2 rounded-md bg-surface-elevated hover:bg-surface-high text-slate-200 text-xs font-semibold active-press transition-colors"
                 >
                   Cancel
                 </button>
@@ -514,9 +549,9 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                   type="button"
                   disabled={isDeleting}
                   onClick={handleDeleteBoulder}
-                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg active-press transition-all flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-4 py-2 rounded-md bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs active-press transition-all flex items-center gap-1.5 disabled:opacity-50"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                   <span>{isDeleting ? 'Deleting...' : 'Yes, Delete Permanently'}</span>
                 </button>
               </div>
@@ -525,11 +560,11 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
 
           {/* Edit Climb Panel */}
           {isEditing && (
-            <div className="bg-slate-900 border-2 border-amber-400/60 rounded-2xl p-4 flex flex-col gap-4 shadow-xl animate-in fade-in zoom-in-95 duration-150">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+            <div className="bg-surface-elevated border border-amber-400/60 rounded-lg p-4 flex flex-col gap-4 animate-in fade-in zoom-in-95">
+              <div className="flex items-center justify-between border-b border-white/[0.08] pb-2.5">
                 <div className="flex items-center gap-2">
                   <Pencil className="w-4 h-4 text-amber-400" />
-                  <span className="text-xs font-bold uppercase tracking-wider text-white">
+                  <span className="text-xs font-bold uppercase tracking-wider text-white tabular-nums">
                     Edit Climb #{boulder.display_order ?? Math.round(boulder.position_order)}
                   </span>
                 </div>
@@ -537,7 +572,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
               </div>
 
               {editError && (
-                <div className="p-3 rounded-xl bg-rose-950/70 border border-rose-500/40 text-xs text-rose-200 flex items-start gap-2">
+                <div className="p-3 rounded-md bg-rose-950/70 border border-rose-500/40 text-xs text-rose-200 flex items-start gap-2">
                   <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
                   <span>{editError}</span>
                 </div>
@@ -545,7 +580,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
 
               {/* Hold Colour Picker */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                <label className="ds-label">
                   Hold Colour
                 </label>
                 <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
@@ -556,11 +591,11 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                         key={colorName}
                         type="button"
                         onClick={() => setEditHoldColour(colorName)}
-                        style={isSelected ? { borderColor: activeColor, boxShadow: `0 0 0 1px ${activeColor}80` } : undefined}
-                        className={`flex items-center gap-1.5 px-2.5 py-2 rounded-xl border text-xs font-semibold transition-all active-press ${
+                        style={isSelected ? { borderColor: activeColor } : undefined}
+                        className={`flex items-center gap-1.5 px-2.5 py-2 rounded-md border text-xs font-semibold transition-all active-press ${
                           isSelected
-                            ? 'bg-slate-800 text-white shadow-md'
-                            : 'border-slate-800 bg-slate-950 text-slate-300 hover:border-slate-700'
+                            ? 'bg-surface-high text-white'
+                            : 'border-white/[0.08] bg-carbon text-slate-300 hover:border-white/[0.16]'
                         }`}
                       >
                         <HoldSwatch color={colorName} size="sm" />
@@ -572,7 +607,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
               </div>
 
               {/* Comp Wall Problem Toggle & Number Picker */}
-              <div className="flex flex-col gap-2 p-3 rounded-xl bg-slate-950 border border-slate-800">
+              <div className="flex flex-col gap-2 p-3 rounded-md bg-carbon border border-white/[0.08]">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
                     <Trophy className="w-3.5 h-3.5 text-amber-400" />
@@ -581,26 +616,26 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setEditIsComp((prev) => !prev)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold font-mono transition-all ${
+                    className={`px-2.5 py-1 rounded text-xs font-bold transition-all ${
                       editIsComp
-                        ? 'bg-amber-400 text-black shadow'
-                        : 'bg-slate-850 text-slate-400 hover:text-white border border-slate-700'
+                        ? 'bg-amber-400 text-black'
+                        : 'bg-surface-elevated text-slate-300 hover:text-white border border-white/[0.1]'
                     }`}
                   >
-                    {editIsComp ? 'Comp Problem ON' : 'Comp Problem OFF'}
+                    {editIsComp ? 'On' : 'Off'}
                   </button>
                 </div>
 
                 {editIsComp ? (
-                  <div className="flex items-center justify-between pt-1 border-t border-slate-800/80">
+                  <div className="flex items-center justify-between pt-1.5 border-t border-white/[0.06]">
                     <div>
                       <span className="text-xs text-slate-300 font-medium block">
                         Problem number on wall:
                       </span>
-                      <span className="text-[11px] text-amber-400/90 font-mono">
+                      <span className="text-[11px] text-amber-300 tabular-nums">
                         {isWinterSeriesBoulder({ id: boulder.id, area_id: editAreaId || boulder.area_id })
-                          ? 'Scored with 3 / 2 / 1 comp points (Flash / Top / Zone)'
-                          : 'Scored with 10 / 7 / 4 festival points'}
+                          ? '3 / 2 / 1 comp points (Flash / Top / Zone)'
+                          : '10 / 7 / 4 festival points'}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -611,12 +646,12 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                         max="200"
                         value={editCompNumber || ''}
                         onChange={(e) => setEditCompNumber(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                        className="w-20 bg-slate-900 border border-slate-700 text-slate-100 font-mono font-bold text-center text-sm rounded-xl py-1.5 px-2 outline-none focus:border-amber-400"
+                        className="w-20 ds-input font-mono tabular-nums font-bold text-center text-sm rounded-md py-1.5 px-2 focus:border-amber-400"
                       />
                     </div>
                   </div>
                 ) : (
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-xs text-slate-400">
                     Standard V-graded boulder. Appears in career grade charts.
                   </p>
                 )}
@@ -625,14 +660,9 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
               {/* Grade Picker (Only when not in comp mode) */}
               {!editIsComp && (
                 <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                      Grade
-                    </label>
-                    <span className="font-mono text-xs font-black" style={{ color: activeColor }}>
-                      Selected: {editGrade}
-                    </span>
-                  </div>
+                  <label className="ds-label">
+                    Grade
+                  </label>
                   <div className="flex gap-1.5 overflow-x-auto pb-1.5 scrollbar-thin">
                     {GRADES.map((g) => {
                       const isSelected = editGrade === g;
@@ -642,10 +672,10 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                           type="button"
                           onClick={() => setEditGrade(g)}
                           style={isSelected ? { backgroundColor: activeColor, color: '#000000' } : undefined}
-                          className={`px-3 py-2 rounded-xl font-mono text-xs font-bold shrink-0 transition-all active-press ${
+                          className={`px-3 py-2 rounded-md font-mono tabular-nums text-xs font-bold shrink-0 transition-all active-press ${
                             isSelected
-                              ? 'shadow-md'
-                              : 'bg-slate-950 text-slate-300 hover:bg-slate-800 border border-slate-800'
+                              ? 'font-extrabold'
+                              : 'bg-carbon text-slate-300 hover:bg-surface-high border border-white/[0.08]'
                           }`}
                         >
                           {g}
@@ -660,7 +690,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
               {availableGymAreas.length > 0 && (
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <label className="ds-label flex items-center gap-1.5">
                       <MapPin className="w-3.5 h-3.5 text-amber-400" />
                       Sector / Wall Area
                     </label>
@@ -674,7 +704,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                   <select
                     value={editAreaId}
                     onChange={(e) => setEditAreaId(e.target.value)}
-                    className="bg-slate-950 border border-slate-700 text-slate-100 text-xs rounded-xl p-2.5 font-medium outline-none focus:border-amber-400 cursor-pointer"
+                    className="ds-input text-xs rounded-md p-2.5 font-medium cursor-pointer"
                   >
                     {availableGymAreas.map(a => (
                       <option key={a.id} value={a.id}>
@@ -688,7 +718,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                         type="checkbox"
                         checked={editRestoreOnMove}
                         onChange={(e) => setEditRestoreOnMove(e.target.checked)}
-                        className="w-3.5 h-3.5 rounded bg-slate-950 border-slate-700 text-amber-400 focus:ring-0"
+                        className="w-3.5 h-3.5 rounded bg-carbon border-white/[0.2] text-amber-400 focus:ring-0"
                       />
                       <span className="text-xs text-slate-300 font-medium">
                         Restore climb to active wall in target sector
@@ -700,27 +730,27 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
 
               {/* Notes / Beta Input */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                  Notes & Beta Description
+                <label className="ds-label">
+                  Beta Notes
                 </label>
                 <textarea
                   value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)}
                   placeholder="Crux beta, foot placements, or problem description..."
                   rows={2}
-                  className="w-full bg-slate-950 border border-slate-700 text-slate-100 placeholder:text-slate-500 text-xs rounded-xl p-3 outline-none focus:border-amber-400 resize-none leading-relaxed"
+                  className="ds-input text-xs rounded-md p-3 resize-none leading-relaxed"
                 />
               </div>
 
               {/* Action Buttons & Danger Zone */}
-              <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-800">
+              <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/[0.08]">
                 <button
                   type="button"
                   onClick={() => {
                     setIsEditing(false);
                     setIsConfirmingDelete(true);
                   }}
-                  className="px-2.5 py-1.5 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                  className="px-2.5 py-1.5 rounded-md text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 text-xs font-semibold flex items-center gap-1.5 transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span>Delete Climb</span>
@@ -738,7 +768,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                       setEditRestoreOnMove(boulder.is_archived);
                       setEditNotes(boulder.notes || '');
                     }}
-                    className="min-h-[44px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                    className="min-h-[44px] px-4 py-2.5 rounded-md text-xs sm:text-sm font-semibold text-slate-300 hover:text-white hover:bg-surface-high transition-colors"
                   >
                     Cancel
                   </button>
@@ -747,9 +777,9 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                     disabled={isSavingEdit}
                     onClick={handleSaveEdit}
                     style={{ backgroundColor: activeColor, color: '#000000' }}
-                    className="min-h-[44px] px-5 py-2.5 rounded-xl font-heading font-black text-sm shadow-md active-press transition-all flex items-center gap-2 disabled:opacity-50"
+                    className="min-h-[44px] px-5 py-2.5 rounded-md font-black text-sm active-press transition-all flex items-center gap-2 disabled:opacity-60"
                   >
-                    <Check className="w-4 h-4 stroke-[3]" />
+                    {isSavingEdit ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4 stroke-[2.5]" />}
                     <span>{isSavingEdit ? 'Saving...' : 'Save Changes'}</span>
                   </button>
                 </div>
@@ -758,23 +788,23 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
           )}
 
           {moveSuccessMessage && (
-            <div className="p-3 rounded-xl bg-emerald-950/70 border border-emerald-700/60 text-emerald-200 text-xs font-medium flex items-center gap-2 shadow animate-in fade-in duration-150">
-              <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+            <div className="p-3 rounded-lg bg-emerald-950/70 border border-emerald-700/60 text-emerald-200 text-xs font-medium flex items-center gap-2 animate-in fade-in duration-150">
+              <Check className="w-4 h-4 text-emerald-400 stroke-[2.5] shrink-0" />
               <span>{moveSuccessMessage}</span>
             </div>
           )}
 
           {/* Archived Climb Banner with Quick Restore & Edit options */}
           {boulder.is_archived && (
-            <div className="bg-rose-950/40 border border-rose-800/60 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner">
+            <div className="bg-rose-950/40 border border-rose-800/60 rounded-lg p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="p-2 rounded-xl bg-rose-900/60 text-rose-300 shrink-0 border border-rose-700/50">
+                <div className="p-2 rounded-md bg-rose-900/60 text-rose-300 shrink-0 border border-rose-700/50">
                   <Archive className="w-4 h-4" />
                 </div>
                 <div>
                   <p className="text-xs font-bold text-rose-200">This climb is archived</p>
-                  <p className="text-[11px] text-rose-300/80 leading-tight">
-                    Reset from <span className="font-semibold text-rose-100">{resolvedAreaName}</span>. Move it to another sector via Edit Climb!
+                  <p className="text-[11px] text-rose-200 leading-tight">
+                    Reset from <span className="font-semibold text-white">{resolvedAreaName}</span>. Move it to another sector via Edit Climb.
                   </p>
                 </div>
               </div>
@@ -782,10 +812,12 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
               <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
                 <button
                   type="button"
-                  onClick={() => onToggleArchive(boulder.id, false)}
-                  className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold active-press transition-all"
+                  disabled={isArchiving}
+                  onClick={() => handleToggleArchive(false)}
+                  className="px-3 py-1.5 rounded-md bg-carbon hover:bg-surface-high text-slate-200 border border-white/[0.1] text-xs font-semibold active-press transition-all inline-flex items-center gap-1.5 disabled:opacity-60"
                 >
-                  Restore Here
+                  {isArchiving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{isArchiving ? 'Restoring...' : 'Restore Here'}</span>
                 </button>
                 <button
                   type="button"
@@ -793,7 +825,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                     setIsEditing(true);
                     setIsConfirmingDelete(false);
                   }}
-                  className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow active-press transition-all flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-md bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs active-press transition-all flex items-center gap-1.5"
                 >
                   <Pencil className="w-3.5 h-3.5" />
                   <span>Edit / Move</span>
@@ -803,7 +835,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
           )}
           {/* Photo Section */}
           {boulder.image_url && (
-            <div className="relative rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 max-h-72 group">
+            <div className="relative rounded-lg overflow-hidden bg-carbon border border-white/[0.08] max-h-72 group">
               <img
                 src={boulder.image_url}
                 alt={`${boulder.hold_colour} ${boulder.grade}`}
@@ -813,7 +845,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
               <button
                 type="button"
                 onClick={() => setIsLightboxOpen(true)}
-                className="absolute bottom-2.5 right-2.5 px-3 py-1.5 rounded-xl bg-black/75 text-white backdrop-blur-md text-xs font-bold flex items-center gap-1.5 shadow hover:bg-black transition-all active-press"
+                className="absolute bottom-2.5 right-2.5 px-3 py-1.5 rounded-md bg-black/75 text-white backdrop-blur-md text-xs font-bold flex items-center gap-1.5 hover:bg-black transition-all active-press"
               >
                 <ZoomIn className="w-3.5 h-3.5" />
                 <span>Fullscreen</span>
@@ -822,26 +854,23 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
           )}
 
           {/* Quick Log Action Bar: Prominent and tactile */}
-          <div className="bg-slate-850/70 border border-slate-800/80 rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
+          <div className="bg-surface-elevated border border-white/[0.08] rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <p className="text-[11px] uppercase font-bold text-slate-400">Your Status</p>
-              <div className="mt-1">
-                {userAttempt?.status === 'flashed' ? (
-                  <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
-                    <Zap className="w-3.5 h-3.5 fill-current" /> Flashed (1 try{isWinterSeriesBoulder(boulder) ? ' • 3 pts' : (boulder.is_comp && boulder.comp_number != null) ? ` • ${getCompProblemPoints(userAttempt.status, userAttempt.attempt_count)} pts` : ''})
-                  </span>
-                ) : userAttempt?.status === 'sent' ? (
-                  <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                    <Check className="w-3.5 h-3.5 stroke-[3]" /> {isWinterSeriesBoulder(boulder) ? `Topped (${userAttempt.attempt_count} tries • 2 pts)` : `Sent (${userAttempt.attempt_count} ${userAttempt.attempt_count === 1 ? 'try' : 'tries'}${(boulder.is_comp && boulder.comp_number != null) ? ` • ${getCompProblemPoints(userAttempt.status, userAttempt.attempt_count)} pts` : ''})`}
-                  </span>
-                ) : userAttempt?.status === 'attempted' ? (
-                  <span className="text-xs font-bold text-blue-400 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5" /> {isWinterSeriesBoulder(boulder) ? 'Zone reached (1 pt)' : `Projecting (${userAttempt.attempt_count} ${userAttempt.attempt_count === 1 ? 'try' : 'tries'}${(boulder.is_comp && boulder.comp_number != null) ? ' • 0 pts' : ''})`}
-                  </span>
-                ) : (
-                  <span className="text-xs text-slate-400">Not logged yet</span>
-                )}
-              </div>
+              {userAttempt?.status === 'flashed' ? (
+                <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5 tabular-nums">
+                  <Zap className="w-3.5 h-3.5 fill-current" /> Flashed (1 try{isWinterSeriesBoulder(boulder) ? ' • 3 pts' : (boulder.is_comp && boulder.comp_number != null) ? ` • ${getCompProblemPoints(userAttempt.status, userAttempt.attempt_count)} pts` : ''})
+                </span>
+              ) : userAttempt?.status === 'sent' ? (
+                <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5 tabular-nums">
+                  <Check className="w-3.5 h-3.5 stroke-[2.5]" /> {isWinterSeriesBoulder(boulder) ? `Topped (${userAttempt.attempt_count} tries • 2 pts)` : `Sent (${userAttempt.attempt_count} ${userAttempt.attempt_count === 1 ? 'try' : 'tries'}${(boulder.is_comp && boulder.comp_number != null) ? ` • ${getCompProblemPoints(userAttempt.status, userAttempt.attempt_count)} pts` : ''})`}
+                </span>
+              ) : userAttempt?.status === 'attempted' ? (
+                <span className="text-xs font-bold text-sky-400 flex items-center gap-1.5 tabular-nums">
+                  <Clock className="w-3.5 h-3.5 stroke-[2.5]" /> {isWinterSeriesBoulder(boulder) ? 'Zone reached (1 pt)' : `Projecting (${userAttempt.attempt_count} ${userAttempt.attempt_count === 1 ? 'try' : 'tries'}${(boulder.is_comp && boulder.comp_number != null) ? ' • 0 pts' : ''})`}
+                </span>
+              ) : (
+                <span className="text-xs text-slate-400">Not logged yet</span>
+              )}
             </div>
 
             <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
@@ -849,7 +878,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                 <button
                   type="button"
                   onClick={() => onNavigateBoulder(nextBoulder)}
-                  className="min-h-[44px] px-4 py-2 rounded-full text-xs font-heading font-bold bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 active-press transition-all flex items-center gap-1.5 shadow"
+                  className="min-h-[44px] px-4 py-2 rounded-full text-xs font-bold bg-surface-high hover:bg-surface-higher text-slate-200 border border-white/[0.1] active-press transition-all flex items-center gap-1.5"
                   title={`Next in filter: #${nextBoulder.display_order ?? Math.round(nextBoulder.position_order)} ${nextBoulder.hold_colour} ${nextBoulder.grade}`}
                 >
                   <span>Next Climb</span>
@@ -867,7 +896,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                     const other = climbers.find(c => c.id !== currentUserId) || climbers[0];
                     onQuickLog(boulder, other.id);
                   }}
-                  className="min-h-[44px] px-4 py-2 rounded-full text-xs font-heading font-bold bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700 active-press transition-all flex items-center gap-1.5 shadow"
+                  className="min-h-[44px] px-4 py-2 rounded-full text-xs font-bold bg-surface-high hover:bg-surface-higher text-slate-200 border border-white/[0.1] active-press transition-all flex items-center gap-1.5"
                   title="Log on behalf of someone in your crew"
                 >
                   <Users className="w-3.5 h-3.5" style={{ color: activeColor }} />
@@ -882,7 +911,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                   onQuickLog(boulder, currentUserId);
                 }}
                 style={{ backgroundColor: activeColor, color: '#000000' }}
-                className="min-h-[46px] px-6 py-2.5 rounded-full text-xs sm:text-sm font-heading font-black active-press transition-all shadow-md flex items-center gap-1.5"
+                className="min-h-[46px] px-6 py-2.5 rounded-full text-xs sm:text-sm font-black active-press transition-all flex items-center gap-1.5"
               >
                 <span>{userAttempt ? 'Update Log' : 'Quick Log'}</span>
               </button>
@@ -892,7 +921,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
           {/* Climb Details */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between px-1">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Climb Info</h3>
+              <h3 className="ds-label">Details</h3>
               {!isEditing && (
                 <button
                   type="button"
@@ -900,7 +929,7 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                     setIsEditing(true);
                     setIsConfirmingDelete(false);
                   }}
-                  className="text-[11px] font-semibold text-amber-400 hover:text-amber-300 flex items-center gap-1 px-2.5 py-0.5 rounded-full hover:bg-slate-800 transition-colors"
+                  className="text-xs font-semibold text-amber-400 hover:text-amber-300 flex items-center gap-1 px-2.5 py-0.5 rounded-full hover:bg-surface-high transition-colors"
                   title="Edit hold colour, grade, sector, or notes"
                 >
                   <Pencil className="w-3 h-3" />
@@ -908,48 +937,35 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                 </button>
               )}
             </div>
-            <div className="bg-slate-850/50 rounded-3xl p-4 border border-slate-800 space-y-3 text-xs">
-              {/* Sector / Wall Area row */}
-              <div className="flex items-center justify-between pb-2.5 border-b border-slate-800/80 text-xs">
-                <span className="text-slate-400 font-medium flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  Sector / Wall:
-                </span>
-                <div className="flex items-center gap-1.5 font-semibold text-slate-200">
-                  <span className="bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-700/60 text-slate-100 font-mono text-[11px]">
-                    {resolvedAreaName || 'General Wall'}
+            <div className="ds-well rounded-lg p-3.5 space-y-2.5 text-xs">
+              {boulder.notes && (
+                <div>
+                  <span className="text-slate-400 font-medium">Beta Notes</span>
+                  <p className="text-slate-200 mt-1 leading-relaxed">{boulder.notes}</p>
+                </div>
+              )}
+              <div className={`flex items-center justify-between text-slate-400 text-xs ${boulder.notes ? 'pt-2 border-t border-white/[0.06]' : ''}`}>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="flex items-center gap-1.5 tabular-nums">
+                    <Calendar className="w-3.5 h-3.5" /> Added {boulder.date_added}
                   </span>
                   {resolvedGymName && (
-                    <span className="text-[11px] text-slate-400 font-normal">
+                    <span className="text-slate-400">
                       • {resolvedGymName}
                     </span>
                   )}
-                </div>
-              </div>
-
-              {boulder.notes && (
-                <div>
-                  <span className="text-slate-400 font-medium">Notes / Beta:</span>
-                  <p className="text-slate-200 mt-0.5 leading-relaxed">{boulder.notes}</p>
-                </div>
-              )}
-              <div className="flex items-center justify-between text-slate-400 pt-1 text-[11px]">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3" /> Added {boulder.date_added}
-                  </span>
                   {resetInfo.isDueForReset && (
                     <span
-                      className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold text-amber-400 bg-amber-400/10 border border-amber-400/25 px-2.5 py-0.5 rounded-full"
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-amber-300 tabular-nums"
                       title={`Set ${resetInfo.weeksOld} weeks ago – this climb is due for a reset`}
                     >
-                      <Clock className="w-2.5 h-2.5 text-amber-400 shrink-0" />
-                      <span>Reset soon ({resetInfo.weeksOld}w old)</span>
+                      <Clock className="w-3 h-3 text-amber-400 stroke-[2.5] shrink-0" />
+                      <span>Reset soon ({resetInfo.weeksOld}w)</span>
                     </span>
                   )}
                 </div>
                 {boulder.is_archived && (
-                  <span className="text-rose-400 font-semibold uppercase font-mono">Archived</span>
+                  <span className="text-rose-400 font-semibold uppercase">Archived</span>
                 )}
               </div>
             </div>
@@ -958,10 +974,9 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
           {/* Group Climber Statuses */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between px-1">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Group Ticklist</h3>
-              <span className="text-[11px] text-slate-500">Tap a climber to log for them</span>
+              <h3 className="ds-label">Group Ticklist</h3>
             </div>
-            <div className="bg-slate-850/50 rounded-3xl p-4 border border-slate-800">
+            <div className="px-1">
               <ClimberStatusPills
                 climbers={climbers}
                 attempts={attempts}
@@ -979,45 +994,45 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
           {/* Section: Crew Reviews & Consensus */}
           <div className="flex flex-col gap-2.5">
             <div className="flex items-center justify-between px-1">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <SlidersHorizontal className="w-3.5 h-3.5 text-amber-400" />
-                Crew Reviews ({boulderReviews.length})
+              <h3 className="ds-label flex items-center gap-1.5">
+                <Star className="w-3.5 h-3.5 text-amber-400" />
+                <span className="tabular-nums">Crew Reviews ({boulderReviews.length})</span>
               </h3>
               {reviewSummary.positivePercentage !== null && (
-                <span className="font-mono text-xs font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 rounded-full">
+                <span className="text-xs font-bold text-emerald-300 tabular-nums">
                   {reviewSummary.positivePercentage}% Good
                 </span>
               )}
             </div>
 
-            <div className="bg-slate-850/50 rounded-3xl p-4 sm:p-5 border border-slate-800 flex flex-col gap-3.5">
+            <div className="ds-well rounded-lg p-3 flex flex-col gap-3">
               {/* Consensus Highlights Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {/* Grade Consensus */}
-                <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center gap-3">
+                <div className="p-2.5 rounded-md bg-carbon border border-white/[0.07] flex items-center gap-3">
                   {reviewSummary.consensusGrade ? (() => {
                     const gradeCfg = GRADE_OPINION_CONFIG[reviewSummary.consensusGrade];
                     const GradeIcon = gradeCfg.icon;
                     return (
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center border shrink-0 ${gradeCfg.badgeBg} ${gradeCfg.badgeBorder} ${gradeCfg.badgeText}`}>
-                        <GradeIcon className="w-5 h-5" />
+                      <div className={`w-8 h-8 rounded flex items-center justify-center border shrink-0 ${gradeCfg.badgeBg} ${gradeCfg.badgeBorder} ${gradeCfg.badgeText}`}>
+                        <GradeIcon className="w-4 h-4" />
                       </div>
                     );
                   })() : (
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center border border-slate-800 bg-slate-800/60 text-slate-500 shrink-0">
-                      <Scale className="w-5 h-5" />
+                    <div className="w-8 h-8 rounded flex items-center justify-center border border-white/[0.08] bg-surface text-slate-400 shrink-0">
+                      <Scale className="w-4 h-4" />
                     </div>
                   )}
                   <div className="flex flex-col min-w-0">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
                       Grade Consensus
                     </span>
                     <span className="text-xs font-bold text-slate-200">
                       {reviewSummary.consensusGrade ? (
                         <span className={GRADE_OPINION_CONFIG[reviewSummary.consensusGrade].activeText}>
                           {GRADE_OPINION_CONFIG[reviewSummary.consensusGrade].label}
-                          <span className="text-slate-400 font-mono text-[11px] font-normal ml-1">
-                            ({reviewSummary.consensusCount}/{reviewSummary.totalGradeOpinions} votes)
+                          <span className="text-slate-400 font-mono tabular-nums text-[11px] font-normal ml-1">
+                            ({reviewSummary.consensusCount}/{reviewSummary.totalGradeOpinions})
                           </span>
                         </span>
                       ) : (
@@ -1028,16 +1043,16 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                 </div>
 
                 {/* Quality Breakdown (Good / Okay / Rough) */}
-                <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-around">
+                <div className="p-2.5 rounded-md bg-carbon border border-white/[0.07] flex items-center justify-around">
                   {REVIEW_RATING_LIST.map((r) => {
                     const count = reviewSummary.ratingCounts[r.value];
                     return (
                       <div key={r.value} className="flex flex-col items-center gap-0.5">
-                        <span className={`font-mono text-sm font-black select-none ${count > 0 ? r.activeText : 'text-slate-600'}`}>
+                        <span className={`text-sm font-black select-none ${count > 0 ? r.activeText : 'text-slate-400'}`}>
                           {r.kaomoji}
                         </span>
                         <span className="text-[10px] font-bold text-slate-400">{r.shortLabel}</span>
-                        <span className={`text-xs font-mono font-bold ${count > 0 ? r.activeText : 'text-slate-600'}`}>
+                        <span className={`text-xs font-mono tabular-nums font-bold ${count > 0 ? r.activeText : 'text-slate-400'}`}>
                           {count}
                         </span>
                       </div>
@@ -1048,15 +1063,15 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
 
               {/* Interactive Quick Vote for current user */}
               {currentUserId && (
-                <div className="bg-slate-900/70 rounded-2xl p-3.5 border border-slate-800">
+                <div className="bg-carbon rounded-md p-3 border border-white/[0.07]">
                   <BoulderReviewPicker
                     rating={userReview?.rating}
                     gradeOpinion={userReview?.grade_opinion}
                     onRatingChange={handleRatingChange}
                     onGradeOpinionChange={handleGradeOpinionChange}
-                    onClear={() => deleteReview(boulder.id, currentUserId)}
-                    title={userReview?.rating || userReview?.grade_opinion ? 'Your Review:' : 'Leave your review:'}
-                    clearLabel="Clear my review"
+                    onClear={handleClearReview}
+                    title={isSavingReview ? 'Saving Review...' : 'Your Review'}
+                    clearLabel="Clear"
                     size="sm"
                     showHeaders={false}
                   />
@@ -1065,49 +1080,44 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
 
               {/* Individual crew review tags */}
               {boulderReviews.length > 0 && (
-                <div className="flex flex-col gap-2 pt-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                    Crew Breakdown:
-                  </span>
-                  <div className="space-y-1.5">
-                    {boulderReviews.map((rev) => {
-                      const author = climbers.find(c => c.id === rev.user_id) || rev.profile;
-                      const normR = normalizeRating(rev.rating);
-                      const normG = normalizeGradeOpinion(rev.grade_opinion);
-                      const ratingCfg = normR ? REVIEW_RATING_CONFIG[normR] : null;
-                      const gradeCfg = normG ? GRADE_OPINION_CONFIG[normG] : null;
-                      const GradeIcon = gradeCfg?.icon;
+                <div className="space-y-1.5 pt-1">
+                  {boulderReviews.map((rev) => {
+                    const author = climbers.find(c => c.id === rev.user_id) || rev.profile;
+                    const normR = normalizeRating(rev.rating);
+                    const normG = normalizeGradeOpinion(rev.grade_opinion);
+                    const ratingCfg = normR ? REVIEW_RATING_CONFIG[normR] : null;
+                    const gradeCfg = normG ? GRADE_OPINION_CONFIG[normG] : null;
+                    const GradeIcon = gradeCfg?.icon;
 
-                      return (
-                        <div
-                          key={rev.id}
-                          className="p-2.5 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 text-xs"
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <ClimberAvatar profile={author} size="xs" />
-                            <span className="font-bold text-slate-200 truncate">
-                              {author?.display_name || 'Climber'}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-                            {ratingCfg && (
-                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${ratingCfg.badgeBg} ${ratingCfg.badgeBorder} ${ratingCfg.badgeText}`}>
-                                <span className="font-mono font-bold">{ratingCfg.kaomoji}</span>
-                                <span>{ratingCfg.label}</span>
-                              </span>
-                            )}
-                            {gradeCfg && GradeIcon && (
-                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${gradeCfg.badgeBg} ${gradeCfg.badgeBorder} ${gradeCfg.badgeText}`}>
-                                <GradeIcon className="w-3 h-3" />
-                                <span>{gradeCfg.label}</span>
-                              </span>
-                            )}
-                          </div>
+                    return (
+                      <div
+                        key={rev.id}
+                        className="p-2.5 rounded-md bg-carbon border border-white/[0.06] flex items-center justify-between gap-3 text-xs"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <ClimberAvatar profile={author} size="xs" />
+                          <span className="font-bold text-slate-200 truncate">
+                            {author?.display_name || 'Climber'}
+                          </span>
                         </div>
-                      );
-                    })}
-                  </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                          {ratingCfg && (
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${ratingCfg.badgeBg} ${ratingCfg.badgeBorder} ${ratingCfg.badgeText}`}>
+                              <span className="font-bold">{ratingCfg.kaomoji}</span>
+                              <span>{ratingCfg.label}</span>
+                            </span>
+                          )}
+                          {gradeCfg && GradeIcon && (
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${gradeCfg.badgeBg} ${gradeCfg.badgeBorder} ${gradeCfg.badgeText}`}>
+                              <GradeIcon className="w-3 h-3" />
+                              <span>{gradeCfg.label}</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -1116,22 +1126,23 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
           {/* General Discussion / Threaded Comments */}
           <div className="flex flex-col gap-2.5">
             <div className="flex items-center justify-between px-1">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <h3 className="ds-label flex items-center gap-1.5">
                 <MessageSquare className="w-3.5 h-3.5" />
-                Discussion ({boulderComments.length})
+                <span className="tabular-nums">Discussion ({boulderComments.length})</span>
               </h3>
             </div>
 
             {/* Comments List */}
             <div className="space-y-2.5">
               {boulderComments.length === 0 ? (
-                <p className="text-xs text-slate-400 italic py-2 px-1">
-                  No comments yet. Share your thoughts, beta, or crux advice!
+                <p className="text-xs text-slate-400 py-2 px-1">
+                  No comments yet.
                 </p>
               ) : (
                 boulderComments.map((comment) => {
                   const author = climbers.find(c => c.id === comment.user_id);
                   const isCurrent = comment.user_id === currentUserId;
+                  const isDeletingComment = deletingCommentId === comment.id;
 
                   return (
                     <div
@@ -1140,10 +1151,10 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                         backgroundColor: `${author?.accent_color || activeColor}12`,
                         borderColor: `${author?.accent_color || activeColor}30`
                       } : undefined}
-                      className={`p-3.5 rounded-2xl border text-xs flex items-start gap-3 ${
+                      className={`p-3.5 rounded-lg border text-xs flex items-start gap-3 ${
                         isCurrent
                           ? ''
-                          : 'bg-slate-850/60 border-slate-800/80'
+                          : 'bg-surface-elevated border-white/[0.07]'
                       }`}
                     >
                       <ClimberAvatar profile={author || comment.profile} size="xs" />
@@ -1156,21 +1167,27 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                             {author?.display_name || comment.profile?.display_name || 'Climber'}
                           </span>
                           <div className="flex items-center gap-1.5">
-                            <span className="text-slate-400">
+                            <span className="text-slate-400 tabular-nums">
                               {new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                             {isCurrent && onDeleteComment && (
                               <button
                                 type="button"
-                                onClick={() => {
+                                disabled={isDeletingComment}
+                                onClick={async () => {
                                   if (window.confirm('Delete this comment?')) {
-                                    onDeleteComment(comment.id);
+                                    setDeletingCommentId(comment.id);
+                                    try {
+                                      await onDeleteComment(comment.id);
+                                    } finally {
+                                      setDeletingCommentId(null);
+                                    }
                                   }
                                 }}
-                                className="p-1 rounded-full text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors"
+                                className="p-1 rounded-full text-slate-400 hover:text-rose-400 hover:bg-surface-high transition-colors disabled:opacity-50"
                                 title="Delete comment"
                               >
-                                <Trash2 className="w-3 h-3" />
+                                {isDeletingComment ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
                               </button>
                             )}
                           </div>
@@ -1189,16 +1206,21 @@ export const BoulderDetailModal: React.FC<BoulderDetailModalProps> = ({
                 type="text"
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Write a comment, beta, or reaction..."
-                className="flex-1 bg-slate-900 border border-slate-700/80 text-slate-100 placeholder:text-slate-500 text-xs rounded-full px-4 py-2.5 outline-none focus:border-slate-500 transition-colors"
+                placeholder="Write a comment or beta note..."
+                className="flex-1 ds-input text-xs rounded-full px-4 py-2.5"
               />
               <button
                 type="submit"
                 disabled={!newComment.trim() || submittingComment}
                 style={{ backgroundColor: activeColor, color: '#000000' }}
-                className="p-2.5 rounded-full active-press transition-colors disabled:opacity-40 shadow-sm"
+                className="p-2.5 rounded-full active-press transition-colors disabled:opacity-40 shadow-sm flex items-center justify-center"
+                aria-label="Send comment"
               >
-                <Send className="w-4 h-4" />
+                {submittingComment ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4 -translate-x-[0.5px] translate-y-[0.5px]" />
+                )}
               </button>
             </form>
           </div>

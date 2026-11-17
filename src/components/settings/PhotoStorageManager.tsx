@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Boulder, GymArea } from '../../types';
 import { useGym } from '../../context/GymContext';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
-import { HardDrive, Trash2, Check, AlertCircle, Info, Sparkles, RefreshCw, Eye, Image as ImageIcon, X } from 'lucide-react';
+import { HardDrive, Trash2, Check, AlertCircle, Sparkles, RefreshCw, Eye, Image as ImageIcon, X, Loader2 } from 'lucide-react';
 import { HoldSwatch } from '../boulders/HoldSwatch';
 
 interface PhotoStorageManagerProps {
@@ -21,6 +21,7 @@ export const PhotoStorageManager: React.FC<PhotoStorageManagerProps> = ({
 
   const [pruningDays, setPruningDays] = useState<number>(0); // 0 = all archived
   const [isPruning, setIsPruning] = useState<boolean>(false);
+  const [removingAreaId, setRemovingAreaId] = useState<string | null>(null);
   const [pruneResult, setPruneResult] = useState<string | null>(null);
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
 
@@ -171,7 +172,9 @@ export const PhotoStorageManager: React.FC<PhotoStorageManagerProps> = ({
   };
 
   const handleRemoveWallPhoto = async (areaId: string, areaName: string) => {
+    if (removingAreaId) return;
     if (!window.confirm(`Remove panorama photo for "${areaName}"?`)) return;
+    setRemovingAreaId(areaId);
     try {
       await removeAreaPhoto(areaId);
       setPruneResult(`Removed photo for ${areaName}`);
@@ -180,22 +183,19 @@ export const PhotoStorageManager: React.FC<PhotoStorageManagerProps> = ({
     } catch (e: any) {
       setErrorStatus(e?.message || 'Failed to remove wall photo');
       setTimeout(() => setErrorStatus(null), 3000);
+    } finally {
+      setRemovingAreaId(null);
     }
   };
 
   return (
-    <div className="flex flex-col gap-3 pt-3 border-t border-slate-800/80">
+    <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <HardDrive className="w-4 h-4 text-cyan-400" />
-            <label className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-              Photo Storage &amp; Quota Manager
-            </label>
-          </div>
-          <p className="text-[11px] text-slate-400 mt-0.5">
-            Manage wall panorama and climb photos across Supabase Storage and offline cache.
-          </p>
+        <div className="flex items-center gap-2">
+          <HardDrive className="w-4 h-4 text-sky-400" />
+          <label className="ds-label">
+            Photo Storage &amp; Quota
+          </label>
         </div>
         {isSupabaseConfigured && (
           <button
@@ -203,102 +203,98 @@ export const PhotoStorageManager: React.FC<PhotoStorageManagerProps> = ({
             onClick={fetchLiveStorageStats}
             disabled={isQueryingBucket}
             title="Refresh live storage metrics from Supabase bucket"
-            className="p-1.5 rounded-lg bg-slate-800/70 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors border border-slate-700/60 disabled:opacity-50"
+            className="p-1.5 rounded-lg bg-surface-elevated hover:bg-surface-high text-slate-300 hover:text-white transition-colors border border-white/[0.08] disabled:opacity-50"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isQueryingBucket ? 'animate-spin text-cyan-400' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isQueryingBucket ? 'animate-spin text-sky-400' : ''}`} />
           </button>
         )}
       </div>
 
       {pruneResult && (
-        <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold flex items-center gap-2 animate-in fade-in">
+        <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold flex items-center gap-2 animate-in fade-in">
           <Check className="w-4 h-4 shrink-0" />
           <span>{pruneResult}</span>
         </div>
       )}
 
       {errorStatus && (
-        <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold flex items-center gap-2 animate-in fade-in">
+        <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold flex items-center gap-2 animate-in fade-in">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{errorStatus}</span>
         </div>
       )}
 
       {/* Storage Quota Card */}
-      <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 flex flex-col gap-3">
+      <div className="p-3.5 rounded-lg bg-carbon border border-white/[0.07] flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
-            <span className="text-xs font-bold text-slate-200">Supabase Free Storage</span>
-            <span className="text-[11px] text-slate-400">
+            <span className="text-xs font-bold text-slate-200">Supabase Storage</span>
+            <span className="text-[11px] text-slate-400 tabular-nums">
               ~{formatBytes(totalUsedBytes)} used of 1.0 GB limit
             </span>
           </div>
-          <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-slate-800 text-cyan-300 border border-cyan-500/30">
+          <span className="font-mono tabular-nums text-xs font-bold text-sky-300">
             {percentUsed < 0.1 ? '<0.1%' : `${percentUsed.toFixed(1)}%`}
           </span>
         </div>
 
         {/* Progress Bar */}
-        <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden flex">
+        <div className="w-full h-2 bg-surface-high rounded-full overflow-hidden flex">
           <div
-            className="h-full bg-cyan-400 transition-all duration-500 rounded-full"
+            className="h-full bg-sky-400 transition-all duration-500 rounded-full"
             style={{ width: `${Math.max(percentUsed, 1.5)}%` }}
           />
         </div>
 
         {/* Metrics Grid */}
         <div className="grid grid-cols-4 gap-2 pt-1">
-          <div className="p-2 rounded-xl bg-slate-900 border border-slate-800/80 text-center">
+          <div className="p-2 rounded-md bg-surface border border-white/[0.07] text-center">
             <span className="text-[10px] text-slate-400 block truncate">Total</span>
-            <span className="text-sm font-bold font-mono text-white">{totalPhotosCount}</span>
+            <span className="text-sm font-bold font-mono tabular-nums text-white">{totalPhotosCount}</span>
           </div>
-          <div className="p-2 rounded-xl bg-slate-900 border border-slate-800/80 text-center">
+          <div className="p-2 rounded-md bg-surface border border-white/[0.07] text-center">
             <span className="text-[10px] text-slate-400 block truncate">Wall Photos</span>
-            <span className="text-sm font-bold font-mono text-cyan-400">{totalWallPhotosCount}</span>
+            <span className="text-sm font-bold font-mono tabular-nums text-sky-400">{totalWallPhotosCount}</span>
           </div>
-          <div className="p-2 rounded-xl bg-slate-900 border border-slate-800/80 text-center">
+          <div className="p-2 rounded-md bg-surface border border-white/[0.07] text-center">
             <span className="text-[10px] text-slate-400 block truncate">Active Climbs</span>
-            <span className="text-sm font-bold font-mono text-emerald-400">{activeClimbsWithPhotos.length}</span>
+            <span className="text-sm font-bold font-mono tabular-nums text-emerald-400">{activeClimbsWithPhotos.length}</span>
           </div>
-          <div className="p-2 rounded-xl bg-slate-900 border border-slate-800/80 text-center">
+          <div className="p-2 rounded-md bg-surface border border-white/[0.07] text-center">
             <span className="text-[10px] text-slate-400 block truncate">Archived</span>
-            <span className="text-sm font-bold font-mono text-amber-400">{archivedClimbsWithPhotos.length}</span>
+            <span className="text-sm font-bold font-mono tabular-nums text-amber-400">{archivedClimbsWithPhotos.length}</span>
           </div>
-        </div>
-
-        {/* Viability Note */}
-        <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-[11px] text-slate-400 flex items-start gap-2">
-          <Info className="w-3.5 h-3.5 text-cyan-400 shrink-0 mt-0.5" />
-          <span>
-            Wham compresses every climb and wall photo client-side to preserve storage. The Supabase 1 GB free tier easily fits <strong className="text-slate-300">~9,000 photos</strong> (approx. 8–10 years of weekly gym resets).
-          </span>
         </div>
       </div>
 
       {/* Uploaded Photos Assets Breakdown */}
       {(wallPhotos.length > 0 || climbsWithPhotos.length > 0) && (
-        <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 flex flex-col gap-2.5">
+        <div className="p-3.5 rounded-lg bg-carbon border border-white/[0.07] flex flex-col gap-2.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
-              <ImageIcon className="w-3.5 h-3.5 text-cyan-400" />
-              <h4 className="text-xs font-bold text-slate-200">Active Photo Assets ({wallPhotos.length + climbsWithPhotos.length})</h4>
+              <ImageIcon className="w-3.5 h-3.5 text-sky-400" />
+              <h4 className="text-xs font-bold text-slate-200 tabular-nums">
+                Active Photo Assets ({wallPhotos.length + climbsWithPhotos.length})
+              </h4>
             </div>
-            <span className="text-[10px] text-slate-400 font-mono">
+            <span className="text-[10px] text-slate-400 tabular-nums">
               {wallPhotos.length} wall • {climbsWithPhotos.length} climb
             </span>
           </div>
 
           <div className="flex flex-col gap-2 pt-1 max-h-56 overflow-y-auto pr-1">
             {/* Wall Panorama Photos */}
-            {wallPhotos.map((area) => (
+            {wallPhotos.map((area) => {
+              const isRemovingArea = removingAreaId === area.id;
+              return (
               <div
                 key={`area-${area.id}`}
-                className="flex items-center justify-between p-2 rounded-xl bg-slate-900 border border-slate-800/80 text-xs"
+                className="flex items-center justify-between p-2 rounded-md bg-surface border border-white/[0.07] text-xs"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div
                     onClick={() => setPreviewPhoto({ title: `${area.name} (Wall Panorama)`, url: area.image_url! })}
-                    className="w-10 h-10 rounded-lg overflow-hidden bg-slate-800 border border-slate-700 shrink-0 cursor-pointer group relative"
+                    className="w-10 h-10 rounded overflow-hidden bg-surface-high border border-white/[0.1] shrink-0 cursor-pointer group relative"
                   >
                     <img src={area.image_url!} alt={area.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                     <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
@@ -307,8 +303,8 @@ export const PhotoStorageManager: React.FC<PhotoStorageManagerProps> = ({
                   </div>
                   <div className="flex flex-col min-w-0">
                     <span className="font-bold text-slate-200 text-xs truncate">{area.name}</span>
-                    <span className="text-[10px] text-cyan-400 flex items-center gap-1">
-                      <span>Wall Panorama</span>
+                    <span className="text-[10px] text-sky-400">
+                      Wall Panorama
                     </span>
                   </div>
                 </div>
@@ -317,22 +313,24 @@ export const PhotoStorageManager: React.FC<PhotoStorageManagerProps> = ({
                   <button
                     type="button"
                     onClick={() => setPreviewPhoto({ title: `${area.name} (Wall Panorama)`, url: area.image_url! })}
-                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                    className="p-1.5 rounded bg-surface-elevated hover:bg-surface-high text-slate-300 hover:text-white transition-colors"
                     title="View photo"
                   >
                     <Eye className="w-3 h-3" />
                   </button>
                   <button
                     type="button"
+                    disabled={Boolean(removingAreaId)}
                     onClick={() => handleRemoveWallPhoto(area.id, area.name)}
-                    className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-colors"
+                    className="p-1.5 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-colors disabled:opacity-50"
                     title="Remove wall photo"
                   >
-                    <Trash2 className="w-3 h-3" />
+                    {isRemovingArea ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
                   </button>
                 </div>
               </div>
-            ))}
+              );
+            })}
 
             {/* Climb Photos */}
             {climbsWithPhotos.slice(0, 10).map((boulder) => {
@@ -340,12 +338,12 @@ export const PhotoStorageManager: React.FC<PhotoStorageManagerProps> = ({
               return (
                 <div
                   key={`boulder-${boulder.id}`}
-                  className="flex items-center justify-between p-2 rounded-xl bg-slate-900 border border-slate-800/80 text-xs"
+                  className="flex items-center justify-between p-2 rounded-md bg-surface border border-white/[0.07] text-xs"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div
                       onClick={() => setPreviewPhoto({ title: `${boulder.hold_colour} ${boulder.grade} (${area?.name || 'Climb'})`, url: boulder.image_url! })}
-                      className="w-10 h-10 rounded-lg overflow-hidden bg-slate-800 border border-slate-700 shrink-0 cursor-pointer group relative"
+                      className="w-10 h-10 rounded overflow-hidden bg-surface-high border border-white/[0.1] shrink-0 cursor-pointer group relative"
                     >
                       <img src={boulder.image_url!} alt={boulder.grade} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                       <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
@@ -355,7 +353,7 @@ export const PhotoStorageManager: React.FC<PhotoStorageManagerProps> = ({
                     <div className="flex flex-col min-w-0">
                       <div className="flex items-center gap-1.5">
                         <HoldSwatch color={boulder.hold_colour} size="xs" />
-                        <span className="font-bold text-white text-xs font-mono">{boulder.grade}</span>
+                        <span className="font-bold text-white text-xs font-mono tabular-nums">{boulder.grade}</span>
                         <span className="text-[10px] text-slate-400 truncate">• {boulder.hold_colour}</span>
                       </div>
                       <span className="text-[10px] text-slate-400 truncate">
@@ -367,7 +365,7 @@ export const PhotoStorageManager: React.FC<PhotoStorageManagerProps> = ({
                   <button
                     type="button"
                     onClick={() => setPreviewPhoto({ title: `${boulder.hold_colour} ${boulder.grade} (${area?.name || 'Climb'})`, url: boulder.image_url! })}
-                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                    className="p-1.5 rounded bg-surface-elevated hover:bg-surface-high text-slate-300 hover:text-white transition-colors"
                     title="View photo"
                   >
                     <Eye className="w-3 h-3" />
@@ -377,7 +375,7 @@ export const PhotoStorageManager: React.FC<PhotoStorageManagerProps> = ({
             })}
 
             {climbsWithPhotos.length > 10 && (
-              <p className="text-[10px] text-slate-500 italic text-center py-1">
+              <p className="text-[11px] text-slate-400 text-center py-1 tabular-nums">
                 + {climbsWithPhotos.length - 10} more climbs with photos
               </p>
             )}
@@ -386,8 +384,8 @@ export const PhotoStorageManager: React.FC<PhotoStorageManagerProps> = ({
       )}
 
       {/* Prune Archived Photos Action */}
-      <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 flex flex-col gap-3">
-        <div className="flex items-center justify-between">
+      <div className="p-3.5 rounded-lg bg-carbon border border-white/[0.07] flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-2">
           <div>
             <h4 className="text-xs font-bold text-slate-200">Prune Old Archived Photos</h4>
             <p className="text-[11px] text-slate-400">
@@ -395,8 +393,8 @@ export const PhotoStorageManager: React.FC<PhotoStorageManagerProps> = ({
             </p>
           </div>
           {archivedClimbsWithPhotos.length > 0 && (
-            <span className="text-[10px] font-mono text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/20">
-              ~{formatBytes(archivedUsedBytes)} recoverable
+            <span className="text-[11px] font-mono tabular-nums font-semibold text-amber-400 shrink-0">
+              ~{formatBytes(archivedUsedBytes)}
             </span>
           )}
         </div>
@@ -406,10 +404,10 @@ export const PhotoStorageManager: React.FC<PhotoStorageManagerProps> = ({
           <button
             type="button"
             onClick={() => setPruningDays(0)}
-            className={`py-1.5 px-2 rounded-xl text-xs font-bold transition-all border ${
+            className={`py-1.5 px-2 rounded-md text-xs font-bold transition-colors border ${
               pruningDays === 0
-                ? 'bg-slate-800 text-white border-amber-400/60 ring-1 ring-amber-400/40'
-                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                ? 'bg-surface-high text-white border-amber-400/60'
+                : 'bg-surface border-white/[0.07] text-slate-400 hover:text-slate-200'
             }`}
           >
             All Archived
@@ -417,10 +415,10 @@ export const PhotoStorageManager: React.FC<PhotoStorageManagerProps> = ({
           <button
             type="button"
             onClick={() => setPruningDays(30)}
-            className={`py-1.5 px-2 rounded-xl text-xs font-bold transition-all border ${
+            className={`py-1.5 px-2 rounded-md text-xs font-bold transition-colors border tabular-nums ${
               pruningDays === 30
-                ? 'bg-slate-800 text-white border-amber-400/60 ring-1 ring-amber-400/40'
-                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                ? 'bg-surface-high text-white border-amber-400/60'
+                : 'bg-surface border-white/[0.07] text-slate-400 hover:text-slate-200'
             }`}
           >
             &gt; 30 Days Old
@@ -428,10 +426,10 @@ export const PhotoStorageManager: React.FC<PhotoStorageManagerProps> = ({
           <button
             type="button"
             onClick={() => setPruningDays(60)}
-            className={`py-1.5 px-2 rounded-xl text-xs font-bold transition-all border ${
+            className={`py-1.5 px-2 rounded-md text-xs font-bold transition-colors border tabular-nums ${
               pruningDays === 60
-                ? 'bg-slate-800 text-white border-amber-400/60 ring-1 ring-amber-400/40'
-                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                ? 'bg-surface-high text-white border-amber-400/60'
+                : 'bg-surface border-white/[0.07] text-slate-400 hover:text-slate-200'
             }`}
           >
             &gt; 60 Days Old
@@ -443,12 +441,12 @@ export const PhotoStorageManager: React.FC<PhotoStorageManagerProps> = ({
           type="button"
           onClick={handlePrune}
           disabled={isPruning || matchingArchivedPhotos.length === 0}
-          className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-2 active-press transition-colors shadow-sm"
+          className="w-full py-2.5 px-4 rounded-md text-xs font-bold bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 disabled:opacity-35 disabled:pointer-events-none flex items-center justify-center gap-2 active-press transition-colors tabular-nums"
         >
-          <Trash2 className="w-3.5 h-3.5" />
+          {isPruning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
           <span>
             {isPruning
-              ? 'Pruning photos...'
+              ? 'Pruning photos…'
               : matchingArchivedPhotos.length === 0
               ? 'No matching archived photos to prune'
               : `Prune ${matchingArchivedPhotos.length} archived photos (~${formatBytes(
@@ -458,7 +456,7 @@ export const PhotoStorageManager: React.FC<PhotoStorageManagerProps> = ({
         </button>
 
         {/* Auto-Prune Toggle */}
-        <div className="flex items-center justify-between pt-1 border-t border-slate-800/80">
+        <div className="flex items-center justify-between pt-1 border-t border-white/[0.07]">
           <div className="flex items-center gap-2">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             <span className="text-xs text-slate-300 font-medium">Auto-prune photos on reset</span>
@@ -467,7 +465,7 @@ export const PhotoStorageManager: React.FC<PhotoStorageManagerProps> = ({
             type="button"
             onClick={handleToggleAutoPrune}
             className={`w-9 h-5 rounded-full transition-colors relative ${
-              autoPruneEnabled ? 'bg-cyan-500' : 'bg-slate-800'
+              autoPruneEnabled ? 'bg-sky-500' : 'bg-surface-high'
             }`}
           >
             <div
@@ -487,9 +485,9 @@ export const PhotoStorageManager: React.FC<PhotoStorageManagerProps> = ({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative max-w-lg w-full bg-slate-900 rounded-2xl overflow-hidden border border-slate-700 shadow-2xl flex flex-col"
+            className="relative max-w-lg w-full bg-surface rounded-2xl overflow-hidden border border-white/[0.1] shadow-2xl flex flex-col"
           >
-            <div className="flex items-center justify-between p-3 border-b border-slate-800 bg-slate-950/80">
+            <div className="flex items-center justify-between p-3 border-b border-white/[0.08] bg-carbon/80">
               <span className="text-xs font-bold text-white truncate">{previewPhoto.title}</span>
               <button
                 type="button"

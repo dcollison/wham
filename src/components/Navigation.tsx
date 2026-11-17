@@ -60,13 +60,13 @@ export const Navigation: React.FC<NavigationProps> = ({
               >
                 <Icon
                   className={`w-5 h-5 transition-transform duration-200 ${
-                    isActive ? 'stroke-[2.5] scale-105' : 'stroke-[1.8] text-slate-400 group-hover:text-slate-200'
+                    isActive ? 'stroke-[2.25] scale-105' : 'stroke-[1.8] text-slate-400 group-hover:text-slate-200'
                   }`}
                   style={isActive ? { color: activeColor } : undefined}
                 />
                 {Boolean(tab.badge && tab.badge > 0) && (
                   <span
-                    className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 text-slate-950 text-[10px] font-mono font-black rounded-full flex items-center justify-center shadow-md animate-pulse"
+                    className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 text-slate-950 text-[10px] font-bold tabular-nums rounded-full flex items-center justify-center shadow-md animate-pop"
                     style={{ backgroundColor: activeColor }}
                   >
                     {tab.badge}
@@ -74,8 +74,8 @@ export const Navigation: React.FC<NavigationProps> = ({
                 )}
               </div>
               <span
-                className={`text-[10px] mt-1 tracking-tight font-heading transition-colors duration-150 uppercase ${
-                  isActive ? 'font-bold text-white' : 'font-medium text-slate-400 group-hover:text-slate-300'
+                className={`text-[11px] mt-1 leading-none tracking-tight transition-colors duration-150 ${
+                  isActive ? 'font-bold text-white' : 'font-medium text-slate-400 group-hover:text-slate-200'
                 }`}
                 style={isActive ? { color: activeColor } : undefined}
               >

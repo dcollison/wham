@@ -71,38 +71,32 @@ export const CompWallBanner: React.FC<CompWallBannerProps> = ({
   return (
     <div
       style={{
-        borderColor: `${activeColor}40`,
-        boxShadow: `0 4px 20px -2px ${activeColor}15`
+        borderColor: `${activeColor}45`
       }}
-      className="bg-slate-900/90 border rounded-2xl overflow-hidden transition-all shadow-md"
+      className="bg-surface border rounded-3xl overflow-hidden transition-all shadow-md"
     >
       {/* Top Banner Header */}
       <div className="p-3.5 sm:p-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <div
             style={{ backgroundColor: activeColor }}
-            className="w-9 h-9 rounded-xl text-black flex items-center justify-center font-black shrink-0 shadow-md"
+            className="w-9 h-9 rounded-lg text-black flex items-center justify-center font-black shrink-0 shadow-sm"
           >
             <Trophy className="w-5 h-5 text-slate-950 stroke-[2.5]" />
           </div>
 
           <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-black text-white tracking-tight font-heading flex items-center gap-1.5">
-                <span>{area.name} Comp</span>
-              </span>
-              <span className="text-[10px] px-2 py-0.5 font-mono font-bold rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                {isWinterArea ? '3 / 2 / 1 comp pts' : '10 / 7 / 4 festival pts'}
-              </span>
-            </div>
+            <span className="text-sm font-extrabold text-white tracking-tight block">
+              {area.name} Comp
+            </span>
 
-            <div className="text-xs text-slate-400 mt-0.5 flex items-center gap-2 truncate">
-              <span>{activeCompBoulders.length} problems (#1–#{activeCompBoulders.length})</span>
+            <div className="text-xs text-slate-400 mt-0.5 flex items-center gap-2 truncate tabular-nums">
+              <span>{activeCompBoulders.length} problems</span>
               {hasAnySends && leader && (
                 <>
-                  <span className="text-slate-600">•</span>
+                  <span className="text-slate-400">•</span>
                   <span className="truncate text-slate-300">
-                    <strong className="text-amber-400">{leader.climber.display_name}</strong> leading with {leader.totalPoints} pts
+                    <strong className="text-amber-300">{leader.climber.display_name}</strong> leading ({leader.totalPoints} pts)
                   </span>
                 </>
               )}
@@ -114,7 +108,7 @@ export const CompWallBanner: React.FC<CompWallBannerProps> = ({
         <button
           type="button"
           onClick={() => setIsMatrixOpen((prev) => !prev)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700/80 text-xs font-semibold active-press transition-colors shrink-0 shadow-xs"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-elevated hover:bg-surface-high text-slate-200 border border-white/[0.1] text-xs font-semibold active-press transition-colors shrink-0 shadow-xs"
         >
           <span>Matrix</span>
           {isMatrixOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
@@ -122,39 +116,30 @@ export const CompWallBanner: React.FC<CompWallBannerProps> = ({
       </div>
 
       {/* Podium Grid */}
-      <div className="px-3.5 pb-3.5 sm:px-4 sm:pb-4 border-t border-slate-800/80 pt-3">
+      <div className="px-3 pb-3 sm:px-4 sm:pb-4 border-t border-white/[0.06] pt-3">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {standings.map((standing) => {
             const isMe = standing.climber.id === currentUserId;
-            const climberColor = standing.climber.accent_color || activeColor;
 
             return (
               <div
                 key={standing.climber.id}
-                className={`p-2.5 rounded-xl border flex flex-col gap-1.5 transition-all ${
+                className={`p-2.5 rounded-lg border flex flex-col gap-1.5 transition-all ${
                   isMe
-                    ? 'bg-slate-850/90 border-amber-500/40 shadow-xs'
-                    : 'bg-slate-950/60 border-slate-800'
+                    ? 'bg-surface-elevated border-amber-500/40 shadow-xs'
+                    : 'bg-carbon/70 border-white/[0.07]'
                 }`}
               >
                 <div className="flex items-center justify-between gap-1.5">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-xs shrink-0 select-none">
+                    <span className="text-xs font-mono tabular-nums text-slate-300 shrink-0 select-none">
                       {getRankBadge(standing.rank)}
                     </span>
                     <ClimberAvatar profile={standing.climber} size="xs" />
-                    <span className="text-xs font-bold text-slate-200 truncate">
+                    <span className="text-xs font-bold text-slate-100 truncate">
                       {standing.climber.display_name}
                     </span>
                   </div>
-                  {isMe && (
-                    <span
-                      style={{ color: climberColor }}
-                      className="text-[9px] font-mono font-bold uppercase shrink-0"
-                    >
-                      You
-                    </span>
-                  )}
                 </div>
 
                 <div className="flex items-baseline justify-between pt-0.5">
@@ -180,23 +165,23 @@ export const CompWallBanner: React.FC<CompWallBannerProps> = ({
 
       {/* Expandable Scorecard Matrix Grid */}
       {isMatrixOpen && (
-        <div className="border-t border-slate-800 bg-slate-950/80 p-3 sm:p-4 flex flex-col gap-3 animate-in fade-in duration-200">
+        <div className="border-t border-white/[0.08] bg-carbon/80 p-3 sm:p-4 flex flex-col gap-3 animate-fadeIn">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+            <span className="ds-label flex items-center gap-1.5">
               <Award className="w-4 h-4 text-amber-400" />
-              <span>Full Problem Scorecard Matrix</span>
+              <span>Problem Scorecard</span>
             </span>
-            <span className="text-[11px] text-slate-400 font-mono">
-              Tap cell to log for crew
+            <span className="text-xs text-slate-400">
+              Tap cell to log
             </span>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-800">
+          <div className="overflow-x-auto rounded-lg border border-white/[0.08]">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="bg-slate-900 border-b border-slate-800 text-slate-400 font-mono text-[11px]">
-                  <th className="py-2.5 px-3 font-semibold text-slate-300">#</th>
-                  <th className="py-2.5 px-3 font-semibold text-slate-300">Hold</th>
+                <tr className="bg-surface border-b border-white/[0.08] text-slate-300 text-xs">
+                  <th className="py-2.5 px-3 font-mono font-semibold text-slate-200">#</th>
+                  <th className="py-2.5 px-3 font-semibold text-slate-200">Hold</th>
                   {climbers.map((climber) => (
                     <th key={climber.id} className="py-2.5 px-3 text-center font-semibold">
                       <div className="flex items-center justify-center gap-1">
@@ -210,15 +195,15 @@ export const CompWallBanner: React.FC<CompWallBannerProps> = ({
                   <th className="py-2.5 px-3 text-right">Details</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-850">
+              <tbody className="divide-y divide-white/[0.06]">
                 {scorecard.map((item) => {
                   return (
                     <tr
                       key={item.boulder.id}
-                      className="hover:bg-slate-900/50 transition-colors"
+                      className="hover:bg-surface/60 transition-colors"
                     >
                       {/* Comp Number */}
-                      <td className="py-2 px-3 font-mono font-bold text-amber-400 whitespace-nowrap">
+                      <td className="py-2 px-3 font-mono tabular-nums font-bold text-amber-400 whitespace-nowrap">
                         #{item.compNumber}
                       </td>
 
@@ -226,7 +211,7 @@ export const CompWallBanner: React.FC<CompWallBannerProps> = ({
                       <td className="py-2 px-3 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <HoldSwatch color={item.boulder.hold_colour} size="sm" />
-                          <span className="text-slate-300 text-xs font-medium">
+                          <span className="text-slate-200 text-xs font-medium">
                             {item.boulder.hold_colour}
                           </span>
                         </div>
@@ -243,32 +228,32 @@ export const CompWallBanner: React.FC<CompWallBannerProps> = ({
                           <td
                             key={climber.id}
                             onClick={() => onQuickLog(item.boulder, climber.id)}
-                            className="py-2 px-2 text-center cursor-pointer hover:bg-slate-800/60 transition-colors"
+                            className="py-2 px-2 text-center cursor-pointer hover:bg-surface-elevated transition-colors"
                             title={`Log attempt on #${item.compNumber} for ${climber.display_name}`}
                           >
                             {isFlash ? (
-                              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md font-mono font-bold text-[11px] bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md font-mono tabular-nums font-bold text-[11px] bg-amber-500/20 text-amber-300 border border-amber-500/40">
                                 <Zap className="w-2.5 h-2.5 fill-current" />
                                 <span>{isWinterArea ? '3' : '10'}</span>
                               </span>
                             ) : isSent ? (
-                              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md font-mono font-bold text-[11px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                                <Check className="w-2.5 h-2.5 stroke-[3]" />
+                              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md font-mono tabular-nums font-bold text-[11px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                                <Check className="w-2.5 h-2.5 stroke-[2.5]" />
                                 <span>{isWinterArea ? '2' : att.points}</span>
                               </span>
                             ) : isAttempted ? (
                               isWinterArea ? (
-                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md font-mono font-bold text-[10px] bg-sky-500/15 text-sky-300 border border-sky-500/30">
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md font-mono tabular-nums font-bold text-[10px] bg-sky-500/15 text-sky-300 border border-sky-500/30">
                                   <span>Z·1</span>
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md font-mono text-[10px] bg-blue-500/15 text-blue-300 border border-blue-500/30">
-                                  <Clock className="w-2.5 h-2.5" />
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md font-mono tabular-nums text-[10px] bg-sky-500/15 text-sky-300 border border-sky-500/30">
+                                  <Clock className="w-2.5 h-2.5 stroke-[2.5]" />
                                   <span>{att.attemptCount}t</span>
                                 </span>
                               )
                             ) : (
-                              <span className="text-slate-600 font-mono text-[11px]">-</span>
+                              <span className="text-slate-400 font-mono text-[11px]">–</span>
                             )}
                           </td>
                         );
@@ -279,7 +264,7 @@ export const CompWallBanner: React.FC<CompWallBannerProps> = ({
                         <button
                           type="button"
                           onClick={() => onOpenDetails(item.boulder)}
-                          className="text-[11px] font-semibold text-slate-400 hover:text-white px-2 py-1 rounded-lg hover:bg-slate-800 transition-colors"
+                          className="text-xs font-semibold text-slate-300 hover:text-white px-2 py-1 rounded-lg hover:bg-surface-high transition-colors"
                         >
                           View
                         </button>

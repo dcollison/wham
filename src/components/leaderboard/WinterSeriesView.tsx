@@ -18,7 +18,6 @@ import {
   ExternalLink,
   Calendar,
   MapPin,
-  Sparkles,
   Target,
   Users,
   LayoutGrid,
@@ -26,7 +25,9 @@ import {
   ChevronRight,
   Lock,
   Flame,
-  TrendingUp
+  TrendingUp,
+  Clock,
+  Loader2
 } from 'lucide-react';
 
 const COMP_WALL_MAX_BOULDERS = 25;
@@ -86,6 +87,7 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
   const [scoreFilter, setScoreFilter] = useState<ScoreFilter>('all');
   const [sheetLayout, setSheetLayout] = useState<SheetLayout>('list');
   const [unlockUpcomingPreview, setUnlockUpcomingPreview] = useState<boolean>(false);
+  const [pendingKey, setPendingKey] = useState<string | null>(null);
 
   const currentRound: WinterSeriesRoundWithStatus = useMemo(() => {
     const rNum = typeof selectedView === 'number' ? selectedView : 1;
@@ -210,17 +212,24 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
   ) => {
     const targetUserId = forUserId || activeClimber?.id;
     if (!targetUserId) return;
-    const existing = attemptLookup.get(boulder.id)?.get(targetUserId);
-    if (existing?.status === targetStatus) {
-      await onDeleteAttempt(boulder.id, targetUserId);
-    } else {
-      const attemptCount = targetStatus === 'flashed' ? 1 : targetStatus === 'sent' ? 2 : 1;
-      await onLogAttempt({
-        boulderId: boulder.id,
-        status: targetStatus,
-        attemptCount,
-        userId: targetUserId
-      });
+    const key = `${boulder.id}:${targetUserId}`;
+    if (pendingKey === key) return;
+    setPendingKey(key);
+    try {
+      const existing = attemptLookup.get(boulder.id)?.get(targetUserId);
+      if (existing?.status === targetStatus) {
+        await onDeleteAttempt(boulder.id, targetUserId);
+      } else {
+        const attemptCount = targetStatus === 'flashed' ? 1 : targetStatus === 'sent' ? 2 : 1;
+        await onLogAttempt({
+          boulderId: boulder.id,
+          status: targetStatus,
+          attemptCount,
+          userId: targetUserId
+        });
+      }
+    } finally {
+      setPendingKey(null);
     }
   };
 
@@ -228,29 +237,17 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
   const showScoreSheet = !isRoundUpcoming || unlockUpcomingPreview;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* 1. Hero Banner: Winter Boulder Series 2026/27 + Official Score Submission Link */}
-      <div className="bg-gradient-to-br from-amber-500/15 via-slate-900 to-slate-900 border border-amber-500/30 rounded-2xl p-4 shadow-lg relative overflow-hidden">
-        <div className="absolute -right-8 -top-8 w-36 h-36 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="bg-surface border border-amber-500/35 rounded-3xl p-4 sm:p-5 shadow-md">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono">
-                <Sparkles className="w-3 h-3 text-amber-400" />
-                Big Rock 2026/27
-              </span>
-              <span className="text-[11px] font-mono font-bold text-slate-300 bg-slate-950/70 px-2 py-0.5 rounded-md border border-slate-800">
-                4 Rounds × 25 Boulders
-              </span>
-            </div>
-
-            <h2 className="text-lg sm:text-xl font-black text-white tracking-tight font-heading mt-1.5">
+            <p className="text-xs font-semibold text-amber-300 tabular-nums">
+              Big Rock 2026/27 · 4 Rounds × 25 Boulders
+            </p>
+            <h2 className="text-lg sm:text-xl font-black text-white tracking-tight mt-0.5">
               Winter Boulder Series
             </h2>
-            <p className="text-xs text-slate-300 mt-0.5">
-              Track Flash, Top &amp; Zone across all 25 problems, see points left up for grabs, and compare with the crew.
-            </p>
           </div>
 
           <div className="flex flex-col sm:items-end gap-2 shrink-0">
@@ -258,31 +255,33 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
               href={WINTER_SERIES_FORM_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs tracking-wide transition-all shadow-md shadow-amber-500/20 active:scale-[0.98]"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs tracking-wide transition-all shadow-sm active-press"
             >
               <span>Submit Official Scores</span>
               <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
             </a>
-            <div className="flex items-center gap-1.5 text-[10px] font-mono font-bold">
-              <span className="px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                ⚡ Flash = 3pt
+            <div className="flex items-center gap-3 text-[11px] font-semibold tabular-nums text-slate-300">
+              <span className="inline-flex items-center gap-1 text-amber-300">
+                <Zap className="w-3 h-3 fill-current" />
+                <span>Flash 3</span>
               </span>
-              <span className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                ✓ Top = 2pt
+              <span className="inline-flex items-center gap-1 text-emerald-300">
+                <Check className="w-3 h-3 stroke-[2.5]" />
+                <span>Top 2</span>
               </span>
-              <span className="px-2 py-0.5 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30">
-                ◐ Zone = 1pt
+              <span className="inline-flex items-center gap-1 text-sky-300">
+                <Clock className="w-3 h-3 stroke-[2.5]" />
+                <span>Zone 1</span>
               </span>
             </div>
           </div>
         </div>
 
         {/* 2. Round Selector Pills (R1–R4 + Overall Series) */}
-        <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+        <div className="mt-4 pt-3 border-t border-white/[0.08] flex items-center gap-2 overflow-x-auto no-scrollbar">
           {roundsWithStatus.map(r => {
             const isSelected = selectedView === r.roundNumber;
             const isLive = r.status === 'active';
-            const isPast = r.status === 'completed';
 
             return (
               <button
@@ -292,34 +291,27 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                   setSelectedView(r.roundNumber);
                   setUnlockUpcomingPreview(false);
                 }}
-                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-left transition-all shrink-0 border ${
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-all shrink-0 border ${
                   isSelected
-                    ? 'bg-amber-500/20 border-amber-500/50 text-white shadow-sm'
+                    ? 'bg-amber-500/20 border-amber-500/50 text-white'
                     : isLive
-                    ? 'bg-slate-900/90 border-emerald-500/30 text-slate-200 hover:border-emerald-500/50'
-                    : 'bg-slate-950/60 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                    ? 'bg-surface-elevated border-emerald-500/35 text-slate-100 hover:border-emerald-500/60'
+                    : 'bg-carbon border-white/[0.08] text-slate-300 hover:text-white hover:border-white/[0.16]'
                 }`}
               >
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-black font-mono">
+                    <span className="text-xs font-bold tabular-nums">
                       R{r.roundNumber} · {r.gymName}
                     </span>
                     {isLive && (
-                      <span className="px-1.5 py-0.2 rounded-full text-[9px] font-mono font-black uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                        Active
-                      </span>
-                    )}
-                    {isPast && (
-                      <span className="px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold uppercase bg-slate-800 text-slate-400">
-                        Done
-                      </span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" title="Active round" />
                     )}
                     {r.status === 'upcoming' && (
-                      <Lock className="w-3 h-3 text-slate-500" />
+                      <Lock className="w-3 h-3 text-slate-400" />
                     )}
                   </div>
-                  <div className="text-[10px] font-mono text-slate-400 mt-0.5">
+                  <div className="text-[11px] text-slate-400 mt-0.5 tabular-nums">
                     {r.dateRangeLabel}
                   </div>
                 </div>
@@ -330,16 +322,16 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
           <button
             type="button"
             onClick={() => setSelectedView('overall')}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-left transition-all shrink-0 border ${
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-all shrink-0 border ${
               selectedView === 'overall'
                 ? 'bg-amber-500/20 border-amber-500/50 text-white shadow-sm'
-                : 'bg-slate-950/60 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                : 'bg-carbon border-white/[0.08] text-slate-300 hover:text-white hover:border-white/[0.16]'
             }`}
           >
             <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
             <div>
-              <div className="text-xs font-black font-mono">Series Total</div>
-              <div className="text-[10px] font-mono text-slate-400 mt-0.5">All 4 Rounds</div>
+              <div className="text-xs font-bold">Series Total</div>
+              <div className="text-[11px] text-slate-400 mt-0.5">All 4 Rounds</div>
             </div>
           </button>
         </div>
@@ -347,20 +339,13 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
 
       {/* OVERALL SERIES VIEW */}
       {selectedView === 'overall' ? (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-black uppercase tracking-wider text-white font-heading flex items-center gap-2">
-                <Trophy className="w-4 h-4 text-amber-400" />
-                Overall Winter Series Standings (Max 300 pts)
-              </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Cumulative score across Round 1 (Bond), Round 2 (Hub), Round 3 (Bond) &amp; Round 4 (Hub)
-              </p>
-            </div>
-          </div>
+        <div className="ds-card p-4 sm:p-5 space-y-4">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2 tabular-nums">
+            <Trophy className="w-4 h-4 text-amber-400" />
+            <span>Overall Standings (Max 300 pts)</span>
+          </h3>
 
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             {overallStandings.map((entry, idx) => {
               const leaderPts = overallStandings[0]?.totalPoints || 0;
               const diff = leaderPts - entry.totalPoints;
@@ -368,23 +353,23 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
               return (
                 <div
                   key={entry.climber.id}
-                  className={`p-3.5 rounded-xl border transition-all ${
+                  className={`p-3.5 rounded-lg border transition-all ${
                     idx === 0 && entry.totalPoints > 0
-                      ? 'bg-amber-500/10 border-amber-500/35'
-                      : 'bg-slate-950/60 border-slate-800/80'
+                      ? 'bg-amber-500/10 border-amber-500/40'
+                      : 'bg-carbon border-white/[0.08]'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <span
-                        className={`w-6 h-6 rounded-lg font-mono text-xs font-black flex items-center justify-center shrink-0 ${
+                        className={`w-6 h-6 rounded-md font-mono tabular-nums text-xs font-black flex items-center justify-center shrink-0 ${
                           idx === 0
                             ? 'bg-amber-500 text-slate-950'
                             : idx === 1
                             ? 'bg-slate-300 text-slate-950'
                             : idx === 2
                             ? 'bg-amber-700 text-white'
-                            : 'bg-slate-800 text-slate-400'
+                            : 'bg-surface-elevated text-slate-300'
                         }`}
                       >
                         {entry.rank}
@@ -394,7 +379,7 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                         <div className="text-sm font-bold text-white truncate">
                           {entry.climber.display_name}
                         </div>
-                        <div className="text-[11px] font-mono text-slate-400 flex items-center gap-2 flex-wrap">
+                        <div className="text-[11px] font-mono tabular-nums text-slate-400 flex items-center gap-2 flex-wrap">
                           <span className="text-amber-300">{entry.flashesCount}F</span>
                           <span>•</span>
                           <span className="text-emerald-300">
@@ -406,13 +391,13 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                       </div>
                     </div>
 
-                    <div className="text-right shrink-0">
-                      <div className="text-lg font-black font-mono text-amber-400">
+                    <div className="text-right shrink-0 tabular-nums">
+                      <div className="text-lg font-black font-mono text-amber-400 leading-none">
                         {entry.totalPoints}{' '}
-                        <span className="text-[10px] font-normal text-slate-400">pts</span>
+                        <span className="text-xs font-sans font-normal text-slate-400">pts</span>
                       </div>
                       {idx > 0 && diff > 0 && (
-                        <div className="text-[10px] font-mono text-slate-500">
+                        <div className="text-[11px] text-slate-400 mt-1">
                           -{diff} pt{diff === 1 ? '' : 's'} behind #1
                         </div>
                       )}
@@ -420,7 +405,7 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                   </div>
 
                   {/* Per-round breakdown */}
-                  <div className="grid grid-cols-4 gap-2 mt-3 pt-2.5 border-t border-slate-800/70">
+                  <div className="grid grid-cols-4 gap-2 mt-3">
                     {WINTER_SERIES_ROUNDS.map(rMeta => {
                       const rs = entry.roundScores[rMeta.roundNumber];
                       return (
@@ -428,13 +413,13 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                           key={rMeta.roundNumber}
                           type="button"
                           onClick={() => setSelectedView(rMeta.roundNumber)}
-                          className="bg-slate-900/90 hover:bg-slate-800/80 border border-slate-800 rounded-lg p-2 text-left transition-colors"
+                          className="bg-surface hover:bg-surface-elevated border border-white/[0.08] rounded-md p-2 text-left transition-colors"
                         >
-                          <div className="text-[10px] font-mono text-slate-400 flex items-center justify-between">
-                            <span>R{rMeta.roundNumber} ({rMeta.gymName})</span>
+                          <div className="text-[10px] text-slate-400 tabular-nums">
+                            R{rMeta.roundNumber} ({rMeta.gymName})
                           </div>
-                          <div className="text-xs font-black font-mono text-white mt-0.5">
-                            {rs?.points || 0} <span className="text-[10px] font-normal text-slate-500">/ 75</span>
+                          <div className="text-xs font-black font-mono tabular-nums text-white mt-0.5">
+                            {rs?.points || 0} <span className="text-[10px] font-normal text-slate-400">/ 75</span>
                           </div>
                         </button>
                       );
@@ -448,34 +433,34 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
       ) : (
         <>
           {/* Round Status Bar */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-xl px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <span className="inline-flex items-center gap-1 text-xs font-bold text-white font-heading">
+          <div className="bg-surface border border-white/[0.08] rounded-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-white">
                 <MapPin className="w-3.5 h-3.5 text-amber-400" />
                 {currentRound.fullName}
               </span>
-              <span className="inline-flex items-center gap-1 text-xs font-mono text-slate-400">
-                <Calendar className="w-3.5 h-3.5 text-slate-500" />
+              <span className="inline-flex items-center gap-1.5 text-xs text-slate-400 tabular-nums">
+                <Calendar className="w-3.5 h-3.5 text-slate-400" />
                 {currentRound.dateRangeLabel}
               </span>
             </div>
 
             <div className="flex items-center gap-2">
               {currentRound.status === 'active' && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                  <Flame className="w-3 h-3 text-emerald-400" />
-                  Active Round • {currentRound.daysRemaining}d left
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-300 tabular-nums">
+                  <Flame className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Active • {currentRound.daysRemaining}d left</span>
                 </span>
               )}
               {currentRound.status === 'upcoming' && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-slate-800 text-slate-300 border border-slate-700">
-                  <Lock className="w-3 h-3 text-amber-400" />
-                  Starts in {currentRound.daysUntilStart}d ({currentRound.startDate})
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-300 tabular-nums">
+                  <Lock className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Starts in {currentRound.daysUntilStart}d ({currentRound.startDate})</span>
                 </span>
               )}
               {currentRound.status === 'completed' && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-slate-800 text-slate-300 border border-slate-700">
-                  Round Completed
+                <span className="text-xs font-semibold text-slate-300">
+                  Completed
                 </span>
               )}
             </div>
@@ -483,15 +468,15 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
 
           {/* If Round is Upcoming and not yet active, show schedule notice with optional preview button */}
           {!showScoreSheet ? (
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto">
+            <div className="ds-card p-6 text-center space-y-3">
+              <div className="w-12 h-12 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto">
                 <Calendar className="w-6 h-6 text-amber-400" />
               </div>
-              <h3 className="text-base font-black text-white font-heading">
-                {currentRound.fullName} starts on {currentRound.dateRangeLabel.split(' – ')[0]}
+              <h3 className="text-base font-black text-white">
+                {currentRound.fullName} starts {currentRound.dateRangeLabel.split(' – ')[0]}
               </h3>
               <p className="text-xs text-slate-400 max-w-md mx-auto">
-                All 25 boulders (#1 to #25) for {currentRound.gymName} are pre-populated and will automatically activate when the round begins ({currentRound.dateRangeLabel}).
+                All 25 boulders for {currentRound.gymName} activate automatically when the round begins ({currentRound.dateRangeLabel}).
               </p>
               <div className="pt-1 flex items-center justify-center gap-2">
                 <button
@@ -500,32 +485,32 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                     const active = roundsWithStatus.find(r => r.status === 'active');
                     setSelectedView(active ? active.roundNumber : 1);
                   }}
-                  className="px-3.5 py-2 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs hover:bg-amber-400 transition-colors"
+                  className="px-4 py-2 rounded-full bg-amber-500 text-slate-950 font-bold text-xs hover:bg-amber-400 transition-colors"
                 >
                   Go to Active Round
                 </button>
                 <button
                   type="button"
                   onClick={() => setUnlockUpcomingPreview(true)}
-                  className="px-3.5 py-2 rounded-xl bg-slate-800 text-slate-200 font-bold text-xs hover:bg-slate-700 border border-slate-700 transition-colors"
+                  className="px-4 py-2 rounded-full bg-surface-elevated text-slate-200 font-bold text-xs hover:bg-surface-high border border-white/[0.1] transition-colors"
                 >
-                  Preview 25-Boulder Sheet
+                  Preview Sheet
                 </button>
               </div>
             </div>
           ) : (
             <>
               {/* 3. Crew Comparison & Round Standings Card */}
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+              <div className="ds-card p-4 space-y-3">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4 text-amber-400" />
-                    <h3 className="text-xs font-black uppercase tracking-wider text-white font-heading">
-                      Crew Standings &amp; Comparison — Round {currentRound.roundNumber}
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+                      Round {currentRound.roundNumber} Standings
                     </h3>
                   </div>
-                  <span className="text-[11px] font-mono text-slate-400">
-                    Tap a climber to view or log their score sheet
+                  <span className="text-xs text-slate-400">
+                    Tap a climber to switch sheet
                   </span>
                 </div>
 
@@ -544,57 +529,50 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                         key={standing.climber.id}
                         type="button"
                         onClick={() => setSelectedClimberId(standing.climber.id)}
-                        className={`text-left p-3 rounded-xl border transition-all relative overflow-hidden ${
+                        className={`text-left p-3 rounded-lg border transition-all relative overflow-hidden ${
                           isSelectedClimber
-                            ? 'bg-slate-800/90 border-amber-500/60 ring-1 ring-amber-500/30 shadow-md'
-                            : 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700'
+                            ? 'bg-surface-elevated border-amber-500/60 shadow-md'
+                            : 'bg-carbon border-white/[0.08] hover:border-white/[0.16]'
                         }`}
                       >
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2 min-w-0">
                             <span
-                              className={`w-5 h-5 rounded-md font-mono text-[11px] font-black flex items-center justify-center shrink-0 ${
+                              className={`w-5 h-5 rounded-md font-mono tabular-nums text-[11px] font-black flex items-center justify-center shrink-0 ${
                                 idx === 0 && standing.totalPoints > 0
                                   ? 'bg-amber-500 text-slate-950'
                                   : idx === 1 && standing.totalPoints > 0
                                   ? 'bg-slate-300 text-slate-950'
                                   : idx === 2 && standing.totalPoints > 0
                                   ? 'bg-amber-700 text-white'
-                                  : 'bg-slate-800 text-slate-400'
+                                  : 'bg-surface-elevated text-slate-300'
                               }`}
                             >
                               {standing.rank}
                             </span>
                             <ClimberAvatar profile={standing.climber} size="sm" />
                             <div className="min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-sm font-bold text-white truncate">
-                                  {standing.climber.display_name}
-                                </span>
-                                {isSelectedClimber && (
-                                  <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                                    Active Sheet
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-[10px] font-mono text-slate-400 flex items-center gap-1.5 mt-0.5">
+                              <span className="text-sm font-bold text-white truncate block">
+                                {standing.climber.display_name}
+                              </span>
+                              <div className="text-[11px] font-mono tabular-nums text-slate-400 flex items-center gap-1.5 mt-0.5">
                                 <span className="text-amber-300 font-bold">{standing.flashesCount}F</span>
                                 <span>·</span>
                                 <span className="text-emerald-300 font-bold">{topsOnlyCount}T</span>
                                 <span>·</span>
                                 <span className="text-sky-300 font-bold">{standing.zonesCount}Z</span>
                                 <span>·</span>
-                                <span className="text-slate-400">{standing.unattemptedCount} left</span>
+                                <span className="font-sans text-slate-400">{standing.unattemptedCount} left</span>
                               </div>
                             </div>
                           </div>
 
-                          <div className="text-right shrink-0">
+                          <div className="text-right shrink-0 tabular-nums">
                             <div className="text-base font-black font-mono text-amber-400 leading-none">
                               {standing.totalPoints}
-                              <span className="text-[10px] font-normal text-slate-500">/{COMP_WALL_MAX_POINTS}</span>
+                              <span className="text-[11px] font-normal text-slate-400">/{COMP_WALL_MAX_POINTS}</span>
                             </div>
-                            <div className="text-[10px] font-mono text-slate-400 mt-1">
+                            <div className="text-[11px] text-slate-400 mt-1">
                               {idx === 0 && standing.totalPoints > 0 ? (
                                 <span className="text-emerald-400 font-bold">Leader</span>
                               ) : pointsBehind > 0 ? (
@@ -607,38 +585,38 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                         </div>
 
                         {/* Stacked progress bar of 25 boulders */}
-                        <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden flex mt-2.5 border border-slate-800/80">
+                        <div className="w-full h-1.5 bg-surface-elevated rounded-full overflow-hidden flex mt-2.5">
                           {flashPct > 0 && (
                             <div
                               style={{ width: `${flashPct}%` }}
-                              className="bg-amber-400 h-full"
+                              className="bg-amber-400 h-full transition-all duration-500"
                               title={`${standing.flashesCount} Flashes`}
                             />
                           )}
                           {topPct > 0 && (
                             <div
                               style={{ width: `${topPct}%` }}
-                              className="bg-emerald-400 h-full"
+                              className="bg-emerald-400 h-full transition-all duration-500"
                               title={`${topsOnlyCount} Tops`}
                             />
                           )}
                           {zonePct > 0 && (
                             <div
                               style={{ width: `${zonePct}%` }}
-                              className="bg-sky-400 h-full"
+                              className="bg-sky-400 h-full transition-all duration-500"
                               title={`${standing.zonesCount} Zones`}
                             />
                           )}
                         </div>
 
                         {/* Points still up for grabs & ceiling */}
-                        <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 mt-2 pt-1.5 border-t border-slate-800/60">
+                        <div className="flex items-center justify-between text-[11px] text-slate-400 mt-2 tabular-nums">
                           <span>
-                            Up for grabs:{' '}
+                            Available:{' '}
                             <strong className="text-emerald-300">+{standing.pointsUpForGrabs} pts</strong>
                           </span>
                           <span>
-                            Max ceiling:{' '}
+                            Max:{' '}
                             <strong className="text-slate-200">{standing.maxPossiblePoints}/75</strong>
                           </span>
                         </div>
@@ -650,74 +628,62 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
 
               {/* 4. "Points Still Up For Grabs & What's Left" Tactical Card for Active Climber */}
               {activeClimberStanding && (
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+                <div className="ds-card p-4 space-y-3">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2">
                       <Target className="w-4 h-4 text-emerald-400" />
-                      <h3 className="text-xs font-black uppercase tracking-wider text-white font-heading">
-                        {activeClimberStanding.climber.display_name}&apos;s Points Up For Grabs &amp; What&apos;s Left
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+                        {activeClimberStanding.climber.display_name}&apos;s Remaining Points
                       </h3>
                     </div>
-                    <span className="text-xs font-mono font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 rounded-lg">
-                      Current: {activeClimberStanding.totalPoints} / {COMP_WALL_MAX_POINTS} pts
-                    </span>
                   </div>
 
                   {/* 4-column KPI strip */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                    <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3">
-                      <div className="text-[10px] font-mono uppercase text-slate-400">
-                        Points Up For Grabs
+                    <div className="bg-carbon border border-white/[0.08] rounded-lg p-3">
+                      <div className="text-[11px] font-semibold text-slate-400">
+                        Available
                       </div>
-                      <div className="text-lg font-black font-mono text-emerald-400 mt-0.5">
+                      <div className="text-lg font-black font-mono tabular-nums text-emerald-400 mt-1">
                         +{activeClimberStanding.pointsUpForGrabs}{' '}
-                        <span className="text-xs font-normal text-slate-400">pts</span>
+                        <span className="text-xs font-sans font-normal text-slate-400">pts</span>
                       </div>
-                      <div className="text-[10px] font-mono text-slate-400 mt-0.5">
-                        {activeClimberStanding.unattemptedCount}×3pt + {activeClimberStanding.zonesCount}×1pt
+                      <div className="text-[11px] font-mono tabular-nums text-slate-400 mt-0.5">
+                        {activeClimberStanding.unattemptedCount}×3 + {activeClimberStanding.zonesCount}×1
                       </div>
                     </div>
 
-                    <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3">
-                      <div className="text-[10px] font-mono uppercase text-slate-400">
-                        Max Possible Score
+                    <div className="bg-carbon border border-white/[0.08] rounded-lg p-3">
+                      <div className="text-[11px] font-semibold text-slate-400">
+                        Max Ceiling
                       </div>
-                      <div className="text-lg font-black font-mono text-white mt-0.5">
+                      <div className="text-lg font-black font-mono tabular-nums text-white mt-1">
                         {activeClimberStanding.maxPossiblePoints}{' '}
-                        <span className="text-xs font-normal text-slate-500">/ 75</span>
-                      </div>
-                      <div className="text-[10px] font-mono text-slate-400 mt-0.5">
-                        If remaining flashed &amp; zones topped
+                        <span className="text-xs font-normal text-slate-400">/ 75</span>
                       </div>
                     </div>
 
-                    <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3">
-                      <div className="text-[10px] font-mono uppercase text-slate-400">
-                        Untried Boulders (0pt)
+                    <div className="bg-carbon border border-white/[0.08] rounded-lg p-3">
+                      <div className="text-[11px] font-semibold text-slate-400">
+                        Untried
                       </div>
-                      <div className="text-lg font-black font-mono text-amber-300 mt-0.5">
-                        {activeClimberStanding.unattemptedCount}{' '}
-                        <span className="text-xs font-normal text-slate-400">
-                          (+{activeClimberStanding.unattemptedCount * 3} pts)
-                        </span>
+                      <div className="text-lg font-black font-mono tabular-nums text-amber-300 mt-1">
+                        {activeClimberStanding.unattemptedCount}
                       </div>
-                      <div className="text-[10px] font-mono text-slate-400 mt-0.5">
-                        Up to 3 pts each on flash
+                      <div className="text-[11px] tabular-nums text-slate-400 mt-0.5">
+                        +{activeClimberStanding.unattemptedCount * 3} pts max
                       </div>
                     </div>
 
-                    <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3">
-                      <div className="text-[10px] font-mono uppercase text-slate-400">
-                        Zone Upgrades (1→2pt)
+                    <div className="bg-carbon border border-white/[0.08] rounded-lg p-3">
+                      <div className="text-[11px] font-semibold text-slate-400">
+                        Zone Upgrades
                       </div>
-                      <div className="text-lg font-black font-mono text-sky-300 mt-0.5">
-                        {activeClimberStanding.zonesCount}{' '}
-                        <span className="text-xs font-normal text-slate-400">
-                          (+{activeClimberStanding.zonesCount} pts)
-                        </span>
+                      <div className="text-lg font-black font-mono tabular-nums text-sky-300 mt-1">
+                        {activeClimberStanding.zonesCount}
                       </div>
-                      <div className="text-[10px] font-mono text-slate-400 mt-0.5">
-                        +1 pt each if finished to Top
+                      <div className="text-[11px] tabular-nums text-slate-400 mt-0.5">
+                        +{activeClimberStanding.zonesCount} pts on top
                       </div>
                     </div>
                   </div>
@@ -725,10 +691,10 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                   {/* Quick summary of remaining boulder numbers */}
                   {(categorizedBoulders.untriedNumbers.length > 0 ||
                     categorizedBoulders.zoneNumbers.length > 0) && (
-                    <div className="bg-slate-950/50 border border-slate-800/80 rounded-xl p-3 space-y-2">
+                    <div className="bg-carbon border border-white/[0.07] rounded-lg p-3 space-y-2">
                       {categorizedBoulders.untriedNumbers.length > 0 && (
                         <div className="flex items-start gap-2 text-xs">
-                          <span className="font-mono font-bold text-slate-300 shrink-0 mt-0.5">
+                          <span className="font-semibold text-slate-300 shrink-0 mt-0.5 tabular-nums">
                             Untried ({categorizedBoulders.untriedNumbers.length}):
                           </span>
                           <div className="flex flex-wrap gap-1">
@@ -737,7 +703,7 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                                 key={num}
                                 type="button"
                                 onClick={() => setScoreFilter('untried')}
-                                className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-mono text-[11px] font-bold border border-slate-700"
+                                className="px-1.5 py-0.5 rounded bg-surface-elevated hover:bg-surface-high text-slate-200 font-mono tabular-nums text-[11px] font-bold border border-white/[0.08]"
                               >
                                 #{num}
                               </button>
@@ -748,8 +714,8 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
 
                       {categorizedBoulders.zoneNumbers.length > 0 && (
                         <div className="flex items-start gap-2 text-xs">
-                          <span className="font-mono font-bold text-sky-300 shrink-0 mt-0.5">
-                            Zone Only — Can Top (+1pt):
+                          <span className="font-semibold text-sky-300 shrink-0 mt-0.5 tabular-nums">
+                            Zone (+1 pt):
                           </span>
                           <div className="flex flex-wrap gap-1">
                             {categorizedBoulders.zoneNumbers.map(num => (
@@ -757,7 +723,7 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                                 key={num}
                                 type="button"
                                 onClick={() => setScoreFilter('zones')}
-                                className="px-1.5 py-0.5 rounded bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 font-mono text-[11px] font-bold border border-sky-500/30"
+                                className="px-1.5 py-0.5 rounded bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 font-mono tabular-nums text-[11px] font-bold border border-sky-500/30"
                               >
                                 #{num}
                               </button>
@@ -771,12 +737,12 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
               )}
 
               {/* 5. Score Sheet Controls: Climber Switcher, Filter Pills, and View Mode Toggle */}
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+              <div className="ds-card p-4 space-y-3">
                 {/* Climber Switcher & Layout Toggle */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/[0.08]">
                   <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-                    <span className="text-[11px] font-mono uppercase text-slate-400 mr-1 shrink-0">
-                      Logging for:
+                    <span className="text-xs font-semibold text-slate-400 mr-1 shrink-0">
+                      Climber
                     </span>
                     {climbers.map(c => {
                       const isCurrent = c.id === activeClimber?.id;
@@ -785,10 +751,10 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                           key={c.id}
                           type="button"
                           onClick={() => setSelectedClimberId(c.id)}
-                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 border ${
+                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 border ${
                             isCurrent
                               ? 'bg-amber-500/20 border-amber-500/50 text-white shadow-xs'
-                              : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                              : 'bg-carbon border-white/[0.08] text-slate-300 hover:text-white'
                           }`}
                         >
                           <ClimberAvatar profile={c} size="xs" />
@@ -799,26 +765,26 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                   </div>
 
                   {/* Layout Switcher: List / 5x5 Grid / Crew Matrix */}
-                  <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 self-start sm:self-auto shrink-0">
+                  <div className="flex items-center bg-carbon p-1 rounded-lg border border-white/[0.08] self-start sm:self-auto shrink-0">
                     <button
                       type="button"
                       onClick={() => setSheetLayout('list')}
-                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold transition-colors ${
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold transition-colors ${
                         sheetLayout === 'list'
-                          ? 'bg-slate-800 text-amber-300'
-                          : 'text-slate-400 hover:text-slate-200'
+                          ? 'bg-surface-high text-amber-300'
+                          : 'text-slate-300 hover:text-white'
                       }`}
                     >
                       <List className="w-3.5 h-3.5" />
-                      <span>Score Sheet</span>
+                      <span>Sheet</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setSheetLayout('grid')}
-                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold transition-colors ${
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold transition-colors ${
                         sheetLayout === 'grid'
-                          ? 'bg-slate-800 text-amber-300'
-                          : 'text-slate-400 hover:text-slate-200'
+                          ? 'bg-surface-high text-amber-300'
+                          : 'text-slate-300 hover:text-white'
                       }`}
                     >
                       <LayoutGrid className="w-3.5 h-3.5" />
@@ -827,14 +793,14 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                     <button
                       type="button"
                       onClick={() => setSheetLayout('matrix')}
-                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold transition-colors ${
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold transition-colors ${
                         sheetLayout === 'matrix'
-                          ? 'bg-slate-800 text-amber-300'
-                          : 'text-slate-400 hover:text-slate-200'
+                          ? 'bg-surface-high text-amber-300'
+                          : 'text-slate-300 hover:text-white'
                       }`}
                     >
                       <TrendingUp className="w-3.5 h-3.5" />
-                      <span>Crew Matrix</span>
+                      <span>Matrix</span>
                     </button>
                   </div>
                 </div>
@@ -855,15 +821,15 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                     },
                     {
                       id: 'untried' as ScoreFilter,
-                      label: `Untried 0pt (${categorizedBoulders.untriedNumbers.length})`
+                      label: `Untried (${categorizedBoulders.untriedNumbers.length})`
                     },
                     {
                       id: 'zones' as ScoreFilter,
-                      label: `Zones 1pt (${categorizedBoulders.zoneNumbers.length})`
+                      label: `Zones (${categorizedBoulders.zoneNumbers.length})`
                     },
                     {
                       id: 'topped' as ScoreFilter,
-                      label: `Topped/Flashed (${
+                      label: `Topped (${
                         25 -
                         categorizedBoulders.untriedNumbers.length -
                         categorizedBoulders.zoneNumbers.length
@@ -878,10 +844,10 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                       key={pill.id}
                       type="button"
                       onClick={() => setScoreFilter(pill.id)}
-                      className={`px-2.5 py-1.5 rounded-lg text-[11px] font-mono font-bold shrink-0 transition-all border ${
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold shrink-0 transition-all border tabular-nums ${
                         scoreFilter === pill.id
                           ? 'bg-amber-500 text-slate-950 border-amber-400'
-                          : 'bg-slate-950/70 text-slate-400 border-slate-800 hover:text-slate-200'
+                          : 'bg-carbon text-slate-300 border-white/[0.08] hover:text-white'
                       }`}
                     >
                       {pill.label}
@@ -893,25 +859,26 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                 {sheetLayout === 'list' && (
                   <div className="space-y-2 pt-1">
                     {filteredItems.length === 0 ? (
-                      <div className="text-center py-8 text-xs font-mono text-slate-400">
+                      <div className="text-center py-8 text-xs text-slate-400">
                         No boulders match this filter.
                       </div>
                     ) : (
                       filteredItems.map(item => {
                         const { boulder, compNum, myStatus, myPoints, crewScores } = item;
                         const holdDef = HOLD_COLORS[boulder.hold_colour];
+                        const isItemPending = pendingKey === `${boulder.id}:${activeClimber?.id || ''}`;
 
                         return (
                           <div
                             key={boulder.id}
-                            className={`rounded-xl border p-2.5 sm:p-3 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
+                            className={`rounded-lg border p-2.5 sm:p-3 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
                               myStatus === 'flashed'
                                 ? 'bg-amber-500/[0.07] border-amber-500/40'
                                 : myStatus === 'sent'
                                 ? 'bg-emerald-500/[0.07] border-emerald-500/40'
                                 : myStatus === 'attempted'
                                 ? 'bg-sky-500/[0.07] border-sky-500/40'
-                                : 'bg-slate-950/60 border-slate-800/90'
+                                : 'bg-carbon border-white/[0.08]'
                             }`}
                           >
                             {/* Left: Problem Number + Crew Comparison Chips + Potential */}
@@ -920,10 +887,10 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => onSelectBoulder?.(boulder)}
-                                  className="w-11 h-11 rounded-xl bg-slate-900 border border-slate-700/80 hover:border-amber-500/50 flex flex-col items-center justify-center shrink-0 transition-colors"
+                                  className="w-11 h-11 rounded-md bg-surface-elevated border border-white/[0.1] hover:border-amber-500/50 flex flex-col items-center justify-center shrink-0 transition-colors"
                                   title="Open problem details / beta notes"
                                 >
-                                  <span className="text-sm font-black font-mono text-white leading-none">
+                                  <span className="text-sm font-black font-mono tabular-nums text-white leading-none">
                                     #{compNum}
                                   </span>
                                   {boulder.hold_colour && holdDef && (
@@ -935,13 +902,13 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                                 </button>
 
                                 <div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs font-bold text-white font-mono">
-                                      Boulder #{compNum}
+                                  <div className="flex items-center gap-2 tabular-nums">
+                                    <span className="text-xs font-bold text-white">
+                                      {boulder.hold_colour || `Problem #${compNum}`}
                                     </span>
-                                    {myPoints > 0 ? (
+                                    {myPoints > 0 && (
                                       <span
-                                        className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-black ${
+                                        className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold ${
                                           myPoints === 3
                                             ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                                             : myPoints === 2
@@ -950,15 +917,6 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                                         }`}
                                       >
                                         {myPoints} pt{myPoints === 1 ? '' : 's'}
-                                      </span>
-                                    ) : (
-                                      <span className="px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-400 bg-slate-900 border border-slate-800">
-                                        0 pt · +3 available
-                                      </span>
-                                    )}
-                                    {myPoints === 1 && (
-                                      <span className="text-[10px] font-mono text-sky-300">
-                                        (+1 pt to Top)
                                       </span>
                                     )}
                                   </div>
@@ -973,7 +931,7 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                                           ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
                                           : cs.points === 1
                                           ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
-                                          : 'bg-slate-900/80 text-slate-500 border-slate-800';
+                                          : 'bg-surface text-slate-400 border-white/[0.08]';
                                       const symbol =
                                         cs.points === 3
                                           ? '3·F'
@@ -986,12 +944,12 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                                       return (
                                         <span
                                           key={cs.climber.id}
-                                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono border ${badgeColor}`}
+                                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] border tabular-nums ${badgeColor}`}
                                         >
-                                          <span className="font-sans font-semibold">
+                                          <span className="font-semibold">
                                             {cs.climber.display_name.slice(0, 4)}
                                           </span>
-                                          <span className="font-bold">{symbol}</span>
+                                          <span className="font-mono font-bold">{symbol}</span>
                                         </span>
                                       );
                                     })}
@@ -1015,43 +973,47 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                             <div className="grid grid-cols-3 gap-1.5 sm:w-64 shrink-0">
                               <button
                                 type="button"
+                                disabled={isItemPending}
                                 onClick={() => handleToggleScore(boulder, 'attempted')}
-                                className={`py-2 px-2.5 rounded-xl font-mono text-xs font-black transition-all flex items-center justify-center gap-1 border active:scale-95 ${
+                                className={`py-2 px-2.5 rounded-md text-xs font-extrabold transition-all flex items-center justify-center gap-1 border active-press tabular-nums disabled:opacity-60 ${
                                   myStatus === 'attempted'
-                                    ? 'bg-sky-500 text-slate-950 border-sky-400 shadow-sm shadow-sky-500/30'
-                                    : 'bg-slate-900 hover:bg-slate-800 text-sky-300 border-slate-800'
+                                    ? 'bg-sky-500 text-slate-950 border-sky-400 shadow-sm animate-pop'
+                                    : 'bg-surface-elevated hover:bg-surface-high text-sky-300 border-white/[0.08]'
                                 }`}
                               >
+                                {isItemPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Clock className="w-3 h-3 stroke-[2.5]" />}
                                 <span>ZONE</span>
-                                <span className="text-[10px] opacity-80">1</span>
+                                <span className="font-mono text-[10px]">1</span>
                               </button>
 
                               <button
                                 type="button"
+                                disabled={isItemPending}
                                 onClick={() => handleToggleScore(boulder, 'sent')}
-                                className={`py-2 px-2.5 rounded-xl font-mono text-xs font-black transition-all flex items-center justify-center gap-1 border active:scale-95 ${
+                                className={`py-2 px-2.5 rounded-md text-xs font-extrabold transition-all flex items-center justify-center gap-1 border active-press tabular-nums disabled:opacity-60 ${
                                   myStatus === 'sent'
-                                    ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-sm shadow-emerald-500/30'
-                                    : 'bg-slate-900 hover:bg-slate-800 text-emerald-300 border-slate-800'
+                                    ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-sm animate-pop'
+                                    : 'bg-surface-elevated hover:bg-surface-high text-emerald-300 border-white/[0.08]'
                                 }`}
                               >
-                                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                {isItemPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5 stroke-[2.5]" />}
                                 <span>TOP</span>
-                                <span className="text-[10px] opacity-80">2</span>
+                                <span className="font-mono text-[10px]">2</span>
                               </button>
 
                               <button
                                 type="button"
+                                disabled={isItemPending}
                                 onClick={() => handleToggleScore(boulder, 'flashed')}
-                                className={`py-2 px-2.5 rounded-xl font-mono text-xs font-black transition-all flex items-center justify-center gap-1 border active:scale-95 ${
+                                className={`py-2 px-2.5 rounded-md text-xs font-extrabold transition-all flex items-center justify-center gap-1 border active-press tabular-nums disabled:opacity-60 ${
                                   myStatus === 'flashed'
-                                    ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-sm shadow-amber-500/30'
-                                    : 'bg-slate-900 hover:bg-slate-800 text-amber-300 border-slate-800'
+                                    ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-sm animate-pop'
+                                    : 'bg-surface-elevated hover:bg-surface-high text-amber-300 border-white/[0.08]'
                                 }`}
                               >
-                                <Zap className="w-3.5 h-3.5 fill-current" />
+                                {isItemPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5 fill-current" />}
                                 <span>FLASH</span>
-                                <span className="text-[10px] opacity-80">3</span>
+                                <span className="font-mono text-[10px]">3</span>
                               </button>
                             </div>
                           </div>
@@ -1061,25 +1023,24 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                   </div>
                 )}
 
-                {/* LAYOUT 2: COMPACT 5x5 SCORECARD GRID (Tap to cycle 0 -> 3 Flash -> 2 Top -> 1 Zone -> 0) */}
+                {/* LAYOUT 2: COMPACT 5x5 SCORECARD GRID */}
                 {sheetLayout === 'grid' && (
                   <div className="space-y-3 pt-1">
-                    <div className="text-[11px] font-mono text-slate-400 flex items-center justify-between">
-                      <span>
-                        Tap any tile to cycle: <strong className="text-amber-300">Flash (3)</strong> →{' '}
-                        <strong className="text-emerald-300">Top (2)</strong> →{' '}
-                        <strong className="text-sky-300">Zone (1)</strong> → Clear (0)
-                      </span>
+                    <div className="text-xs text-slate-400">
+                      Tap to cycle: <strong className="text-amber-300">Flash (3)</strong> →{' '}
+                      <strong className="text-emerald-300">Top (2)</strong> →{' '}
+                      <strong className="text-sky-300">Zone (1)</strong> → Clear
                     </div>
 
                     {filteredItems.length === 0 ? (
-                      <div className="text-center py-8 text-xs font-mono text-slate-400">
+                      <div className="text-center py-8 text-xs text-slate-400">
                         No boulders match this filter.
                       </div>
                     ) : (
                       <div className="grid grid-cols-5 gap-2">
                         {filteredItems.map(item => {
                           const { boulder, compNum, myStatus, myPoints } = item;
+                          const isItemPending = pendingKey === `${boulder.id}:${activeClimber?.id || ''}`;
                           const handleCycle = () => {
                             if (myStatus === 'untried') {
                               handleToggleScore(boulder, 'flashed');
@@ -1088,7 +1049,7 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                             } else if (myStatus === 'sent') {
                               handleToggleScore(boulder, 'attempted');
                             } else {
-                              handleToggleScore(boulder, 'attempted'); // toggles off to 0
+                              handleToggleScore(boulder, 'attempted');
                             }
                           };
 
@@ -1096,26 +1057,40 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                             <button
                               key={boulder.id}
                               type="button"
+                              disabled={isItemPending}
                               onClick={handleCycle}
-                              className={`p-2.5 rounded-xl border font-mono flex flex-col items-center justify-center gap-1 transition-all active:scale-95 ${
+                              className={`p-2.5 rounded-lg border font-mono tabular-nums flex flex-col items-center justify-center gap-1 transition-all active-press disabled:opacity-60 ${
                                 myPoints === 3
-                                  ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-sm'
+                                  ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-sm animate-pop'
                                   : myPoints === 2
-                                  ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 shadow-sm'
+                                  ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 shadow-sm animate-pop'
                                   : myPoints === 1
-                                  ? 'bg-sky-500/20 border-sky-400 text-sky-300 shadow-sm'
-                                  : 'bg-slate-950/70 border-slate-800 text-slate-400 hover:border-slate-700'
+                                  ? 'bg-sky-500/20 border-sky-400 text-sky-300 shadow-sm animate-pop'
+                                  : 'bg-carbon border-white/[0.08] text-slate-300 hover:border-white/[0.16]'
                               }`}
                             >
                               <span className="text-xs font-black text-white">#{compNum}</span>
-                              <span className="text-[11px] font-black">
-                                {myPoints === 3
-                                  ? '⚡ 3pt'
-                                  : myPoints === 2
-                                  ? '✓ 2pt'
-                                  : myPoints === 1
-                                  ? '◐ 1pt'
-                                  : '0pt'}
+                              <span className="text-[11px] font-bold inline-flex items-center gap-0.5">
+                                {isItemPending ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : myPoints === 3 ? (
+                                  <>
+                                    <Zap className="w-3 h-3 fill-current" />
+                                    <span>3pt</span>
+                                  </>
+                                ) : myPoints === 2 ? (
+                                  <>
+                                    <Check className="w-3 h-3 stroke-[2.5]" />
+                                    <span>2pt</span>
+                                  </>
+                                ) : myPoints === 1 ? (
+                                  <>
+                                    <Clock className="w-3 h-3 stroke-[2.5]" />
+                                    <span>1pt</span>
+                                  </>
+                                ) : (
+                                  <span>0pt</span>
+                                )}
                               </span>
                             </button>
                           );
@@ -1125,29 +1100,29 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                   </div>
                 )}
 
-                {/* LAYOUT 3: HEAD-TO-HEAD CREW COMPARISON MATRIX (#1 to #25) */}
+                {/* LAYOUT 3: HEAD-TO-HEAD CREW COMPARISON MATRIX */}
                 {sheetLayout === 'matrix' && (
                   <div className="space-y-2 pt-1">
-                    <div className="text-[11px] font-mono text-slate-400">
-                      Tap any climber cell to cycle score: <strong className="text-amber-300">⚡ 3</strong> →{' '}
-                      <strong className="text-emerald-300">✓ 2</strong> →{' '}
-                      <strong className="text-sky-300">◐ 1</strong> → Clear
+                    <div className="text-xs text-slate-400">
+                      Tap cell to cycle: <strong className="text-amber-300">Flash (3)</strong> →{' '}
+                      <strong className="text-emerald-300">Top (2)</strong> →{' '}
+                      <strong className="text-sky-300">Zone (1)</strong> → Clear
                     </div>
                     {filteredItems.length === 0 ? (
-                      <div className="text-center py-8 text-xs font-mono text-slate-400">
+                      <div className="text-center py-8 text-xs text-slate-400">
                         No boulders match this filter.
                       </div>
                     ) : (
                       <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse font-mono text-xs">
+                        <table className="w-full text-left border-collapse text-xs">
                           <thead>
-                            <tr className="border-b border-slate-800 text-[11px] text-slate-400">
+                            <tr className="border-b border-white/[0.08] text-xs text-slate-300">
                               <th className="py-2 px-2">Boulder</th>
                               {climbers.map(c => (
                                 <th key={c.id} className="py-2 px-2 text-center">
                                   <div className="flex flex-col items-center gap-1">
                                     <ClimberAvatar profile={c} size="xs" />
-                                    <span className="font-sans font-bold text-white text-[11px]">
+                                    <span className="font-bold text-white text-[11px]">
                                       {c.display_name}
                                     </span>
                                   </div>
@@ -1155,10 +1130,10 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                               ))}
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-800/60">
+                          <tbody className="divide-y divide-white/[0.06]">
                             {filteredItems.map(item => (
-                              <tr key={item.boulder.id} className="hover:bg-slate-950/40">
-                                <td className="py-2 px-2 font-black text-white">
+                              <tr key={item.boulder.id} className="hover:bg-carbon/40">
+                                <td className="py-2 px-2 font-mono tabular-nums font-black text-white">
                                   <button
                                     type="button"
                                     onClick={() => onSelectBoulder?.(item.boulder)}
@@ -1168,6 +1143,7 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                                   </button>
                                 </td>
                                 {item.crewScores.map(cs => {
+                                  const isCellPending = pendingKey === `${item.boulder.id}:${cs.climber.id}`;
                                   const handleCellCycle = () => {
                                     if (cs.status === 'untried') {
                                       handleToggleScore(item.boulder, 'flashed', cs.climber.id);
@@ -1184,24 +1160,32 @@ export const WinterSeriesView: React.FC<WinterSeriesViewProps> = ({
                                     <td key={cs.climber.id} className="py-1.5 px-1.5 text-center">
                                       <button
                                         type="button"
+                                        disabled={isCellPending}
                                         onClick={handleCellCycle}
-                                        className="w-full py-1 rounded-lg hover:bg-slate-800/60 transition-colors active:scale-95"
+                                        className="w-full py-1 rounded-lg hover:bg-surface-elevated transition-colors active-press disabled:opacity-60"
                                         title={`Cycle score for ${cs.climber.display_name} on #${item.compNum}`}
                                       >
-                                        {cs.points === 3 ? (
-                                          <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-black text-[11px]">
-                                            ⚡ 3
+                                        {isCellPending ? (
+                                          <span className="inline-flex items-center justify-center py-0.5">
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                                          </span>
+                                        ) : cs.points === 3 ? (
+                                          <span className="inline-flex items-center justify-center gap-0.5 px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono tabular-nums font-black text-[11px]">
+                                            <Zap className="w-2.5 h-2.5 fill-current" />
+                                            <span>3</span>
                                           </span>
                                         ) : cs.points === 2 ? (
-                                          <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-black text-[11px]">
-                                            ✓ 2
+                                          <span className="inline-flex items-center justify-center gap-0.5 px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono tabular-nums font-black text-[11px]">
+                                            <Check className="w-2.5 h-2.5 stroke-[2.5]" />
+                                            <span>2</span>
                                           </span>
                                         ) : cs.points === 1 ? (
-                                          <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/40 font-black text-[11px]">
-                                            ◐ 1
+                                          <span className="inline-flex items-center justify-center gap-0.5 px-2 py-0.5 rounded-md bg-sky-500/20 text-sky-300 border border-sky-500/40 font-mono tabular-nums font-black text-[11px]">
+                                            <Clock className="w-2.5 h-2.5 stroke-[2.5]" />
+                                            <span>1</span>
                                           </span>
                                         ) : (
-                                          <span className="text-slate-600 hover:text-slate-400">–</span>
+                                          <span className="text-slate-400 hover:text-white">–</span>
                                         )}
                                       </button>
                                     </td>

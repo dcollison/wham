@@ -55,7 +55,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
 
   const { currentUser } = useAuth();
   const activeUser = climbers.find((c) => c.id === currentUserId) || currentUser;
-  const activeColor = currentUser?.accent_color || activeUser?.accent_color || '#3B82F6';
+  const activeColor = currentUser?.accent_color || activeUser?.accent_color || '#F59E0B';
 
   const [showAccolades, setShowAccolades] = useState<boolean>(() => {
     return getStorageJson(STORAGE_KEYS.SHOW_ACCOLADES, true);

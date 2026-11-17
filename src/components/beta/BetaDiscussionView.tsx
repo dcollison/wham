@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Comment, Boulder, Profile, Gym, GymArea } from '../../types';
 import { HoldBadge } from '../boulders/HoldBadge';
 import { ClimberAvatar } from '../ClimberAvatar';
-import { MessageSquare, Send, Trash2 } from 'lucide-react';
+import { MessageSquare, Send, Trash2, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 interface BetaDiscussionViewProps {
@@ -29,10 +29,11 @@ export const BetaDiscussionView: React.FC<BetaDiscussionViewProps> = ({
   onDeleteComment
 }) => {
   const { currentUser } = useAuth();
-  const activeColor = currentUser?.accent_color || '#3B82F6';
+  const activeColor = currentUser?.accent_color || '#F59E0B';
   const [selectedBoulderId, setSelectedBoulderId] = useState<string>('');
   const [newContent, setNewContent] = useState<string>('');
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
 
   // Deduplicate and sort comments by created_at descending (newest first)
   const sortedComments = useMemo(() => {
@@ -118,22 +119,22 @@ export const BetaDiscussionView: React.FC<BetaDiscussionViewProps> = ({
       </div>
 
       {/* Post Beta Quick Form */}
-      <form onSubmit={handleSubmit} className="bg-surface border border-white/[0.08] rounded-2xl p-4 flex flex-col gap-3 shadow-xs">
-        <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+      <form onSubmit={handleSubmit} className="ds-card p-4 flex flex-col gap-3 shadow-xs">
+        <span className="ds-label">
           Start a Discussion on a Boulder
         </span>
 
         <select
           value={selectedBoulderId}
           onChange={(e) => setSelectedBoulderId(e.target.value)}
-          className="bg-surface-elevated border border-white/[0.08] text-slate-200 text-xs rounded-xl p-2.5 outline-none focus:border-white/[0.2]"
+          className="ds-input text-xs rounded-lg p-2.5"
         >
           <option value="">Select a Boulder to discuss...</option>
           {groupedBoulders.map(group => (
             <optgroup
               key={group.areaId}
               label={`${group.gymName} • ${group.areaName}`}
-              className="bg-surface text-slate-400 font-bold"
+              className="bg-surface text-slate-300 font-bold"
             >
               {group.boulders.map(b => (
                 <option
@@ -154,15 +155,20 @@ export const BetaDiscussionView: React.FC<BetaDiscussionViewProps> = ({
             value={newContent}
             onChange={(e) => setNewContent(e.target.value)}
             placeholder="Share a thought, beta, or gym banter..."
-            className="flex-1 bg-surface-elevated border border-white/[0.08] text-slate-100 placeholder:text-slate-500 text-xs rounded-xl px-3.5 py-2.5 outline-none focus:border-white/[0.2]"
+            className="flex-1 ds-input text-xs rounded-lg px-3.5 py-2.5"
           />
           <button
             type="submit"
             disabled={!selectedBoulderId || !newContent.trim() || submitting}
-            className="p-2.5 rounded-xl text-slate-950 active-press transition-colors disabled:opacity-30 font-semibold"
+            className="p-2.5 rounded-lg text-slate-950 active-press transition-colors disabled:opacity-30 font-semibold flex items-center justify-center shrink-0"
             style={{ backgroundColor: activeColor }}
+            aria-label="Post comment"
           >
-            <Send className="w-4 h-4" />
+            {submitting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4 -translate-x-[0.5px] translate-y-[0.5px]" />
+            )}
           </button>
         </div>
       </form>
@@ -178,7 +184,7 @@ export const BetaDiscussionView: React.FC<BetaDiscussionViewProps> = ({
           return (
             <div
               key={comment.id}
-              className="bg-surface/90 border border-white/[0.06] hover:border-white/[0.12] rounded-2xl p-4 flex flex-col gap-2.5 transition-colors shadow-xs"
+              className="bg-surface border border-white/[0.08] hover:border-white/[0.14] rounded-2xl p-4 flex flex-col gap-2.5 transition-colors shadow-xs"
             >
               {/* Header with Boulder info */}
               <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
@@ -186,31 +192,41 @@ export const BetaDiscussionView: React.FC<BetaDiscussionViewProps> = ({
                   <button
                     type="button"
                     onClick={() => onSelectBoulder(boulder)}
-                    className="flex items-center gap-2 text-left hover:opacity-80 transition-opacity"
+                    className="flex items-center gap-2 text-left group transition-colors"
                   >
                     <HoldBadge color={boulder.hold_colour} grade={boulder.grade} size="sm" />
-                    <span className="text-xs font-semibold text-slate-300">
+                    <span className="text-xs font-semibold text-slate-300 group-hover:text-white transition-colors">
                       {area?.name}
                     </span>
                   </button>
                 )}
 
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-slate-400 font-mono">
+                  <span className="text-[11px] text-slate-400 tabular-nums">
                     {new Date(comment.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                   </span>
                   {isCurrentUser && onDeleteComment && (
                     <button
                       type="button"
-                      onClick={() => {
+                      disabled={deletingCommentId === comment.id}
+                      onClick={async () => {
                         if (window.confirm('Delete this comment?')) {
-                          onDeleteComment(comment.id);
+                          setDeletingCommentId(comment.id);
+                          try {
+                            await onDeleteComment(comment.id);
+                          } finally {
+                            setDeletingCommentId(null);
+                          }
                         }
                       }}
-                      className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-surface-elevated transition-colors"
+                      className="p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-surface-elevated transition-colors disabled:opacity-50"
                       title="Delete comment"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      {deletingCommentId === comment.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-3.5 h-3.5" />
+                      )}
                     </button>
                   )}
                 </div>

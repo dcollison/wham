@@ -78,8 +78,8 @@ export const CrewFeedView: React.FC<CrewFeedViewProps> = ({
           <Zap className="w-3.5 h-3.5" />
           <span>Sends</span>
           <span
-            className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
-              activeSubTab === 'sends' ? 'bg-black/20 text-black' : 'bg-surface-elevated text-slate-300'
+            className={`text-[11px] font-mono tabular-nums ${
+              activeSubTab === 'sends' ? 'text-black' : 'text-slate-400'
             }`}
           >
             {totalSendsCount}
@@ -96,14 +96,14 @@ export const CrewFeedView: React.FC<CrewFeedViewProps> = ({
           className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-full text-xs font-bold transition-all active-press ${
             activeSubTab === 'discussion'
               ? 'shadow-xs font-extrabold'
-              : 'text-slate-400 hover:text-white'
+              : 'text-slate-300 hover:text-white'
           }`}
         >
           <MessageSquare className="w-3.5 h-3.5" />
           <span>Discussion</span>
           <span
-            className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
-              activeSubTab === 'discussion' ? 'bg-black/20 text-black' : 'bg-surface-elevated text-slate-300'
+            className={`text-[11px] font-mono tabular-nums ${
+              activeSubTab === 'discussion' ? 'text-black' : 'text-slate-400'
             }`}
           >
             {comments.length}

@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { GymArea } from '../../types';
 import { compressImage } from '../../lib/imageCompressor';
 import { AreaPhotoModal } from './AreaPhotoModal';
-import { Camera, Image as ImageIcon, Maximize2, Trash2, ChevronDown, ChevronUp, Upload, Clock, Loader2 } from 'lucide-react';
+import { Camera, Image as ImageIcon, Maximize2, Trash2, ChevronDown, ChevronUp, Upload, Loader2 } from 'lucide-react';
 import { ResetAgeInfo } from '../../lib/resetStatus';
 
 interface AreaPhotoBannerProps {
@@ -18,13 +18,14 @@ export const AreaPhotoBanner: React.FC<AreaPhotoBannerProps> = ({
   currentArea,
   activeBouldersCount,
   activeColor,
-  resetInfo,
+  resetInfo: _resetInfo,
   onUploadPhoto,
   onRemovePhoto
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [isRemoving, setIsRemoving] = useState<boolean>(false);
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
     // If previously collapsed by user, retain state
     return localStorage.getItem('wham_area_banner_collapsed') === 'true';
@@ -58,12 +59,16 @@ export const AreaPhotoBanner: React.FC<AreaPhotoBannerProps> = ({
 
   const handleRemove = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isRemoving) return;
     if (window.confirm(`Remove wall photo for ${currentArea.name}?`)) {
+      setIsRemoving(true);
       try {
         await onRemovePhoto();
       } catch (err: any) {
         console.error('Failed to remove wall photo:', err);
         alert(err?.message || 'Failed to remove wall photo.');
+      } finally {
+        setIsRemoving(false);
       }
     }
   };
@@ -72,39 +77,30 @@ export const AreaPhotoBanner: React.FC<AreaPhotoBannerProps> = ({
 
   return (
     <>
-      <div className="w-full rounded-2xl border border-slate-800 bg-slate-900/80 overflow-hidden shadow-sm transition-all mb-1">
+      <div className="w-full rounded-2xl border border-white/[0.08] bg-surface overflow-hidden shadow-sm transition-all mb-1">
         {/* If Area Has Photo */}
         {hasPhoto ? (
           <div>
             {/* Header strip */}
             <div
-              className="flex items-center justify-between px-3.5 py-2 cursor-pointer hover:bg-slate-850/60 transition-colors select-none"
+              className="flex items-center justify-between px-3.5 py-2 cursor-pointer hover:bg-surface-elevated transition-colors select-none"
               onClick={toggleCollapse}
             >
               <div className="flex items-center gap-2 min-w-0">
-                <ImageIcon className="w-4 h-4 text-cyan-400 shrink-0" />
-                <span className="text-xs font-bold text-slate-200 truncate">
-                  {currentArea.name} Wall Overview
+                <ImageIcon className="w-4 h-4 text-sky-400 shrink-0" />
+                <span className="text-xs font-bold text-slate-100 truncate">
+                  {currentArea.name} Wall Photo
                 </span>
-                <span className="text-[10px] font-mono text-slate-400 shrink-0">
-                  ({activeBouldersCount} climbs)
+                <span className="text-xs text-slate-400 tabular-nums shrink-0">
+                  ({activeBouldersCount})
                 </span>
-                {resetInfo?.isDueForReset && (
-                  <span
-                    className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold text-amber-400 bg-amber-400/10 border border-amber-400/25 px-2 py-0.5 rounded-full shrink-0"
-                    title={`Set ${resetInfo.weeksOld} weeks ago – sector may be reset soon`}
-                  >
-                    <Clock className="w-2.5 h-2.5 text-amber-400 shrink-0" />
-                    <span>Reset soon ({resetInfo.weeksOld}w)</span>
-                  </span>
-                )}
               </div>
 
               <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(true)}
-                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                  className="p-1.5 rounded-lg bg-surface-elevated hover:bg-surface-high text-slate-300 hover:text-white transition-colors"
                   title="Zoom Fullscreen"
                 >
                   <Maximize2 className="w-3.5 h-3.5" />
@@ -114,19 +110,20 @@ export const AreaPhotoBanner: React.FC<AreaPhotoBannerProps> = ({
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploading}
-                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors disabled:opacity-40"
+                  className="p-1.5 rounded-lg bg-surface-elevated hover:bg-surface-high text-slate-300 hover:text-white transition-colors disabled:opacity-40"
                   title="Change Wall Photo"
                 >
-                  {isUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" /> : <Camera className="w-3.5 h-3.5" />}
+                  {isUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin text-sky-400" /> : <Camera className="w-3.5 h-3.5" />}
                 </button>
 
                 <button
                   type="button"
                   onClick={handleRemove}
-                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-900/40 text-slate-400 hover:text-rose-300 transition-colors"
+                  disabled={isRemoving}
+                  className="p-1.5 rounded-lg bg-surface-elevated hover:bg-rose-900/40 text-slate-300 hover:text-rose-300 transition-colors disabled:opacity-40"
                   title="Remove Wall Photo"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  {isRemoving ? <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-400" /> : <Trash2 className="w-3.5 h-3.5" />}
                 </button>
 
                 <button
@@ -143,7 +140,7 @@ export const AreaPhotoBanner: React.FC<AreaPhotoBannerProps> = ({
             {/* Banner Image (if expanded) */}
             {!isCollapsed && (
               <div
-                className="relative h-36 sm:h-48 w-full bg-slate-950 overflow-hidden cursor-pointer group"
+                className="relative h-36 sm:h-48 w-full bg-carbon overflow-hidden cursor-pointer group"
                 onClick={() => setIsModalOpen(true)}
               >
                 <img
@@ -151,15 +148,12 @@ export const AreaPhotoBanner: React.FC<AreaPhotoBannerProps> = ({
                   alt={`${currentArea.name} wall overview`}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/20" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
-                <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between text-white text-xs">
-                  <span className="font-bold flex items-center gap-1.5 bg-black/60 px-2 py-1 rounded-lg backdrop-blur-sm">
+                <div className="absolute bottom-2.5 left-3 flex items-center text-white text-xs">
+                  <span className="font-semibold flex items-center gap-1.5 bg-black/70 px-2.5 py-1 rounded-lg backdrop-blur-sm">
                     <Maximize2 className="w-3.5 h-3.5" />
-                    <span>Tap to inspect wall photo</span>
-                  </span>
-                  <span className="text-[10px] font-mono text-slate-300 bg-black/60 px-2 py-1 rounded-lg backdrop-blur-sm">
-                    {activeBouldersCount} active problems
+                    <span>Inspect wall photo</span>
                   </span>
                 </div>
               </div>
@@ -170,7 +164,7 @@ export const AreaPhotoBanner: React.FC<AreaPhotoBannerProps> = ({
           <div className="p-3 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5 min-w-0">
               <div
-                className="p-2 rounded-xl shrink-0"
+                className="p-2 rounded-lg shrink-0"
                 style={{
                   backgroundColor: `${activeColor}15`,
                   color: activeColor
@@ -179,11 +173,11 @@ export const AreaPhotoBanner: React.FC<AreaPhotoBannerProps> = ({
                 <Camera className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <span className="text-xs font-bold text-slate-200 block truncate">
+                <span className="text-xs font-bold text-slate-100 block truncate">
                   {currentArea.name} Wall Photo
                 </span>
                 <span className="text-[11px] text-slate-400 block truncate">
-                  Upload a wide photo of this sector to navigate problems
+                  Add a wide photo to navigate this wall
                 </span>
               </div>
             </div>
@@ -193,14 +187,14 @@ export const AreaPhotoBanner: React.FC<AreaPhotoBannerProps> = ({
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
               style={{ backgroundColor: activeColor, color: '#000000' }}
-              className="py-1.5 px-3 rounded-xl font-bold text-xs flex items-center gap-1.5 active-press transition-colors shrink-0 shadow-sm disabled:opacity-40"
+              className="py-1.5 px-3 rounded-lg font-bold text-xs flex items-center gap-1.5 active-press transition-colors shrink-0 shadow-sm disabled:opacity-40"
             >
               {isUploading ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
-                <Upload className="w-3.5 h-3.5 stroke-[3]" />
+                <Upload className="w-3.5 h-3.5 stroke-[2.5]" />
               )}
-              <span>{isUploading ? 'Uploading...' : 'Add Wall Photo'}</span>
+              <span>{isUploading ? 'Uploading...' : 'Add Photo'}</span>
             </button>
           </div>
         )}
@@ -222,6 +216,7 @@ export const AreaPhotoBanner: React.FC<AreaPhotoBannerProps> = ({
         onClose={() => setIsModalOpen(false)}
         activeColor={activeColor}
         onUploadNewPhoto={handleFileChange}
+        isUploading={isUploading}
       />
     </>
   );

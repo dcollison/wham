@@ -13,7 +13,7 @@ import { AreaPhotoBanner } from './components/boulders/AreaPhotoBanner';
 import { BoulderFilters, BoulderFiltersState } from './components/boulders/BoulderFilters';
 import { ClimberAvatar } from './components/ClimberAvatar';
 import { Boulder, Attempt, BoulderReview, GRADES } from './types';
-import { Plus, Compass, Filter, RotateCcw, Layers, Clock } from 'lucide-react';
+import { Plus, Compass, Filter, RotateCcw, Layers, Clock, Loader2 } from 'lucide-react';
 import { WhamBadge } from './components/WhamLogo';
 import { PasscodeGate } from './components/PasscodeGate';
 import { STORAGE_KEYS, getStorageString, setStorageString } from './lib/storage';
@@ -27,9 +27,67 @@ const BoulderDetailModal = React.lazy(() => import('./components/boulders/Boulde
 const BulkAddBouldersModal = React.lazy(() => import('./components/boulders/BulkAddBouldersModal').then(m => ({ default: m.BulkAddBouldersModal })));
 
 const TabLoadingFallback = () => (
-  <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-500">
-    <div className="w-8 h-8 rounded-full border-2 border-amber-400/30 border-t-amber-400 animate-spin" />
-    <span className="text-xs font-mono uppercase tracking-wider">Loading...</span>
+  <div
+    role="status"
+    aria-busy="true"
+    aria-label="Loading view"
+    className="flex flex-col gap-4 py-4 animate-fadeIn"
+  >
+    <div className="ds-card p-5 space-y-3">
+      <div className="flex items-center gap-3">
+        <Loader2 className="w-4 h-4 text-amber-400 animate-spin shrink-0" />
+        <div className="h-4 w-40 rounded-lg bg-surface-elevated animate-pulse" />
+      </div>
+      <div className="h-3 w-64 rounded-md bg-surface-elevated/80 animate-pulse" />
+    </div>
+    <div className="ds-card p-5 space-y-3">
+      <div className="h-24 w-full rounded-lg bg-surface-elevated/70 animate-pulse" />
+      <div className="grid grid-cols-2 gap-3">
+        <div className="h-14 rounded-lg bg-surface-elevated/60 animate-pulse" />
+        <div className="h-14 rounded-lg bg-surface-elevated/60 animate-pulse" />
+      </div>
+    </div>
+  </div>
+);
+
+const ModalLoadingFallback = () => (
+  <div
+    role="status"
+    aria-busy="true"
+    aria-label="Loading modal"
+    className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fadeIn"
+  >
+    <div className="ds-card px-5 py-4 flex items-center gap-3">
+      <Loader2 className="w-5 h-5 text-amber-400 animate-spin shrink-0" />
+      <span className="text-xs font-semibold text-slate-200">Loading...</span>
+    </div>
+  </div>
+);
+
+const BouldersLoadingSkeleton = () => (
+  <div
+    role="status"
+    aria-busy="true"
+    aria-label="Loading climbs"
+    className="flex flex-col gap-4"
+  >
+    {[0, 1, 2, 3].map((i) => (
+      <div key={i} className="ds-card p-4 sm:p-5 flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-6 w-10 rounded-full bg-surface-elevated animate-pulse" />
+            <div className="h-7 w-28 rounded-full bg-surface-elevated animate-pulse" />
+          </div>
+          <div className="h-7 w-20 rounded-full bg-surface-elevated animate-pulse" />
+        </div>
+        <div className="h-4 w-44 rounded-md bg-surface-elevated/70 animate-pulse" />
+        <div className="flex items-center gap-2 pt-2 border-t border-white/[0.05]">
+          <div className="h-6 w-16 rounded-full bg-surface-elevated/60 animate-pulse" />
+          <div className="h-6 w-16 rounded-full bg-surface-elevated/60 animate-pulse" />
+          <div className="h-6 w-16 rounded-full bg-surface-elevated/60 animate-pulse" />
+        </div>
+      </div>
+    ))}
   </div>
 );
 
@@ -98,10 +156,11 @@ export function App() {
     deleteComment,
     toggleAreaCompWall,
     orderedActiveBouldersInCurrentArea,
-    reviews
+    reviews,
+    loading
   } = useGym();
 
-  const activeColor = currentUser?.accent_color || '#3B82F6';
+  const activeColor = currentUser?.accent_color || '#F59E0B';
 
   // Hash-based routing for 100% static hosting on GitHub Pages
   const [currentTab, setCurrentTab] = useState<'boulders' | 'beta' | 'comp' | 'stats' | 'settings'>('boulders');
@@ -401,7 +460,7 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col relative">
+    <div className="min-h-screen bg-carbon text-slate-100 flex flex-col relative">
       {/* Decoupled GPU-accelerated ambient lighting layer (zero scroll repaints) */}
       <div className="ambient-bg" aria-hidden="true" />
 
@@ -446,6 +505,7 @@ export function App() {
         onToggleShowArchived={() => setShowArchived((prev) => !prev)}
         onToggleAreaCompWall={toggleAreaCompWall}
         isDemoMode={isDemoMode}
+        isSyncing={loading}
       />
 
       {/* Main View Area */}
@@ -458,22 +518,28 @@ export function App() {
             {/* Area Header & Info */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-xl font-black tracking-tight text-white flex items-center gap-2">
+                <h1 className="text-xl font-extrabold tracking-tight text-white flex items-center gap-2">
                   <span>{currentArea?.name || `${currentGym?.name || 'Gym'} • All Areas`}</span>
                 </h1>
-                <p className="text-xs text-slate-400 font-mono flex items-center gap-2 flex-wrap mt-0.5">
-                  <span>
+                <p className="text-xs text-slate-400 flex items-center gap-2 flex-wrap mt-1">
+                  <span className="tabular-nums">
                     {orderedActiveBouldersInCurrentArea.length}{' '}
                     {orderedActiveBouldersInCurrentArea.length === 1 ? 'boulder' : 'boulders'} •{' '}
                     {currentArea ? 'Clockwise wall sequence' : 'All wall sectors'}
                   </span>
+                  {loading && (
+                    <span className="inline-flex items-center gap-1 text-slate-400">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <span>Syncing</span>
+                    </span>
+                  )}
                   {currentAreaResetInfo?.isDueForReset && (
                     <span
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-400 bg-amber-400/10 border border-amber-400/25 px-2.5 py-0.5 rounded-full"
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-300 tabular-nums"
                       title={`Wall set ${currentAreaResetInfo.weeksOld} weeks ago – sector is due for a reset`}
                     >
                       <Clock className="w-3 h-3 text-amber-400 shrink-0" />
-                      <span>Reset soon ({currentAreaResetInfo.weeksOld}w old)</span>
+                      <span>Reset soon ({currentAreaResetInfo.weeksOld}w)</span>
                     </span>
                   )}
                 </p>
@@ -523,7 +589,9 @@ export function App() {
             />
 
             {/* Boulders List */}
-            {visibleBoulders.length > 0 ? (
+            {loading && orderedActiveBouldersInCurrentArea.length === 0 ? (
+              <BouldersLoadingSkeleton />
+            ) : visibleBoulders.length > 0 ? (
               <div className="flex flex-col gap-4 sm:gap-5">
                 {!currentArea ? (
                   // Group with sticky sector headers when viewing All Areas
@@ -542,20 +610,20 @@ export function App() {
                             <div className="sticky top-[92px] sm:top-[96px] z-20 -mx-1 px-4 py-2.5 bg-carbon/95 backdrop-blur-md border-y border-white/[0.08] rounded-2xl my-2 flex items-center justify-between shadow-xs">
                               <div className="flex items-center gap-2">
                                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: activeColor }} />
-                                <span className="text-xs font-bold font-heading text-slate-200 uppercase tracking-wider">
+                                <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
                                   {boulderArea?.name || 'Wall Sector'}
                                 </span>
                                 {sectorResetInfo?.isDueForReset && (
                                   <span
-                                    className="inline-flex items-center gap-1 text-[10px] font-mono font-medium text-amber-400 bg-amber-400/10 border border-amber-400/25 px-2.5 py-0.5 rounded-full"
+                                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-300 tabular-nums"
                                     title={`Wall set ${sectorResetInfo.weeksOld} weeks ago – reset soon`}
                                   >
-                                    <Clock className="w-2.5 h-2.5 text-amber-400 shrink-0" />
+                                    <Clock className="w-3 h-3 text-amber-400 shrink-0" />
                                     <span>Reset soon ({sectorResetInfo.weeksOld}w)</span>
                                   </span>
                                 )}
                               </div>
-                              <span className="text-[10px] font-mono font-medium text-slate-300 bg-surface px-2.5 py-0.5 rounded-full border border-white/[0.08]">
+                              <span className="text-xs font-medium text-slate-400 tabular-nums">
                                 {areaBouldersCount} {areaBouldersCount === 1 ? 'climb' : 'climbs'}
                               </span>
                             </div>
@@ -593,12 +661,12 @@ export function App() {
                 )}
               </div>
             ) : orderedActiveBouldersInCurrentArea.length > 0 ? (
-              <div className="flex flex-col items-center justify-center p-8 sm:p-10 bg-surface border border-slate-800/80 rounded-3xl text-center gap-3 my-4">
-                <div className="p-3 bg-slate-800 rounded-2xl" style={{ color: activeColor }}>
-                  <Filter className="w-6 h-6" />
+              <div className="ds-card flex flex-col items-center justify-center p-6 sm:p-8 text-center gap-3 my-4">
+                <div className="p-3 bg-surface-elevated rounded-lg" style={{ color: activeColor }}>
+                  <Filter className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-200">
+                  <h3 className="text-sm font-bold text-slate-100">
                     No matching boulders found
                   </h3>
                   <p className="text-xs text-slate-400 max-w-xs mt-1">
@@ -609,40 +677,40 @@ export function App() {
                   type="button"
                   onClick={handleResetFilters}
                   style={{ backgroundColor: activeColor }}
-                  className="mt-2 flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-black active-press shadow"
+                  className="mt-1 flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-black active-press shadow"
                 >
                   <RotateCcw className="w-3.5 h-3.5 stroke-[2.5]" />
                   <span>Reset All Filters</span>
                 </button>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center p-8 bg-slate-900/60 border border-slate-800 rounded-2xl text-center gap-3 my-6">
-                <div className="p-3 bg-slate-800 rounded-2xl" style={{ color: activeColor }}>
-                  <Compass className="w-6 h-6" />
+              <div className="ds-card flex flex-col items-center justify-center p-6 sm:p-8 text-center gap-3 my-6">
+                <div className="p-3 bg-surface-elevated rounded-lg" style={{ color: activeColor }}>
+                  <Compass className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-200">
+                  <h3 className="text-sm font-bold text-slate-100">
                     No climbs here yet
                   </h3>
                   <p className="text-xs text-slate-400 max-w-xs mt-1">
                     Be the first to log a new problem in this sector.
                   </p>
                 </div>
-                <div className="flex items-center gap-2.5 flex-wrap justify-center mt-2">
+                <div className="flex items-center gap-2.5 flex-wrap justify-center mt-1">
                   <button
                     type="button"
                     onClick={() => setIsAddModalOpen(true)}
                     style={{ backgroundColor: activeColor }}
-                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-black active-press shadow"
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-bold text-black active-press shadow"
                   >
-                    <Plus className="w-4 h-4 stroke-[3]" />
+                    <Plus className="w-4 h-4 stroke-[2.5]" />
                     <span>Add Single Climb</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setIsBulkAddOpen(true)}
                     style={{ color: activeColor, borderColor: `${activeColor}50` }}
-                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 border active-press shadow"
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-bold bg-surface-elevated hover:bg-surface-high border active-press shadow"
                   >
                     <Layers className="w-4 h-4" />
                     <span>Bulk Log Wall Set</span>
@@ -755,7 +823,7 @@ export function App() {
 
       {/* Boulder Detail & Beta Modal */}
       {detailBoulder && (
-        <React.Suspense fallback={null}>
+        <React.Suspense fallback={<ModalLoadingFallback />}>
           <BoulderDetailModal
             boulder={boulders.find((b) => b.id === detailBoulder.id) || detailBoulder}
             isOpen={Boolean(detailBoulder)}
@@ -798,7 +866,7 @@ export function App() {
 
       {/* Bulk Add Boulders Modal (for wall resets or initial gym logging) */}
       {isBulkAddOpen && (
-        <React.Suspense fallback={null}>
+        <React.Suspense fallback={<ModalLoadingFallback />}>
           <BulkAddBouldersModal
             key="bulk-add-boulders-modal"
             isOpen={isBulkAddOpen}
@@ -842,11 +910,11 @@ export function App() {
       {/* First-time Welcome Climber Selection Modal */}
       {!hasChosenClimber && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col items-center gap-5 text-center">
+          <div className="w-full max-w-sm bg-surface border border-white/[0.1] rounded-3xl p-5 shadow-2xl flex flex-col items-center gap-5 text-center">
             <WhamBadge size="lg" badgeColor={activeColor} logoColor="#000000" />
             <div>
-              <h2 className="text-xl font-black text-white">Welcome to Wham!</h2>
-              <p className="text-xs text-slate-400 mt-1">Who is climbing today? Select your profile:</p>
+              <h2 className="text-xl font-black text-white">Welcome to Wham</h2>
+              <p className="text-xs text-slate-400 mt-1">Who is climbing today?</p>
             </div>
             <div className="grid grid-cols-2 gap-2.5 w-full">
               {climbers.map((climber) => (
@@ -857,7 +925,7 @@ export function App() {
                     switchClimber(climber.id);
                     setHasChosenClimber(true);
                   }}
-                  className="p-3.5 rounded-2xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 hover:border-slate-600 flex flex-col items-center gap-2 transition-all active-press group"
+                  className="p-3.5 rounded-lg bg-surface-elevated hover:bg-surface-high border border-white/[0.08] hover:border-white/[0.16] flex flex-col items-center gap-2 transition-all active-press group"
                 >
                   <ClimberAvatar profile={climber} size="xl" />
                   <span className="font-bold text-sm text-slate-200 group-hover:text-white">

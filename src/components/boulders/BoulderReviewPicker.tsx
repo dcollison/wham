@@ -1,5 +1,5 @@
 import React from 'react';
-import { SlidersHorizontal } from 'lucide-react';
+import { Star } from 'lucide-react';
 import { ReviewRating, GradeOpinion } from '../../types';
 import {
   REVIEW_RATING_LIST,
@@ -33,13 +33,13 @@ export const BoulderReviewPicker: React.FC<BoulderReviewPickerProps> = ({
   onClear,
   title,
   showIcon = false,
-  showOptionalBadge = false,
+  showOptionalBadge: _showOptionalBadge = false,
   clearLabel = 'Clear Review',
   size = 'md',
   className = '',
   showHeaders = true,
-  qualityLabel = 'Quality:',
-  gradeLabel = 'Grade Consensus:'
+  qualityLabel = 'Quality',
+  gradeLabel = 'Grade Feel'
 }) => {
   const normRating = normalizeRating(rating);
   const normGrade = normalizeGradeOpinion(gradeOpinion);
@@ -52,12 +52,9 @@ export const BoulderReviewPicker: React.FC<BoulderReviewPickerProps> = ({
       {(title || (hasSelection && onClear)) && (
         <div className="flex items-center justify-between">
           {title ? (
-            <label className={`${isSm ? 'text-[11px]' : 'text-xs uppercase tracking-wider'} font-bold text-slate-300 flex items-center gap-2`}>
-              {showIcon && <SlidersHorizontal className="w-4 h-4 text-amber-400 shrink-0" />}
+            <label className={`${isSm ? 'text-xs' : 'ds-label'} font-bold text-slate-300 flex items-center gap-2`}>
+              {showIcon && <Star className="w-4 h-4 text-amber-400 shrink-0" />}
               <span>{title}</span>
-              {showOptionalBadge && (
-                <span className="text-[10px] text-slate-500 font-normal normal-case">(optional)</span>
-              )}
             </label>
           ) : <span />}
 
@@ -65,7 +62,7 @@ export const BoulderReviewPicker: React.FC<BoulderReviewPickerProps> = ({
             <button
               type="button"
               onClick={onClear}
-              className="text-[10px] text-slate-400 hover:text-rose-400 underline font-semibold transition-colors"
+              className="text-[11px] text-slate-400 hover:text-rose-400 underline font-semibold transition-colors"
             >
               {clearLabel}
             </button>
@@ -87,19 +84,17 @@ export const BoulderReviewPicker: React.FC<BoulderReviewPickerProps> = ({
                 type="button"
                 onClick={() => onRatingChange(isSelected ? null : ratingOpt.value)}
                 className={`flex flex-col items-center justify-center transition-all active-press border ${
-                  isSm ? 'py-2 px-2 rounded-xl text-xs font-semibold gap-0.5' : 'py-2.5 px-2 rounded-2xl'
+                  isSm ? 'py-2 px-2 rounded text-xs font-semibold gap-0.5' : 'py-2.5 px-2 rounded-md'
                 } ${
                   isSelected
-                    ? `${ratingOpt.activeBg} ${ratingOpt.activeBorder} ${ratingOpt.activeText} ${isSm ? 'ring-1 shadow-xs' : 'ring-2 shadow-sm scale-[1.02]'} ring-white/20`
-                    : isSm
-                    ? 'bg-slate-800/80 hover:bg-slate-800 border-slate-750 text-slate-400 hover:text-slate-200'
-                    : 'bg-slate-800/70 hover:bg-slate-800 border-slate-700/60 text-slate-300'
+                    ? `${ratingOpt.activeBg} ${ratingOpt.activeBorder} ${ratingOpt.activeText} shadow-xs animate-pop`
+                    : 'bg-carbon hover:bg-surface-high border-white/[0.08] text-slate-300 hover:text-white'
                 }`}
               >
                 <span
-                  className={`font-mono font-black select-none tracking-tight ${
+                  className={`font-bold select-none tracking-tight ${
                     isSm ? 'text-xs' : 'text-base mb-1'
-                  } ${isSelected ? ratingOpt.activeText : isSm ? '' : 'text-slate-300'}`}
+                  } ${isSelected ? ratingOpt.activeText : 'text-slate-200'}`}
                 >
                   {ratingOpt.kaomoji}
                 </span>
@@ -117,7 +112,7 @@ export const BoulderReviewPicker: React.FC<BoulderReviewPickerProps> = ({
       </div>
 
       {/* Grade Consensus: Soft / Fair / Hard */}
-      <div className={`flex flex-col gap-2 ${!isSm ? 'pt-2 border-t border-slate-800/80' : ''}`}>
+      <div className={`flex flex-col gap-2 ${!isSm ? 'pt-2 border-t border-white/[0.06]' : ''}`}>
         {showHeaders && (
           <span className="text-[11px] font-semibold text-slate-400">{gradeLabel}</span>
         )}
@@ -131,13 +126,11 @@ export const BoulderReviewPicker: React.FC<BoulderReviewPickerProps> = ({
                 type="button"
                 onClick={() => onGradeOpinionChange(isSelected ? null : opt.value)}
                 className={`flex items-center justify-center gap-1.5 transition-all active-press border ${
-                  isSm ? 'py-2 px-2 rounded-xl text-xs font-semibold' : 'py-2.5 px-2.5 rounded-2xl text-xs font-bold'
+                  isSm ? 'py-2 px-2 rounded text-xs font-semibold' : 'py-2.5 px-2.5 rounded-md text-xs font-bold'
                 } ${
                   isSelected
-                    ? `${opt.activeBg} ${opt.activeBorder} ${opt.activeText} ${isSm ? 'ring-1 shadow-xs' : 'ring-1 shadow-sm'} ring-white/20`
-                    : isSm
-                    ? 'bg-slate-800/80 hover:bg-slate-800 border-slate-750 text-slate-400 hover:text-slate-200'
-                    : 'bg-slate-800/70 hover:bg-slate-800 border-slate-700/60 text-slate-400 hover:text-slate-200'
+                    ? `${opt.activeBg} ${opt.activeBorder} ${opt.activeText} shadow-xs animate-pop`
+                    : 'bg-carbon hover:bg-surface-high border-white/[0.08] text-slate-300 hover:text-white'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5 shrink-0" />

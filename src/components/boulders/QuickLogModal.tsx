@@ -14,8 +14,6 @@ import {
   Trash2,
   Plus,
   Minus,
-  CheckCircle2,
-  CircleDashed,
   Calendar,
   Users,
   CheckCircle,
@@ -26,7 +24,8 @@ import {
   FileText,
   Trophy,
   Camera,
-  MessageSquare
+  MessageSquare,
+  Loader2
 } from 'lucide-react';
 import { useGym } from '../../context/GymContext';
 
@@ -86,6 +85,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
   const [logDate, setLogDate] = useState<string>(getTodayIsoDate());
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
+  const [deleting, setDeleting] = useState<boolean>(false);
   const [justSavedName, setJustSavedName] = useState<string | null>(null);
 
   // Review states for this climb
@@ -161,7 +161,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
   };
 
   const selectedClimber = climbers.find(c => c.id === selectedUserId) || climbers[0];
-  const selectedClimberColor = selectedClimber?.accent_color || '#3B82F6';
+  const selectedClimberColor = selectedClimber?.accent_color || '#F59E0B';
   const isLoggingForOther = Boolean(currentUserId && selectedClimber && selectedClimber.id !== currentUserId);
 
   // Selected climber's existing attempt on this boulder
@@ -353,9 +353,9 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
   };
 
   const handleDelete = async () => {
-    if (!boulder || !selectedClimber || !onDelete) return;
+    if (!boulder || !selectedClimber || !onDelete || deleting || saving) return;
     if (window.confirm(`Clear logged attempt on this climb for ${selectedClimber.display_name}?`)) {
-      setSaving(true);
+      setDeleting(true);
       try {
         await Promise.race([
           (async () => {
@@ -371,7 +371,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
         console.warn('QuickLog delete handled with fallback:', err);
         onClose();
       } finally {
-        setSaving(false);
+        setDeleting(false);
       }
     }
   };
@@ -382,7 +382,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
     >
       <div
-        className="w-full max-w-lg bg-surface border-t sm:border border-slate-800/80 rounded-t-[32px] sm:rounded-4xl shadow-2xl flex flex-col max-h-[92vh] sheet-elevated overflow-hidden overscroll-contain"
+        className="w-full max-w-lg ds-sheet shadow-2xl flex flex-col max-h-[92vh] overflow-hidden overscroll-contain animate-in slide-in-from-bottom-6"
         style={{
           transform: dragOffset > 0 ? `translateY(${dragOffset}px)` : undefined,
           transition: isDragging ? 'none' : 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
@@ -390,7 +390,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Fixed Header Section */}
-        <div className="shrink-0 px-4 sm:px-6 pt-3 pb-3 border-b border-slate-800/80 bg-surface">
+        <div className="shrink-0 px-4 sm:px-6 pt-3 pb-3 border-b border-white/[0.08] bg-surface">
           {/* Mobile pull/drag handle */}
           <div
             className="w-full py-1 mb-2 flex items-center justify-center cursor-grab active:cursor-grabbing sm:hidden select-none touch-none"
@@ -400,7 +400,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
             onClick={onClose}
             title="Drag down or tap to dismiss"
           >
-            <div className="w-12 h-1.5 bg-slate-700/80 hover:bg-slate-600 rounded-full transition-colors" />
+            <div className="w-12 h-1.5 bg-surface-higher hover:bg-white/25 rounded-full transition-colors" />
           </div>
 
           {/* Header with Boulder info & Filter Navigation */}
@@ -415,7 +415,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                 size="md"
               />
               {!(boulder.is_comp && boulder.comp_number != null) && (
-                <span className="font-mono text-xs font-bold shrink-0 tabular-nums px-2.5 py-0.5 rounded-full text-slate-300 bg-slate-800/90 border border-slate-700/60">
+                <span className="font-mono text-xs font-bold shrink-0 tabular-nums px-2.5 py-0.5 rounded-full text-slate-200 bg-surface-elevated border border-white/[0.08]">
                   #{boulder.display_order ?? Math.round(boulder.position_order)}
                 </span>
               )}
@@ -424,31 +424,31 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
             {/* Right: Stepper with adjacent hold swatches + Close button */}
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               {hasFilter && totalFiltered > 1 && (
-                <div className="flex items-center bg-slate-800/90 rounded-full border border-slate-700/80 p-1 text-xs shadow-md">
+                <div className="flex items-center bg-surface-elevated rounded-full border border-white/[0.1] p-1 text-xs">
                   <button
                     type="button"
                     onClick={() => prevBoulder && onNavigateBoulder?.(prevBoulder)}
-                    className="px-3 py-1 rounded-full hover:bg-slate-700 text-slate-200 hover:text-white transition-colors flex items-center gap-1.5 active-press touch-manipulation font-heading font-bold"
+                    className="px-2.5 py-1 rounded-full hover:bg-surface-high text-slate-200 hover:text-white transition-colors flex items-center gap-1.5 active-press touch-manipulation font-bold"
                     title={`Previous in filter: #${prevBoulder!.display_order ?? Math.round(prevBoulder!.position_order)} ${prevBoulder!.hold_colour} ${prevBoulder!.grade}`}
                   >
-                    <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                    <ChevronLeft className="w-4 h-4 shrink-0" />
                     {prevBoulder && <HoldSwatch color={prevBoulder.hold_colour} size="sm" />}
                     <span className="hidden sm:inline text-xs">Prev</span>
                   </button>
 
-                  <span className="font-mono text-xs sm:text-sm text-slate-300 font-bold px-2 select-none whitespace-nowrap">
-                    {currentIndex + 1} / {totalFiltered}
+                  <span className="font-mono tabular-nums text-xs sm:text-sm text-slate-200 font-bold px-2 select-none whitespace-nowrap">
+                    {currentIndex + 1}/{totalFiltered}
                   </span>
 
                   <button
                     type="button"
                     onClick={() => nextBoulder && onNavigateBoulder?.(nextBoulder)}
-                    className="px-3 py-1 rounded-full hover:bg-slate-700 text-slate-200 hover:text-white transition-colors flex items-center gap-1.5 active-press touch-manipulation font-heading font-bold"
+                    className="px-2.5 py-1 rounded-full hover:bg-surface-high text-slate-200 hover:text-white transition-colors flex items-center gap-1.5 active-press touch-manipulation font-bold"
                     title={`Next in filter: #${nextBoulder!.display_order ?? Math.round(nextBoulder!.position_order)} ${nextBoulder!.hold_colour} ${nextBoulder!.grade}`}
                   >
                     <span className="hidden sm:inline text-xs">Next</span>
                     {nextBoulder && <HoldSwatch color={nextBoulder.hold_colour} size="sm" />}
-                    <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                    <ChevronRight className="w-4 h-4 shrink-0" />
                   </button>
                 </div>
               )}
@@ -456,7 +456,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors active-press touch-manipulation shrink-0"
+                className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-surface-high transition-colors active-press touch-manipulation shrink-0"
                 title="Close"
               >
                 <X className="w-5 h-5" />
@@ -465,7 +465,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
           </div>
 
           {/* Sub-bar: Sector Location */}
-          <div className="flex items-center gap-1.5 text-slate-400 font-medium text-xs pt-1.5">
+          <div className="flex items-center gap-1.5 text-slate-300 font-medium text-xs pt-2">
             <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
             <span className="truncate text-xs text-slate-300">
               {resolvedAreaName || 'Wall Sector'}
@@ -474,34 +474,35 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
         </div>
 
         {/* Scrollable Modal Content */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 flex flex-col gap-5 scrollbar-thin">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-4 flex flex-col gap-5 scrollbar-thin">
           {/* Climber Selector / Context */}
-          <div className="flex flex-col gap-2.5 bg-slate-850/60 p-3.5 rounded-3xl border border-slate-800/80">
+          <div className="flex flex-col gap-3 bg-surface-elevated p-3.5 rounded-lg border border-white/[0.07]">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="ds-label flex items-center gap-1.5">
                 <Users className="w-3.5 h-3.5" style={{ color: selectedClimberColor }} />
-                Log for Climber:
+                <span>Climber</span>
               </span>
-              {isLoggingForOther ? (
-                <span
-                  style={{
-                    color: selectedClimberColor,
-                    backgroundColor: `${selectedClimberColor}15`,
-                    borderColor: `${selectedClimberColor}40`
-                  }}
-                  className="text-[11px] font-semibold border px-2.5 py-0.5 rounded-full flex items-center gap-1 animate-in fade-in"
-                >
-                  On behalf of {selectedClimber.display_name}
-                </span>
-              ) : (
-                <span className="text-[11px] font-semibold text-slate-400">
-                  Tap crew to switch
-                </span>
+              {isLoggingForOther && (
+                <div className="flex items-center gap-2">
+                  <span
+                    style={{ color: selectedClimberColor }}
+                    className="text-[11px] font-semibold animate-fadeIn"
+                  >
+                    Logging for {selectedClimber.display_name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => currentUserId && setSelectedUserId(currentUserId)}
+                    className="text-[11px] underline text-slate-300 hover:text-white"
+                  >
+                    Switch back
+                  </button>
+                </div>
               )}
             </div>
 
             {/* Climber Swatch Row */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar pt-0.5">
+            <div className="flex items-center gap-2 overflow-x-auto pb-0.5 no-scrollbar">
               {climbers.map((climber) => {
                 const isSelected = climber.id === selectedUserId;
                 const isMe = climber.id === currentUserId;
@@ -520,11 +521,11 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                       setSelectedUserId(climber.id);
                       setJustSavedName(null);
                     }}
-                    style={isSelected ? { borderColor: climber.accent_color || selectedClimberColor, boxShadow: `0 0 0 1px ${(climber.accent_color || selectedClimberColor)}80` } : undefined}
+                    style={isSelected ? { borderColor: climber.accent_color || selectedClimberColor } : undefined}
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-semibold shrink-0 transition-all active-press ${
                       isSelected
-                        ? 'bg-slate-800 text-white shadow-md'
-                        : 'bg-slate-850/70 border-slate-700/80 text-slate-400 hover:text-slate-200 hover:border-slate-600'
+                        ? 'bg-surface-high text-white'
+                        : 'bg-carbon border-white/[0.08] text-slate-300 hover:text-white hover:border-white/[0.16]'
                     }`}
                   >
                     <ClimberAvatar profile={climber} size="xs" />
@@ -533,7 +534,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                         {climber.display_name}
                         {isMe && <span className="text-[10px] text-slate-400 font-normal">(You)</span>}
                       </span>
-                      <span className="text-[10px] font-mono mt-0.5 opacity-80">
+                      <span className="text-[10px] tabular-nums mt-0.5 text-slate-400">
                         {climberAttempt?.status === 'flashed'
                           ? (isWinterSeriesBoulder(boulder) ? 'Flash · 3pt' : 'Flash')
                           : climberAttempt?.status === 'sent'
@@ -549,46 +550,32 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
             </div>
 
             {/* Climber Status Feedback Notice */}
-            <div className="flex items-center justify-between text-xs text-slate-400 pt-1.5 border-t border-slate-800/80">
-              <span className="flex items-center gap-1.5">
-                <span>Active:</span>
-                <strong className="font-semibold" style={{ color: selectedClimberColor }}>{selectedClimber?.display_name}</strong>
-                {isLoggingForOther && (
-                  <button
-                    type="button"
-                    onClick={() => currentUserId && setSelectedUserId(currentUserId)}
-                    className="text-[10px] underline text-slate-400 hover:text-slate-200"
-                  >
-                    (switch back to you)
-                  </button>
-                )}
-              </span>
-
+            <div className="flex items-center justify-between text-xs text-slate-400">
               {selectedAttempt ? (
-                <span className="text-slate-400 text-[11px]">
+                <span className="text-slate-300 text-xs">
                   Previous log:{' '}
-                  <strong className="uppercase font-mono text-slate-200">
+                  <strong className="uppercase tabular-nums text-white">
                     {isWinterSeriesBoulder(boulder)
                       ? selectedAttempt.status === 'flashed'
-                        ? 'FLASH (3 PTS)'
+                        ? 'Flash (3 pts)'
                         : selectedAttempt.status === 'sent'
-                        ? 'TOP (2 PTS)'
-                        : 'ZONE (1 PT)'
+                        ? 'Top (2 pts)'
+                        : 'Zone (1 pt)'
                       : `${selectedAttempt.status} ${selectedAttempt.attempt_count}`}
                   </strong>
                 </span>
               ) : (
-                <span className="text-slate-500 text-[11px] italic">
+                <span className="text-slate-400 text-xs">
                   Untried by {selectedClimber?.display_name}
                 </span>
               )}
             </div>
 
             {justSavedName && (
-              <div className="flex items-center gap-1.5 text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-full animate-in fade-in">
+              <div className="flex items-center gap-1.5 text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-md animate-pop">
                 <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span>
-                  Successfully logged for <strong>{justSavedName}</strong>!{climbers.length > 1 ? ' Tap another climber above to log for them.' : ''}
+                  Logged for <strong>{justSavedName}</strong>.{climbers.length > 1 ? ' Tap another climber above to log for them.' : ''}
                 </span>
               </div>
             )}
@@ -597,9 +584,8 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
           {/* Winter Series 3 / 2 / 1 Quick Score Selector when logging a Winter Series boulder */}
           {isWinterSeriesBoulder(boulder) ? (
             <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between px-1">
-                <span>Winter Series Score (3 / 2 / 1)</span>
-                <span className="text-[11px] font-normal text-amber-300 font-mono">Flash 3 • Top 2 • Zone 1</span>
+              <label className="ds-label px-1">
+                <span>Winter Series Score</span>
               </label>
               <div className="grid grid-cols-3 gap-2.5">
                 <button
@@ -608,14 +594,17 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                     setIsSent(true);
                     setAttemptCount(1);
                   }}
-                  className={`p-3.5 rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all active-press ${
+                  className={`p-3.5 rounded-lg border-2 flex flex-col items-center justify-center gap-1 transition-all active-press ${
                     computedStatus === 'flashed'
-                      ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-md ring-1 ring-amber-400/40'
-                      : 'bg-slate-850/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                      ? 'bg-amber-500/20 border-amber-400 text-amber-300 animate-pop'
+                      : 'bg-surface-elevated border-white/[0.08] text-slate-300 hover:border-white/[0.16]'
                   }`}
                 >
-                  <span className="font-mono font-black text-base">⚡ 3 pts</span>
-                  <span className="font-heading font-bold text-xs">Flash</span>
+                  <span className="tabular-nums font-black text-base inline-flex items-center gap-1">
+                    <Zap className="w-4 h-4 fill-current" />
+                    <span>3 <span className="text-xs font-bold">pts</span></span>
+                  </span>
+                  <span className="font-bold text-xs">Flash</span>
                 </button>
 
                 <button
@@ -624,14 +613,17 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                     setIsSent(true);
                     if (attemptCount < 2) setAttemptCount(2);
                   }}
-                  className={`p-3.5 rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all active-press ${
+                  className={`p-3.5 rounded-lg border-2 flex flex-col items-center justify-center gap-1 transition-all active-press ${
                     computedStatus === 'sent'
-                      ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 shadow-md ring-1 ring-emerald-400/40'
-                      : 'bg-slate-850/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                      ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 animate-pop'
+                      : 'bg-surface-elevated border-white/[0.08] text-slate-300 hover:border-white/[0.16]'
                   }`}
                 >
-                  <span className="font-mono font-black text-base">✓ 2 pts</span>
-                  <span className="font-heading font-bold text-xs">Top</span>
+                  <span className="tabular-nums font-black text-base inline-flex items-center gap-1">
+                    <Check className="w-4 h-4 stroke-[2.5]" />
+                    <span>2 <span className="text-xs font-bold">pts</span></span>
+                  </span>
+                  <span className="font-bold text-xs">Top</span>
                 </button>
 
                 <button
@@ -640,84 +632,72 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                     setIsSent(false);
                     if (attemptCount < 1) setAttemptCount(1);
                   }}
-                  className={`p-3.5 rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all active-press ${
+                  className={`p-3.5 rounded-lg border-2 flex flex-col items-center justify-center gap-1 transition-all active-press ${
                     computedStatus === 'attempted'
-                      ? 'bg-sky-500/20 border-sky-400 text-sky-300 shadow-md ring-1 ring-sky-400/40'
-                      : 'bg-slate-850/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                      ? 'bg-sky-500/20 border-sky-400 text-sky-300 animate-pop'
+                      : 'bg-surface-elevated border-white/[0.08] text-slate-300 hover:border-white/[0.16]'
                   }`}
                 >
-                  <span className="font-mono font-black text-base">◐ 1 pt</span>
-                  <span className="font-heading font-bold text-xs">Zone</span>
+                  <span className="tabular-nums font-black text-base inline-flex items-center gap-1">
+                    <Clock className="w-4 h-4 stroke-[2.5]" />
+                    <span>1 <span className="text-xs font-bold">pt</span></span>
+                  </span>
+                  <span className="font-bold text-xs">Zone</span>
                 </button>
               </div>
             </div>
           ) : (
-            /* Question 1: Did you send/top it? */
-            <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between px-1">
-                <span>Did you send it?</span>
-                <span className="text-[11px] font-normal text-slate-400">Topped vs Working</span>
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                {/* Sent / Topped */}
-                <button
-                  type="button"
-                  onClick={() => setIsSent(true)}
-                  className={`p-4 rounded-3xl border-2 flex items-center justify-center gap-3 transition-all active-press ${
-                    isSent
-                      ? 'bg-emerald-500/15 border-emerald-400 text-emerald-300 shadow-md ring-1 ring-emerald-400/40'
-                      : 'bg-slate-850/60 border-slate-800 text-slate-400 hover:border-slate-700'
-                  }`}
-                >
-                  <CheckCircle2 className={`w-5 h-5 ${isSent ? 'text-emerald-400 stroke-[2.5]' : 'text-slate-500'}`} />
-                  <div className="text-left">
-                    <span className="font-bold text-sm block font-heading">Sent / Topped</span>
-                    <span className="text-[10px] opacity-75">Completed boulder</span>
-                  </div>
-                </button>
+            /* Outcome */
+            <div className="grid grid-cols-2 gap-3">
+              {/* Sent / Topped */}
+              <button
+                type="button"
+                onClick={() => setIsSent(true)}
+                className={`p-3.5 rounded-lg border-2 flex items-center justify-center gap-2 transition-all active-press ${
+                  isSent
+                    ? 'bg-emerald-500/15 border-emerald-400 text-emerald-300 animate-pop'
+                    : 'bg-surface-elevated border-white/[0.08] text-slate-300 hover:border-white/[0.16]'
+                }`}
+              >
+                <Check className={`w-5 h-5 stroke-[2.5] ${isSent ? 'text-emerald-400' : 'text-slate-400'}`} />
+                <span className="font-bold text-sm">Sent</span>
+              </button>
 
-                {/* Still Projecting */}
-                <button
-                  type="button"
-                  onClick={() => setIsSent(false)}
-                  className={`p-4 rounded-3xl border-2 flex items-center justify-center gap-3 transition-all active-press ${
-                    !isSent
-                      ? 'bg-blue-500/15 border-blue-400 text-blue-300 shadow-md ring-1 ring-blue-400/40'
-                      : 'bg-slate-850/60 border-slate-800 text-slate-400 hover:border-slate-700'
-                  }`}
-                >
-                  <CircleDashed className={`w-5 h-5 ${!isSent ? 'text-blue-400 stroke-[2.5]' : 'text-slate-500'}`} />
-                  <div className="text-left">
-                    <span className="font-bold text-sm block font-heading">Still Projecting</span>
-                    <span className="text-[10px] opacity-75">Work in progress</span>
-                  </div>
-                </button>
-              </div>
+              {/* Still Projecting */}
+              <button
+                type="button"
+                onClick={() => setIsSent(false)}
+                className={`p-3.5 rounded-lg border-2 flex items-center justify-center gap-2 transition-all active-press ${
+                  !isSent
+                    ? 'bg-sky-500/15 border-sky-400 text-sky-300 animate-pop'
+                    : 'bg-surface-elevated border-white/[0.08] text-slate-300 hover:border-white/[0.16]'
+                }`}
+              >
+                <Clock className={`w-5 h-5 stroke-[2.5] ${!isSent ? 'text-sky-400' : 'text-slate-400'}`} />
+                <span className="font-bold text-sm">Projecting</span>
+              </button>
             </div>
           )}
 
-          {/* Question 2: How many tries? (Pixel Calculator aesthetic) */}
-          <div className="bg-slate-850/60 border border-slate-800/80 rounded-3xl p-5 flex flex-col items-center gap-4">
-            <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-              How many tries?
-            </label>
-
+          {/* Attempts */}
+          <div className="bg-surface-elevated border border-white/[0.07] rounded-lg p-5 flex flex-col items-center gap-4">
             {/* Tactile Calculator Circular Stepper */}
             <div className="flex items-center gap-7">
               <button
                 type="button"
                 onClick={handleDecrement}
                 disabled={attemptCount <= 1}
-                className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-slate-800/90 hover:bg-slate-750 border border-slate-700/60 flex items-center justify-center text-slate-100 active-press disabled:opacity-30 disabled:pointer-events-none transition-all surface-elevated shadow-md"
+                className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-surface-high hover:bg-surface-higher border border-white/[0.1] flex items-center justify-center text-slate-100 active-press disabled:opacity-30 disabled:pointer-events-none transition-all"
+                aria-label="Decrease attempts"
               >
                 <Minus className="w-6 h-6 stroke-[2.5]" />
               </button>
 
-              <div className="flex flex-col items-center min-w-[80px]">
-                <span className="font-heading text-5xl sm:text-6xl font-black text-white tabular-nums tracking-tight">
+              <div className="flex flex-col items-center justify-center min-w-[80px]">
+                <span className="font-mono text-5xl sm:text-6xl font-black text-white tabular-nums tracking-tight leading-none">
                   {attemptCount}
                 </span>
-                <span className="text-xs text-slate-400 font-medium mt-1">
+                <span className="text-xs text-slate-400 font-medium mt-1.5">
                   {attemptCount === 1 ? 'try' : 'tries'}
                 </span>
               </div>
@@ -725,7 +705,8 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
               <button
                 type="button"
                 onClick={handleIncrement}
-                className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-slate-800/90 hover:bg-slate-750 border border-slate-700/60 flex items-center justify-center text-slate-100 active-press transition-all surface-elevated shadow-md"
+                className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-surface-high hover:bg-surface-higher border border-white/[0.1] flex items-center justify-center text-slate-100 active-press transition-all"
+                aria-label="Increase attempts"
               >
                 <Plus className="w-6 h-6 stroke-[2.5]" />
               </button>
@@ -739,42 +720,46 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                   type="button"
                   onClick={() => setAttemptCount(num)}
                   style={attemptCount === num ? { backgroundColor: selectedClimberColor, color: '#000000' } : undefined}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold transition-all active-press ${
+                  className={`px-3.5 py-1.5 rounded-full text-xs tabular-nums font-bold transition-all active-press ${
                     attemptCount === num
-                      ? 'shadow-md'
-                      : 'bg-slate-800/90 text-slate-300 hover:bg-slate-750 border border-slate-750'
+                      ? 'font-extrabold'
+                      : 'bg-carbon text-slate-200 hover:bg-surface-high border border-white/[0.1]'
                   }`}
                 >
-                  {num === 1 ? (isSent ? '1 (Flash)' : '1 try') : `${num}t`}
+                  {num === 1 ? (
+                    <>1 {isSent ? '(Flash)' : 'try'}</>
+                  ) : (
+                    <span className="font-mono">{num}t</span>
+                  )}
                 </button>
               ))}
             </div>
 
-            {/* Comp points or status pill preview */}
+            {/* Comp points preview */}
             {(boulder.is_comp && boulder.comp_number != null) && (
-              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono font-bold mt-1 animate-in fade-in">
+              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold tabular-nums mt-1 animate-fadeIn">
                 <Trophy className="w-3.5 h-3.5" />
                 <span>
                   {isWinterSeriesBoulder(boulder)
                     ? computedStatus === 'flashed'
-                      ? 'Flashed: +3 Comp Points'
+                      ? 'Flashed: +3 pts'
                       : computedStatus === 'sent'
-                      ? `Topped (${attemptCount} tries): +2 Comp Points`
-                      : 'Zone Reached: +1 Comp Point'
+                      ? `Topped (${attemptCount} tries): +2 pts`
+                      : 'Zone Reached: +1 pt'
                     : computedStatus === 'flashed'
-                    ? 'Flashed: +10 Comp Points'
+                    ? 'Flashed: +10 pts'
                     : computedStatus === 'sent'
                     ? attemptCount === 2
-                      ? '2nd Try Send: +7 Comp Points'
-                      : `Send (${attemptCount} tries): +4 Comp Points`
-                    : 'Project: 0 Comp Points'}
+                      ? '2nd Try Send: +7 pts'
+                      : `Send (${attemptCount} tries): +4 pts`
+                    : 'Project: 0 pts'}
                 </span>
               </div>
             )}
           </div>
 
-          {/* Question 3: Rate this climb (Icons/symbols: Good, Okay, Rough & Soft, Fair, Hard) */}
-          <div className="bg-slate-850/60 border border-slate-800/80 rounded-3xl p-5">
+          {/* Climb Review */}
+          <div className="bg-surface-elevated border border-white/[0.07] rounded-lg p-3.5 sm:p-4">
             <BoulderReviewPicker
               rating={selectedRating}
               gradeOpinion={selectedGradeOpinion}
@@ -786,19 +771,18 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
               }}
               title="Climb Review"
               showIcon={true}
-              showOptionalBadge={true}
-              clearLabel="Clear Review"
-              size="md"
+              clearLabel="Clear"
+              size="sm"
             />
           </div>
 
           {/* Session Date Selector */}
           <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between px-4 py-3 rounded-2xl bg-slate-850/50 border border-slate-800 text-xs">
+            <div className="flex items-center justify-between px-4 py-3 rounded-lg bg-surface-elevated border border-white/[0.07] text-xs">
               <div className="flex items-center gap-2 text-slate-300">
                 <Calendar className="w-4 h-4 shrink-0" style={{ color: selectedClimberColor }} />
-                <span className="font-semibold">Session Date:</span>
-                <span className="font-mono font-bold" style={{ color: selectedClimberColor }}>
+                <span className="font-semibold">Date</span>
+                <span className="tabular-nums font-bold" style={{ color: selectedClimberColor }}>
                   {logDate === getTodayIsoDate() ? 'Today' : logDate}
                 </span>
               </div>
@@ -814,7 +798,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                   className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-colors active-press ${
                     logDate === getTodayIsoDate()
                       ? 'shadow'
-                      : 'bg-slate-800 text-slate-300 hover:text-white'
+                      : 'bg-surface-high text-slate-300 hover:text-white'
                   }`}
                 >
                   Today
@@ -828,7 +812,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                     setLogDate(yestStr);
                     setShowDatePicker(false);
                   }}
-                  className="px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-800 text-slate-300 hover:text-white transition-colors active-press"
+                  className="px-3 py-1 rounded-full text-[11px] font-semibold bg-surface-high text-slate-300 hover:text-white transition-colors active-press"
                 >
                   Yesterday
                 </button>
@@ -837,30 +821,30 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                   onClick={() => setShowDatePicker(!showDatePicker)}
                   className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors active-press ${
                     showDatePicker
-                      ? 'bg-slate-700 text-white'
-                      : 'bg-slate-800 text-slate-300 hover:text-white'
+                      ? 'bg-surface-higher text-white'
+                      : 'bg-surface-high text-slate-300 hover:text-white'
                   }`}
                 >
-                  Custom Date
+                  Custom
                 </button>
               </div>
             </div>
 
             {showDatePicker && (
-              <div className="p-3.5 rounded-2xl bg-slate-850 border border-slate-750 flex items-center justify-between gap-2 animate-in fade-in">
-                <label className="text-xs text-slate-300 font-medium">Choose Date:</label>
+              <div className="p-3.5 rounded-lg bg-surface-elevated border border-white/[0.08] flex items-center justify-between gap-2 animate-fadeIn">
+                <label className="text-xs text-slate-300 font-medium">Choose Date</label>
                 <input
                   type="date"
                   value={logDate}
                   onChange={(e) => setLogDate(e.target.value)}
-                  className="bg-slate-900 border border-slate-700 text-slate-100 text-xs rounded-full px-4 py-1.5 outline-none focus:border-slate-500 font-mono"
+                  className="ds-input w-auto text-xs rounded-full px-4 py-1.5 font-mono tabular-nums"
                 />
               </div>
             )}
           </div>
 
           {/* Secondary Utility Row: Details & Beta, Quick Skip to Next, Delete */}
-          <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-800/80 mt-1">
+          <div className="flex items-center justify-between gap-2 pt-1">
             <div className="flex items-center gap-2">
               {onOpenDetails && boulder && (
                 <button
@@ -869,13 +853,13 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                     onClose();
                     onOpenDetails(boulder);
                   }}
-                  className="py-2 px-3.5 rounded-full text-xs font-semibold text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-750 border border-slate-700/80 active-press transition-all flex items-center gap-1.5 group shadow-xs touch-manipulation"
+                  className="py-2 px-3.5 rounded-full text-xs font-semibold text-slate-200 hover:text-white bg-surface-elevated hover:bg-surface-high border border-white/[0.1] active-press transition-all flex items-center gap-1.5 group shadow-xs touch-manipulation"
                   title="View full beta notes, photos, and crew discussion"
                 >
                   <FileText className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                   <span>Details &amp; Beta</span>
                   {(boulder.notes || boulderCommentsCount > 0 || boulder.image_url) && (
-                    <span className="flex items-center gap-1.5 text-[10px] font-mono text-amber-300/90 bg-amber-400/15 px-2 py-0.5 rounded-full">
+                    <span className="flex items-center gap-1.5 text-[10px] font-mono tabular-nums text-amber-300 bg-amber-400/15 px-2 py-0.5 rounded-full">
                       {boulder.image_url && <Camera className="w-3 h-3 text-amber-400" />}
                       {boulder.notes && <FileText className="w-3 h-3 text-amber-400" />}
                       {boulderCommentsCount > 0 && (
@@ -896,7 +880,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                 <button
                   type="button"
                   onClick={() => onNavigateBoulder(nextBoulder)}
-                  className="py-2 px-3.5 rounded-full text-xs font-semibold text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-750 border border-slate-700/80 active-press transition-all flex items-center gap-1.5 shadow-xs touch-manipulation"
+                  className="py-2 px-3.5 rounded-full text-xs font-semibold text-slate-200 hover:text-white bg-surface-elevated hover:bg-surface-high border border-white/[0.1] active-press transition-all flex items-center gap-1.5 shadow-xs touch-manipulation"
                   title={`Skip to next boulder without logging (#${nextBoulder.display_order ?? Math.round(nextBoulder.position_order)} ${nextBoulder.hold_colour} ${nextBoulder.grade})`}
                 >
                   <span>Skip to Next</span>
@@ -909,11 +893,11 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                 <button
                   type="button"
                   onClick={handleDelete}
-                  disabled={saving}
-                  className="p-2 rounded-full border border-rose-900/40 bg-rose-950/30 text-rose-300 hover:bg-rose-900/50 transition-colors flex items-center justify-center shrink-0 active-press touch-manipulation"
+                  disabled={saving || deleting}
+                  className="p-2 rounded-full border border-rose-500/30 bg-rose-950/30 text-rose-300 hover:bg-rose-900/50 transition-colors flex items-center justify-center shrink-0 active-press touch-manipulation disabled:opacity-50"
                   title={`Clear / Delete Log for ${selectedClimber?.display_name}`}
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                 </button>
               )}
             </div>
@@ -921,26 +905,32 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
         </div>
 
         {/* Sticky Action Footer: Tactile Pill Action Buttons */}
-        <div className="shrink-0 p-4 sm:p-5 bg-surface/98 backdrop-blur-md border-t border-slate-800/90 pb-safe flex flex-col gap-2.5 shadow-2xl">
+        <div className="shrink-0 p-4 sm:p-5 bg-surface/98 backdrop-blur-md border-t border-white/[0.08] pb-safe flex flex-col gap-2.5 shadow-2xl">
           {/* Primary Option: Save & Next Boulder (active when adjacent filtered boulders exist) */}
           {nextBoulder && nextBoulder.id !== boulder.id ? (
             <>
               <button
                 type="button"
                 onClick={handleSaveAndNextBoulder}
-                disabled={saving}
+                disabled={saving || deleting}
                 style={{ backgroundColor: selectedClimberColor, color: '#000000' }}
-                className="w-full min-h-[54px] sm:min-h-[58px] py-3.5 sm:py-4 px-5 sm:px-6 rounded-full font-heading font-black text-sm sm:text-base flex items-center justify-between shadow-xl active-press hover:brightness-110 transition-all group"
+                className="w-full min-h-[54px] sm:min-h-[58px] py-3.5 sm:py-4 px-5 sm:px-6 rounded-full font-extrabold text-sm sm:text-base flex items-center justify-between shadow-lg active-press hover:brightness-110 transition-all group disabled:opacity-70"
                 title={`Save log and advance to next boulder in filter (#${nextBoulder.display_order ?? Math.round(nextBoulder.position_order)} ${nextBoulder.hold_colour} ${nextBoulder.grade})`}
               >
                 <span className="flex items-center gap-2">
-                  {computedStatus === 'flashed' && <Zap className="w-5 h-5 fill-current shrink-0" />}
-                  {computedStatus === 'sent' && <Check className="w-5 h-5 stroke-[3] shrink-0" />}
-                  {computedStatus === 'attempted' && <Clock className="w-5 h-5 stroke-[2.5] shrink-0" />}
+                  {saving ? (
+                    <Loader2 className="w-5 h-5 animate-spin shrink-0" />
+                  ) : (
+                    <>
+                      {computedStatus === 'flashed' && <Zap className="w-5 h-5 fill-current shrink-0" />}
+                      {computedStatus === 'sent' && <Check className="w-5 h-5 stroke-[2.5] shrink-0" />}
+                      {computedStatus === 'attempted' && <Clock className="w-5 h-5 stroke-[2.5] shrink-0" />}
+                    </>
+                  )}
                   <span>{saving ? 'Saving...' : 'Save & Next Boulder'}</span>
                 </span>
 
-                <div className="flex items-center gap-1.5 bg-black/25 px-3 py-1 rounded-full text-xs font-mono font-bold shrink-0 transition-colors">
+                <div className="flex items-center gap-1.5 bg-black/25 px-3 py-1 rounded-full text-xs font-mono tabular-nums font-bold shrink-0 transition-colors">
                   <HoldSwatch color={nextBoulder.hold_colour} size="xs" />
                   <span>#{nextBoulder.display_order ?? Math.round(nextBoulder.position_order)} {nextBoulder.grade}</span>
                   <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
@@ -952,24 +942,27 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                 <button
                   type="button"
                   onClick={() => handleSaveAttempt(false)}
-                  disabled={saving}
-                  className={`min-h-[46px] sm:min-h-[48px] py-3 px-4 rounded-full font-heading font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all active-press border ${
+                  disabled={saving || deleting}
+                  className={`min-h-[46px] sm:min-h-[48px] py-3 px-4 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all active-press border disabled:opacity-60 ${
                     justSavedName
-                      ? 'bg-emerald-950/50 border-emerald-500/60 text-emerald-300 shadow-sm'
-                      : 'bg-slate-800/90 hover:bg-slate-750 text-slate-200 border-slate-700/80 hover:border-slate-650'
+                      ? 'bg-emerald-950/50 border-emerald-500/60 text-emerald-300 shadow-sm animate-pop'
+                      : 'bg-surface-elevated hover:bg-surface-high text-slate-200 border-white/[0.1] hover:border-white/[0.18]'
                   }`}
                   title="Save log and keep modal open to log for another crew member or edit"
                 >
                   {saving ? (
-                    <span>Saving...</span>
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                      <span>Saving...</span>
+                    </>
                   ) : justSavedName ? (
                     <>
                       <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span>Saved!</span>
+                      <span>Saved</span>
                     </>
                   ) : (
                     <>
-                      <Save className="w-4 h-4 text-slate-400 shrink-0" />
+                      <Save className="w-4 h-4 text-slate-300 shrink-0" />
                       <span>Save</span>
                     </>
                   )}
@@ -978,13 +971,19 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
                 <button
                   type="button"
                   onClick={() => handleSaveAttempt(true)}
-                  disabled={saving}
-                  className="min-h-[46px] sm:min-h-[48px] py-3 px-4 rounded-full font-heading font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md transition-all active-press bg-slate-800 hover:bg-slate-750 text-white border border-slate-700 hover:border-slate-650 hover:brightness-105"
+                  disabled={saving || deleting}
+                  className="min-h-[46px] sm:min-h-[48px] py-3 px-4 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all active-press bg-surface-elevated hover:bg-surface-high text-white border border-white/[0.12] hover:border-white/[0.2] disabled:opacity-60"
                   title="Save log and close"
                 >
-                  {computedStatus === 'flashed' && <Zap className="w-4 h-4 fill-amber-400 text-amber-400 shrink-0" />}
-                  {computedStatus === 'sent' && <Check className="w-4 h-4 text-emerald-400 stroke-[3] shrink-0" />}
-                  {computedStatus === 'attempted' && <Clock className="w-4 h-4 text-blue-400 shrink-0" />}
+                  {saving ? (
+                    <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                  ) : (
+                    <>
+                      {computedStatus === 'flashed' && <Zap className="w-4 h-4 fill-amber-400 text-amber-400 shrink-0" />}
+                      {computedStatus === 'sent' && <Check className="w-4 h-4 text-emerald-400 stroke-[2.5] shrink-0" />}
+                      {computedStatus === 'attempted' && <Clock className="w-4 h-4 text-sky-400 stroke-[2.5] shrink-0" />}
+                    </>
+                  )}
                   <span>{saving ? 'Saving...' : 'Save & Close'}</span>
                 </button>
               </div>
@@ -994,39 +993,48 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({
               <button
                 type="button"
                 onClick={() => handleSaveAttempt(true)}
-                disabled={saving}
-                className={`w-full min-h-[54px] sm:min-h-[58px] py-4 px-6 rounded-full font-heading font-black text-sm sm:text-base flex items-center justify-center gap-2 shadow-xl transition-all active-press ${
+                disabled={saving || deleting}
+                className={`w-full min-h-[54px] sm:min-h-[58px] py-4 px-6 rounded-full font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg transition-all active-press disabled:opacity-70 ${
                   computedStatus === 'flashed'
-                    ? 'bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-amber-500/20'
+                    ? 'bg-amber-400 hover:bg-amber-300 text-slate-950'
                     : computedStatus === 'sent'
-                    ? 'bg-emerald-400 hover:bg-emerald-300 text-slate-950 shadow-emerald-500/20'
-                    : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20'
+                    ? 'bg-emerald-400 hover:bg-emerald-300 text-slate-950'
+                    : 'bg-sky-500 hover:bg-sky-400 text-slate-950'
                 }`}
                 title="Save log and close"
               >
-                {computedStatus === 'flashed' && <Zap className="w-5 h-5 fill-current shrink-0" />}
-                {computedStatus === 'sent' && <Check className="w-5 h-5 stroke-[3] shrink-0" />}
-                {computedStatus === 'attempted' && <Clock className="w-5 h-5 stroke-[2.5] shrink-0" />}
+                {saving ? (
+                  <Loader2 className="w-5 h-5 animate-spin shrink-0" />
+                ) : (
+                  <>
+                    {computedStatus === 'flashed' && <Zap className="w-5 h-5 fill-current shrink-0" />}
+                    {computedStatus === 'sent' && <Check className="w-5 h-5 stroke-[2.5] shrink-0" />}
+                    {computedStatus === 'attempted' && <Clock className="w-5 h-5 stroke-[2.5] shrink-0" />}
+                  </>
+                )}
                 <span>{saving ? 'Saving...' : 'Save & Close'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleSaveAttempt(false)}
-                disabled={saving}
-                className="w-full min-h-[44px] py-2.5 px-4 rounded-full font-heading font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all active-press border bg-slate-800/80 hover:bg-slate-750 text-slate-300 border-slate-700/80"
+                disabled={saving || deleting}
+                className="w-full min-h-[44px] py-2.5 px-4 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all active-press border bg-surface-elevated hover:bg-surface-high text-slate-200 border-white/[0.1] disabled:opacity-60"
                 title="Save log and keep modal open to log for another crew member or edit"
               >
                 {saving ? (
-                  <span>Saving...</span>
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                    <span>Saving...</span>
+                  </>
                 ) : justSavedName ? (
                   <>
                     <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Saved!</span>
+                    <span>Saved</span>
                   </>
                 ) : (
                   <>
-                    <Save className="w-4 h-4 text-slate-400 shrink-0" />
+                    <Save className="w-4 h-4 text-slate-300 shrink-0" />
                     <span>Save &amp; Keep Open</span>
                   </>
                 )}

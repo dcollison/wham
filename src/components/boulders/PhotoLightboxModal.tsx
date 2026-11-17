@@ -147,13 +147,13 @@ export const PhotoLightboxModal: React.FC<PhotoLightboxModalProps> = ({
       {/* Lightbox Header Bar */}
       <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/80 to-transparent z-20 shrink-0">
         <div className="flex flex-col">
-          {title && <span className="font-heading font-bold text-sm text-white">{title}</span>}
-          {subtitle && <span className="text-xs text-slate-400 font-mono">{subtitle}</span>}
+          {title && <span className="font-bold text-sm text-white">{title}</span>}
+          {subtitle && <span className="text-xs text-slate-400">{subtitle}</span>}
         </div>
 
         {/* Zoom Controls & Close */}
         <div className="flex items-center gap-1.5">
-          <div className="flex items-center bg-slate-900/90 border border-slate-700/80 rounded-full p-0.5 shadow">
+          <div className="flex items-center bg-surface/90 border border-white/[0.12] rounded-full p-0.5 shadow">
             <button
               type="button"
               onClick={handleZoomOut}
@@ -163,7 +163,7 @@ export const PhotoLightboxModal: React.FC<PhotoLightboxModalProps> = ({
             >
               <ZoomOut className="w-4 h-4" />
             </button>
-            <span className="text-[11px] font-mono font-bold text-slate-300 px-2 select-none">
+            <span className="text-[11px] font-mono tabular-nums font-bold text-slate-200 px-2 select-none">
               {Math.round(scale * 100)}%
             </span>
             <button
@@ -181,7 +181,7 @@ export const PhotoLightboxModal: React.FC<PhotoLightboxModalProps> = ({
             <button
               type="button"
               onClick={handleResetZoom}
-              className="p-2 rounded-full bg-slate-900/80 border border-slate-700/80 text-slate-300 hover:text-white transition-colors"
+              className="p-2 rounded-full bg-surface/80 border border-white/[0.12] text-slate-300 hover:text-white transition-colors"
               title="Reset Zoom"
             >
               <RotateCcw className="w-4 h-4" />
@@ -191,7 +191,7 @@ export const PhotoLightboxModal: React.FC<PhotoLightboxModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-full bg-slate-900/90 border border-slate-700/80 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors active-press ml-1"
+            className="p-2 rounded-full bg-surface/90 border border-white/[0.12] text-slate-300 hover:text-white hover:bg-surface-high transition-colors active-press ml-1"
             title="Close photo"
           >
             <X className="w-5 h-5" />
@@ -232,7 +232,7 @@ export const PhotoLightboxModal: React.FC<PhotoLightboxModalProps> = ({
       </div>
 
       {/* Footer Hint */}
-      <div className="py-2 text-center text-[11px] text-slate-500 font-mono pointer-events-none select-none">
+      <div className="py-2 text-center text-xs text-slate-400 pointer-events-none select-none">
         {scale > 1 ? 'Drag to pan • Double-tap to reset' : 'Double-tap or pinch to zoom • Tap outside to close'}
       </div>
     </div>

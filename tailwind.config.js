@@ -18,9 +18,8 @@ export default {
         'spring-bounce': 'cubic-bezier(0.16, 1, 0.3, 1)',
       },
       boxShadow: {
-        'glow-flash': '0 0 24px -2px rgba(251, 191, 36, 0.25)',
-        'glow-sent': '0 0 24px -2px rgba(16, 185, 129, 0.25)',
-        'glow-project': '0 0 24px -2px rgba(56, 189, 248, 0.25)',
+        'xs': '0 1px 2px 0 rgba(0, 0, 0, 0.25)',
+        'card': '0 1px 2px 0 rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.06)',
         'sheet-elevated': '0 -12px 36px -4px rgba(0, 0, 0, 0.65)',
         'card-elevated': '0 4px 20px -2px rgba(0, 0, 0, 0.35)',
       },
@@ -78,16 +77,20 @@ export default {
           'monospace'
         ],
         heading: [
-          '"Space Mono"',
-          'ui-monospace',
-          'SFMono-Regular',
-          'monospace'
+          '"Plus Jakarta Sans"',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'Segoe UI',
+          'Roboto',
+          'sans-serif'
         ],
         display: [
-          '"Space Mono"',
-          'ui-monospace',
-          'SFMono-Regular',
-          'monospace'
+          '"Plus Jakarta Sans"',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'Segoe UI',
+          'Roboto',
+          'sans-serif'
         ]
       }
     },

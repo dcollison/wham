@@ -48,8 +48,7 @@ export const WhamBadge: React.FC<WhamBadgeProps> = ({
   className = '',
   size = 'md',
   badgeColor = '#2BB3C7',
-  logoColor = '#000000',
-  shadow = true
+  logoColor = '#000000'
 }) => {
   const sizeClass = {
     sm: 'w-6 h-6',
@@ -61,9 +60,6 @@ export const WhamBadge: React.FC<WhamBadgeProps> = ({
     <svg
       viewBox="0 0 64 64"
       className={`${sizeClass} active:scale-95 transition-transform shrink-0 ${className}`}
-      style={{
-        filter: shadow ? `drop-shadow(0 4px 12px ${badgeColor}40)` : undefined
-      }}
       xmlns="http://www.w3.org/2000/svg"
       aria-label="Wham App Icon"
     >

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { WhamBadge } from './WhamLogo';
 import { Lock, Delete, AlertCircle } from 'lucide-react';
-import confetti from 'canvas-confetti';
 import { STORAGE_KEYS } from '../lib/storage';
 
 interface PasscodeGateProps {
@@ -24,16 +23,9 @@ export const PasscodeGate: React.FC<PasscodeGateProps> = ({ onUnlock }) => {
     localStorage.setItem(STORAGE_KEYS.PASSCODE_UNLOCKED, 'true');
     window.dispatchEvent(new Event('wham_passcode_status_changed'));
 
-    confetti({
-      particleCount: 40,
-      spread: 60,
-      origin: { y: 0.6 },
-      colors: ['#E2A336', '#32A378', '#4682D7', '#D45C8E']
-    });
-
     setTimeout(() => {
       onUnlock();
-    }, 250);
+    }, 220);
   }, [onUnlock]);
 
   const handleInputDigit = useCallback((digit: string) => {
@@ -102,17 +94,13 @@ export const PasscodeGate: React.FC<PasscodeGateProps> = ({ onUnlock }) => {
   }, [handleInputDigit, handleDelete, handleClear]);
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950 flex flex-col items-center justify-between p-6 select-none overflow-y-auto">
-      {/* Background glow effects */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 left-1/2 -translate-x-1/2 translate-y-1/2 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-
+    <div className="fixed inset-0 z-50 bg-carbon flex flex-col items-center justify-between p-6 select-none overflow-y-auto">
       {/* Top Header & Branding */}
       <div className="relative z-10 w-full max-w-xs flex flex-col items-center pt-8 sm:pt-12 text-center">
         <div className="mb-4 transition-transform hover:scale-105 active-press">
           <WhamBadge size="lg" />
         </div>
-        <h1 className="font-heading font-black text-2xl tracking-wider text-white flex items-center gap-2">
+        <h1 className="font-extrabold text-2xl tracking-tight text-white">
           Wham.
         </h1>
         <p className="text-xs font-semibold text-slate-400 tracking-wider uppercase mt-1">
@@ -140,18 +128,18 @@ export const PasscodeGate: React.FC<PasscodeGateProps> = ({ onUnlock }) => {
                   isError
                     ? 'border-red-500 bg-red-500/10 text-red-400'
                     : isSuccess
-                    ? 'border-emerald-400 bg-emerald-400/20 text-emerald-300 shadow-[0_0_15px_rgba(52,211,153,0.3)]'
+                    ? 'border-emerald-400 bg-emerald-400/20 text-emerald-300'
                     : isFilled
-                    ? 'border-amber-400 bg-amber-400/15 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.25)] scale-105'
-                    : 'border-slate-800 bg-slate-900/90 text-slate-600'
+                    ? 'border-amber-400 bg-amber-400/15 text-amber-300 animate-pop'
+                    : 'border-white/[0.08] bg-surface text-slate-400'
                 }`}
               >
                 {isFilled ? (
-                  <span className="font-mono text-xl font-bold">
+                  <span className="font-mono tabular-nums text-xl font-bold leading-none">
                     {pin[i]}
                   </span>
                 ) : (
-                  <div className="w-2.5 h-2.5 rounded-full bg-slate-700" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-surface-higher" />
                 )}
               </div>
             );
@@ -170,7 +158,7 @@ export const PasscodeGate: React.FC<PasscodeGateProps> = ({ onUnlock }) => {
               Access Granted
             </span>
           ) : (
-            <span className="text-[11px] text-slate-500">
+            <span className="text-xs text-slate-400">
               Only required once per device
             </span>
           )}
@@ -185,7 +173,7 @@ export const PasscodeGate: React.FC<PasscodeGateProps> = ({ onUnlock }) => {
               key={digit}
               type="button"
               onClick={() => handleInputDigit(digit)}
-              className="h-14 sm:h-16 rounded-2xl bg-slate-900/95 border border-slate-800 hover:border-slate-700 active:border-amber-400/80 active:bg-slate-850 active:scale-95 text-xl font-mono font-bold text-slate-100 flex items-center justify-center transition-all shadow-md active-press"
+              className="h-14 sm:h-16 rounded-2xl bg-surface border border-white/[0.08] hover:border-white/[0.16] active:border-amber-400/80 active:bg-surface-elevated text-xl font-mono tabular-nums font-bold text-slate-100 flex items-center justify-center transition-all shadow-md active-press"
             >
               {digit}
             </button>
@@ -195,7 +183,7 @@ export const PasscodeGate: React.FC<PasscodeGateProps> = ({ onUnlock }) => {
           <button
             type="button"
             onClick={handleClear}
-            className="h-14 sm:h-16 rounded-2xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 active:scale-95 text-xs font-bold text-slate-400 hover:text-slate-200 flex items-center justify-center transition-all active-press uppercase tracking-wider"
+            className="h-14 sm:h-16 rounded-2xl bg-surface/70 border border-white/[0.07] hover:border-white/[0.14] text-xs font-bold text-slate-300 hover:text-white flex items-center justify-center transition-all active-press uppercase tracking-wider"
           >
             Clear
           </button>
@@ -204,7 +192,7 @@ export const PasscodeGate: React.FC<PasscodeGateProps> = ({ onUnlock }) => {
           <button
             type="button"
             onClick={() => handleInputDigit('0')}
-            className="h-14 sm:h-16 rounded-2xl bg-slate-900/95 border border-slate-800 hover:border-slate-700 active:border-amber-400/80 active:bg-slate-850 active:scale-95 text-xl font-mono font-bold text-slate-100 flex items-center justify-center transition-all shadow-md active-press"
+            className="h-14 sm:h-16 rounded-2xl bg-surface border border-white/[0.08] hover:border-white/[0.16] active:border-amber-400/80 active:bg-surface-elevated text-xl font-mono tabular-nums font-bold text-slate-100 flex items-center justify-center transition-all shadow-md active-press"
           >
             0
           </button>
@@ -213,8 +201,9 @@ export const PasscodeGate: React.FC<PasscodeGateProps> = ({ onUnlock }) => {
           <button
             type="button"
             onClick={handleDelete}
-            className="h-14 sm:h-16 rounded-2xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 active:scale-95 text-slate-400 hover:text-slate-200 flex items-center justify-center transition-all active-press"
+            className="h-14 sm:h-16 rounded-2xl bg-surface/70 border border-white/[0.07] hover:border-white/[0.14] text-slate-300 hover:text-white flex items-center justify-center transition-all active-press"
             title="Delete"
+            aria-label="Delete"
           >
             <Delete className="w-5 h-5" />
           </button>

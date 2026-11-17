@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Gym, GymArea, Profile, Boulder } from '../types';
 import { ClimberAvatar } from './ClimberAvatar';
-import { ChevronDown, Plus, Archive, Layers, Trophy, MoreHorizontal, Eye, ShieldCheck, Clock, Lightbulb, Check } from 'lucide-react';
+import { ChevronDown, Plus, Archive, Layers, Trophy, MoreHorizontal, Eye, ShieldCheck, Clock, Lightbulb, Check, Monitor, Loader2 } from 'lucide-react';
 import { WhamBadge } from './WhamLogo';
 import { getAreaResetInfo } from '../lib/resetStatus';
 import { isWinterSeriesAreaId, isWinterRoundActiveForArea } from '../lib/winterSeries';
@@ -28,6 +28,7 @@ interface HeaderProps {
   onToggleShowArchived: () => void;
   onToggleAreaCompWall?: (areaId: string, isCompWall: boolean) => Promise<void>;
   isDemoMode: boolean;
+  isSyncing?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -50,9 +51,10 @@ export const Header: React.FC<HeaderProps> = ({
   showArchived,
   onToggleShowArchived,
   onToggleAreaCompWall,
-  isDemoMode
+  isDemoMode,
+  isSyncing = false
 }) => {
-  const activeColor = currentUser?.accent_color || '#3B82F6';
+  const activeColor = currentUser?.accent_color || '#F59E0B';
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState<boolean>(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
@@ -81,10 +83,19 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center gap-2">
           <WhamBadge size="md" badgeColor={activeColor} logoColor="#000000" />
           <div>
-            <span className="text-xl font-black tracking-tight text-white font-heading flex items-center gap-0.5">
+            <span className="text-xl font-black tracking-tight text-white flex items-center gap-0.5">
               Wham<span style={{ color: activeColor }}>.</span>
             </span>
           </div>
+          {isSyncing && (
+            <span
+              className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400"
+              role="status"
+              aria-label="Syncing data"
+            >
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+            </span>
+          )}
           {isDemoMode ? (
             <button
               type="button"
@@ -96,11 +107,11 @@ export const Header: React.FC<HeaderProps> = ({
                 window.location.href =
                   window.location.pathname + (cleanHash && cleanHash !== '#' ? cleanHash : '');
               }}
-              className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 transition-colors shadow-xs active-press cursor-pointer font-mono"
+              className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 transition-colors shadow-xs active-press cursor-pointer"
               title="Viewing Demo Mode. Tap to switch back to Live App"
             >
-              <span>DEMO</span>
-              <span className="text-[10px] text-amber-400/80 underline font-normal">Exit</span>
+              <span>Demo</span>
+              <span className="text-[10px] text-amber-200 underline font-semibold">Exit</span>
             </button>
           ) : (
             <button
@@ -109,10 +120,10 @@ export const Header: React.FC<HeaderProps> = ({
                 localStorage.setItem('wham_force_demo', 'true');
                 window.location.search = '?demo=true';
               }}
-              className="hidden sm:inline-block text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-surface border border-white/[0.06] text-slate-400 hover:text-amber-300 hover:border-amber-400/30 transition-colors active-press cursor-pointer font-mono"
+              className="hidden sm:inline-block text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-surface border border-white/[0.08] text-slate-300 hover:text-amber-300 hover:border-amber-400/30 transition-colors active-press cursor-pointer"
               title="View Demo Mode with mock data"
             >
-              DEMO
+              Demo
             </button>
           )}
         </div>
@@ -146,7 +157,7 @@ export const Header: React.FC<HeaderProps> = ({
             title="Switch Climber Profile"
           >
             <ClimberAvatar profile={currentUser} size="sm" showBorderRing />
-            <span className="text-xs font-bold text-slate-200 whitespace-nowrap flex items-center gap-1 font-heading">
+            <span className="text-xs font-bold text-slate-200 whitespace-nowrap flex items-center gap-1">
               <span>{currentUser?.display_name || 'Climber'}</span>
               <ChevronDown className="w-3 h-3 text-slate-400" />
             </span>
@@ -162,7 +173,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={() => onSelectArea(null)}
-              className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all active-press shrink-0 flex items-center gap-1 font-heading ${
+              className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all active-press shrink-0 flex items-center gap-1 ${
                 currentArea === null
                   ? 'text-slate-950 shadow-sm'
                   : 'bg-surface/90 border border-white/[0.07] text-slate-300 hover:text-white hover:bg-surface-elevated'
@@ -180,7 +191,7 @@ export const Header: React.FC<HeaderProps> = ({
                   key={area.id}
                   type="button"
                   onClick={() => onSelectArea(area)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all active-press shrink-0 flex items-center gap-1.5 font-heading ${
+                  className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all active-press shrink-0 flex items-center gap-1.5 ${
                     isSelected
                       ? 'text-slate-950 shadow-sm'
                       : 'bg-surface/90 border border-white/[0.07] text-slate-300 hover:text-white hover:bg-surface-elevated'
@@ -206,7 +217,7 @@ export const Header: React.FC<HeaderProps> = ({
                   {areaReset.isDueForReset && (
                     <span
                       className={`inline-flex items-center shrink-0 ${
-                        isSelected ? 'text-black/80' : 'text-amber-400'
+                        isSelected ? 'text-black' : 'text-amber-400'
                       }`}
                       title={`Wall set ${areaReset.weeksOld} weeks ago – reset soon`}
                     >
@@ -224,11 +235,11 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={onOpenAddBoulder}
-              className="flex items-center gap-1.5 font-heading font-bold text-xs px-3.5 py-1.5 rounded-full shadow-sm transition-all active-press"
+              className="flex items-center gap-1.5 font-bold text-xs px-3.5 py-1.5 rounded-full shadow-sm transition-all active-press"
               style={{ backgroundColor: activeColor, color: '#000000' }}
               title="Add a new problem to this area"
             >
-              <Plus className="w-3.5 h-3.5 stroke-[3]" />
+              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
               <span>Add Climb</span>
             </button>
 
@@ -251,7 +262,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               {/* Dropdown sheet */}
               {isMoreMenuOpen && (
-                <div className="absolute right-0 top-full mt-2 w-60 bg-surface-elevated/95 backdrop-blur-2xl border border-white/[0.09] rounded-3xl p-2 shadow-2xl z-50 flex flex-col gap-1 animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute right-0 top-full mt-2 w-60 bg-surface-elevated/95 backdrop-blur-2xl border border-white/[0.1] rounded-3xl p-2 shadow-2xl z-50 flex flex-col gap-1 animate-in fade-in duration-150">
                   {onOpenBulkAdd && (
                     <button
                       type="button"
@@ -259,9 +270,9 @@ export const Header: React.FC<HeaderProps> = ({
                         setIsMoreMenuOpen(false);
                         onOpenBulkAdd();
                       }}
-                      className="flex items-center gap-2.5 w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-semibold text-slate-200 hover:bg-slate-800/80 transition-colors"
+                      className="flex items-center gap-2.5 w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-semibold text-slate-200 hover:bg-surface-high transition-colors"
                     >
-                      <Layers className="w-4 h-4 text-slate-400" />
+                      <Layers className="w-4 h-4 text-slate-400 shrink-0" />
                       <span>Bulk Add Climbs</span>
                     </button>
                   )}
@@ -271,10 +282,10 @@ export const Header: React.FC<HeaderProps> = ({
                     onClick={() => {
                       onToggleShowArchived();
                     }}
-                    className="flex items-center justify-between w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:bg-slate-800 transition-colors"
+                    className="flex items-center justify-between w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-semibold text-slate-200 hover:bg-surface-high transition-colors"
                   >
                     <span className="flex items-center gap-2.5">
-                      <Eye className="w-4 h-4 text-slate-400" />
+                      <Eye className="w-4 h-4 text-slate-400 shrink-0" />
                       <span>Show Archived</span>
                     </span>
                     {showArchived && <Check className="w-3.5 h-3.5 text-purple-400" />}
@@ -287,22 +298,16 @@ export const Header: React.FC<HeaderProps> = ({
                         setIsMoreMenuOpen(false);
                         onToggleAreaCompWall(currentArea.id, !currentArea.is_comp_wall);
                       }}
-                      className="flex items-center justify-between w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:bg-slate-800 transition-colors"
+                      className="flex items-center justify-between w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-semibold text-slate-200 hover:bg-surface-high transition-colors"
                       title="Toggle between standard V-graded climbs and numbered comp wall problem tracking"
                     >
                       <span className="flex items-center gap-2.5">
-                        <Trophy className={`w-4 h-4 ${currentArea.is_comp_wall ? 'text-amber-400' : 'text-slate-400'}`} />
+                        <Trophy className={`w-4 h-4 shrink-0 ${currentArea.is_comp_wall ? 'text-amber-400' : 'text-slate-400'}`} />
                         <span>Comp Wall Mode</span>
                       </span>
-                      {currentArea.is_comp_wall ? (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
-                          ON
-                        </span>
-                      ) : (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-slate-800 text-slate-400">
-                          OFF
-                        </span>
-                      )}
+                      <span className={`text-[11px] font-semibold ${currentArea.is_comp_wall ? 'text-amber-300' : 'text-slate-400'}`}>
+                        {currentArea.is_comp_wall ? 'On' : 'Off'}
+                      </span>
                     </button>
                   )}
 
@@ -313,14 +318,14 @@ export const Header: React.FC<HeaderProps> = ({
                         setIsMoreMenuOpen(false);
                         onOpenIdeas();
                       }}
-                      className="flex items-center justify-between w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:bg-slate-800 transition-colors"
+                      className="flex items-center justify-between w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-semibold text-slate-200 hover:bg-surface-high transition-colors"
                     >
                       <span className="flex items-center gap-2.5">
-                        <Lightbulb className="w-4 h-4 text-amber-400" />
+                        <Lightbulb className="w-4 h-4 text-amber-400 shrink-0" />
                         <span>Ideas & Requests</span>
                       </span>
                       {openIdeasCount > 0 && (
-                        <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-amber-500/20 text-amber-300 font-bold">
+                        <span className="text-[11px] font-mono tabular-nums font-bold text-amber-300">
                           {openIdeasCount}
                         </span>
                       )}
@@ -334,9 +339,9 @@ export const Header: React.FC<HeaderProps> = ({
                         setIsMoreMenuOpen(false);
                         onOpenBackups();
                       }}
-                      className="flex items-center gap-2.5 w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:bg-slate-800 transition-colors"
+                      className="flex items-center gap-2.5 w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-semibold text-slate-200 hover:bg-surface-high transition-colors"
                     >
-                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                      <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
                       <span>Backups & Safety</span>
                     </button>
                   )}
@@ -346,18 +351,13 @@ export const Header: React.FC<HeaderProps> = ({
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => setIsMoreMenuOpen(false)}
-                    className="flex items-center justify-between w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-amber-300 hover:bg-slate-800 transition-colors"
+                    className="flex items-center gap-2.5 w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-semibold text-amber-300 hover:bg-surface-high transition-colors"
                   >
-                    <span className="flex items-center gap-2.5">
-                      <span className="text-sm">🕹️</span>
-                      <span>80s/90s CRT Themes</span>
-                    </span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
-                      NEW
-                    </span>
+                    <Monitor className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>80s/90s CRT Themes</span>
                   </a>
 
-                  <div className="h-px bg-slate-800 my-0.5" />
+                  <div className="h-px bg-white/[0.06] my-0.5 mx-2" />
 
                   <button
                     type="button"
@@ -365,9 +365,9 @@ export const Header: React.FC<HeaderProps> = ({
                       setIsMoreMenuOpen(false);
                       onOpenAreaReset();
                     }}
-                    className="flex items-center gap-2.5 w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-rose-400 hover:bg-rose-950/30 transition-colors"
+                    className="flex items-center gap-2.5 w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-semibold text-rose-400 hover:bg-rose-950/30 transition-colors"
                   >
-                    <Archive className="w-4 h-4 text-rose-400" />
+                    <Archive className="w-4 h-4 text-rose-400 shrink-0" />
                     <span>Reset Area (Archive All)</span>
                   </button>
                 </div>

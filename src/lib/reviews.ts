@@ -46,11 +46,11 @@ export const REVIEW_RATING_CONFIG: Record<ReviewRating, ReviewRatingConfig> = {
     label: 'Okay',
     shortLabel: 'Okay',
     kaomoji: '(•_•)',
-    activeBg: 'bg-slate-700/60',
-    activeBorder: 'border-slate-500',
+    activeBg: 'bg-surface-high',
+    activeBorder: 'border-white/[0.25]',
     activeText: 'text-slate-200',
-    badgeBg: 'bg-slate-800',
-    badgeBorder: 'border-slate-700',
+    badgeBg: 'bg-surface-elevated',
+    badgeBorder: 'border-white/[0.1]',
     badgeText: 'text-slate-300'
   },
   rough: {

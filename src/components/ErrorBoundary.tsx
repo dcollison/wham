@@ -55,9 +55,9 @@ export class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-6 text-center select-none">
-          <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-rose-950/80 border border-rose-800/80 text-rose-400 flex items-center justify-center">
+        <div className="min-h-screen bg-carbon text-slate-100 flex flex-col items-center justify-center p-6 text-center select-none">
+          <div className="w-full max-w-sm bg-surface border border-white/[0.08] rounded-3xl p-5 shadow-2xl flex flex-col items-center gap-4">
+            <div className="w-12 h-12 rounded-lg bg-rose-950/80 border border-rose-800/80 text-rose-400 flex items-center justify-center">
               <AlertTriangle className="w-6 h-6" />
             </div>
 
@@ -69,7 +69,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 An unexpected error occurred while rendering this screen.
               </p>
               {this.state.error?.message && (
-                <p className="text-[11px] font-mono text-rose-300 bg-rose-950/40 p-2 rounded-lg border border-rose-900/60 mt-2 break-all text-left">
+                <p className="text-[11px] font-mono text-rose-300 bg-rose-950/40 p-2.5 rounded-lg border border-rose-900/60 mt-2 break-all text-left">
                   {this.state.error.message}
                 </p>
               )}
@@ -79,15 +79,15 @@ export class ErrorBoundary extends Component<Props, State> {
               <button
                 type="button"
                 onClick={this.handleReset}
-                className="w-full py-2.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 active-press transition-colors shadow"
+                className="w-full py-2.5 px-4 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 active-press transition-colors shadow"
               >
-                <RotateCcw className="w-4 h-4" />
+                <RotateCcw className="w-4 h-4 stroke-[2.5]" />
                 <span>Reload App</span>
               </button>
               <button
                 type="button"
                 onClick={this.handleClearCacheAndReload}
-                className="w-full py-2 px-4 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700 font-semibold text-xs flex items-center justify-center gap-2 active-press transition-colors"
+                className="w-full py-2 px-4 rounded-lg bg-surface-elevated hover:bg-surface-high text-slate-200 border border-white/[0.08] font-semibold text-xs flex items-center justify-center gap-2 active-press transition-colors"
               >
                 <span>Clear Cache & Reload</span>
               </button>

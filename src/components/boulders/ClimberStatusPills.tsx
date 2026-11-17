@@ -27,8 +27,8 @@ const ClimberStatusPillsComponent: React.FC<ClimberStatusPillsProps> = ({
         const isCurrent = climber.id === currentUserId;
         const isClickable = Boolean(onClimberClick);
 
-        let badgeBg = 'bg-slate-800/70 border-white/[0.06] text-slate-400';
-        let icon = <Minus className="w-2.5 h-2.5 opacity-40 shrink-0" />;
+        let badgeBg = 'bg-surface-elevated/80 border-white/[0.08] text-slate-300';
+        let icon = <Minus className="w-2.5 h-2.5 opacity-60 shrink-0" />;
         let label = climber.display_name;
         let detail = '';
 
@@ -38,11 +38,11 @@ const ClimberStatusPillsComponent: React.FC<ClimberStatusPillsProps> = ({
           detail = isWinterSeries ? 'F·3' : 'F';
         } else if (attempt?.status === 'sent') {
           badgeBg = 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 font-semibold';
-          icon = <Check className="w-2.5 h-2.5 text-emerald-400 stroke-[3] shrink-0" />;
+          icon = <Check className="w-2.5 h-2.5 text-emerald-400 stroke-[2.5] shrink-0" />;
           detail = isWinterSeries ? 'T·2' : `S ${attempt.attempt_count}`;
         } else if (attempt?.status === 'attempted') {
-          badgeBg = 'bg-blue-500/15 border-blue-500/40 text-blue-300 font-medium';
-          icon = <Clock className="w-2.5 h-2.5 text-blue-400 shrink-0" />;
+          badgeBg = 'bg-sky-500/15 border-sky-500/40 text-sky-300 font-medium';
+          icon = <Clock className="w-2.5 h-2.5 text-sky-400 stroke-[2.5] shrink-0" />;
           detail = isWinterSeries ? 'Z·1' : `P ${attempt.attempt_count}`;
         }
 
@@ -74,7 +74,7 @@ const ClimberStatusPillsComponent: React.FC<ClimberStatusPillsProps> = ({
             {size === 'md' && <ClimberAvatar profile={climber} size="xs" />}
             <span className="font-semibold tracking-tight">{label}</span>
             {icon}
-            {detail && <span className="font-mono text-[10px] font-bold">{detail}</span>}
+            {detail && <span className="font-mono tabular-nums text-[10px] font-bold">{detail}</span>}
           </div>
         );
       })}

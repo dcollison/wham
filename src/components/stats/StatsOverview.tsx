@@ -369,7 +369,6 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
           {climbers.map((c) => {
             const isSelected = viewMode === 'my' && (selectedClimberId || currentUserId) === c.id;
-            const isYou = c.id === currentUserId;
             const climberColor = c.accent_color || activeColor;
 
             return (
@@ -393,15 +392,6 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
               >
                 <ClimberAvatar profile={c} size="xs" />
                 <span>{c.display_name}</span>
-                {isYou && (
-                  <span
-                    className={`text-[10px] font-semibold px-1 py-0.2 rounded-full ${
-                      isSelected ? 'bg-black/20 text-black' : 'text-slate-400'
-                    }`}
-                  >
-                    Me
-                  </span>
-                )}
               </button>
             );
           })}
@@ -429,7 +419,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
         {/* Gym Selector */}
         {gyms.length > 1 && onSelectGymId && (
           <div className="flex items-center gap-2 self-end sm:self-auto">
-            <span className="text-xs font-semibold text-slate-400 shrink-0">Gym:</span>
+            <span className="text-xs font-semibold text-slate-400 shrink-0">Gym</span>
             <select
               value={selectedGymId}
               onChange={(e) => onSelectGymId(e.target.value)}
@@ -446,77 +436,56 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
         )}
       </div>
 
-      {/* Group Header Banner (In 'Group Stats' mode) */}
-      {viewMode === 'group' && (
-        <div
-          style={{ borderColor: `${activeColor}30`, backgroundColor: `${activeColor}15`, color: activeColor }}
-          className="flex items-center justify-between p-3.5 rounded-2xl border text-xs font-semibold shadow-xs"
-        >
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 shrink-0" style={{ color: activeColor }} />
-            <span>Combined Wham Crew Stats ({climbers.map((c) => c.display_name).join(', ')})</span>
-          </div>
-          <span
-            style={{ backgroundColor: `${activeColor}30`, color: activeColor }}
-            className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full"
-          >
-            {climbers.length} Climbers
-          </span>
-        </div>
-      )}
-
       {/* KPI Cards Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {/* Hardest Send */}
-        <div className="bg-surface border border-white/[0.08] rounded-3xl p-4 flex flex-col justify-between shadow-xs">
+        <div className="ds-card p-4 flex flex-col justify-between">
           <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
             {viewMode === 'group' ? 'Crew Top Grade' : 'Hardest Send'}
           </span>
-          <div className="flex items-baseline gap-2 mt-2">
-            <span className="font-mono text-3xl font-black" style={{ color: activeColor }}>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="font-mono tabular-nums text-3xl font-bold leading-none" style={{ color: activeColor }}>
               {activeStats.hardestSend || '—'}
             </span>
-            <Flame className="w-5 h-5" style={{ color: activeColor }} />
+            <Flame className="w-5 h-5 shrink-0" style={{ color: activeColor }} />
           </div>
-          <span className="text-[10px] text-slate-400 mt-1">
-            {viewMode === 'group' ? 'Hardest topped by crew' : 'Top grade topped'}
-          </span>
         </div>
 
         {/* Total Sends */}
-        <div className="bg-surface border border-white/[0.08] rounded-3xl p-4 flex flex-col justify-between shadow-xs">
+        <div className="ds-card p-4 flex flex-col justify-between">
           <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
             {viewMode === 'group' ? 'Total Crew Sends' : 'Total Sends'}
           </span>
-          <div className="flex items-baseline gap-2 mt-2">
-            <span className="font-mono text-3xl font-black text-emerald-400">{activeStats.totalSends}</span>
-            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+          <div className="flex items-center gap-2 mt-2">
+            <span className="font-mono tabular-nums text-3xl font-bold leading-none text-emerald-400">{activeStats.totalSends}</span>
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
           </div>
-          <span className="text-[10px] text-slate-400 mt-1">
-            {viewMode === 'group' ? `${activeStats.totalSends} combined tops` : `${activeStats.sendRate}% send efficiency`}
-          </span>
+          {viewMode !== 'group' && (
+            <span className="text-[11px] text-slate-400 mt-1.5 tabular-nums">
+              {activeStats.sendRate}% send efficiency
+            </span>
+          )}
         </div>
 
         {/* Flashes */}
-        <div className="bg-surface border border-white/[0.08] rounded-3xl p-4 flex flex-col justify-between shadow-xs">
+        <div className="ds-card p-4 flex flex-col justify-between">
           <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
             {viewMode === 'group' ? 'Crew Flashes' : 'Total Flashes'}
           </span>
-          <div className="flex items-baseline gap-2 mt-2">
-            <span className="font-mono text-3xl font-black text-amber-400">{activeStats.totalFlashes}</span>
-            <Zap className="w-5 h-5 text-amber-400 fill-amber-400" />
+          <div className="flex items-center gap-2 mt-2">
+            <span className="font-mono tabular-nums text-3xl font-bold leading-none text-amber-400">{activeStats.totalFlashes}</span>
+            <Zap className="w-5 h-5 text-amber-400 fill-amber-400 shrink-0" />
           </div>
-          <span className="text-[10px] text-slate-400 mt-1">{activeStats.flashRate}% flash rate</span>
+          <span className="text-[11px] text-slate-400 mt-1.5 tabular-nums">{activeStats.flashRate}% flash rate</span>
         </div>
 
         {/* Avg Attempts */}
-        <div className="bg-surface border border-white/[0.08] rounded-3xl p-4 flex flex-col justify-between shadow-xs">
+        <div className="ds-card p-4 flex flex-col justify-between">
           <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Avg Tries / Send</span>
-          <div className="flex items-baseline gap-2 mt-2">
-            <span className="font-mono text-3xl font-black text-cyan-400">{activeStats.averageAttemptsOnSend}</span>
-            <Target className="w-5 h-5 text-cyan-400" />
+          <div className="flex items-center gap-2 mt-2">
+            <span className="font-mono tabular-nums text-3xl font-bold leading-none text-sky-400">{activeStats.averageAttemptsOnSend}</span>
+            <Target className="w-5 h-5 text-sky-400 shrink-0" />
           </div>
-          <span className="text-[10px] text-slate-400 mt-1">Attempts per send</span>
         </div>
       </div>
 
@@ -537,11 +506,11 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
       {/* SECTION: Visual Climbing Graphs (Grade Pyramid & Attempt Efficiency) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Graph 1: Grade Pyramid */}
-        <div className="stats-section-deferred lg:col-span-7 bg-surface border border-white/[0.08] rounded-3xl p-5 flex flex-col justify-between gap-4 shadow-xs">
+        <div className="stats-section-deferred lg:col-span-7 ds-card p-5 flex flex-col justify-between gap-4 shadow-xs">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Layers className="w-4 h-4 text-amber-400" />
-              <h3 className="text-sm font-heading font-bold text-white">
+              <h3 className="text-sm font-bold text-white">
                 Grade Pyramid
               </h3>
             </div>
@@ -557,7 +526,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
           </div>
 
           {activeGradesList.length === 0 ? (
-            <div className="py-8 text-center text-xs text-slate-500 font-mono">
+            <div className="py-8 text-center text-xs text-slate-400">
               No boulder sends recorded yet to form a pyramid.
             </div>
           ) : (
@@ -572,7 +541,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
 
                 return (
                   <div key={g} className="flex items-center gap-2.5">
-                    <span className="w-8 font-mono text-xs font-black text-slate-200 text-right shrink-0">
+                    <span className="w-8 font-mono tabular-nums text-xs font-black text-slate-200 text-right shrink-0">
                       {g}
                     </span>
 
@@ -583,7 +552,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                       >
                         {flashes > 0 && (
                           <div
-                            className="bg-amber-400 h-full flex items-center justify-center text-[10px] font-heading font-black text-slate-950 transition-all gap-0.5"
+                            className="bg-amber-400 h-full flex items-center justify-center text-[10px] font-black text-slate-950 transition-all gap-0.5 tabular-nums"
                             style={{ width: `${(flashes / totalSends) * 100}%` }}
                             title={`Flashed: ${flashes}`}
                           >
@@ -593,7 +562,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                         )}
                         {regularSends > 0 && (
                           <div
-                            className="bg-emerald-400 h-full flex items-center justify-center text-[10px] font-heading font-black text-slate-950 transition-all"
+                            className="bg-emerald-400 h-full flex items-center justify-center text-[10px] font-black text-slate-950 transition-all tabular-nums"
                             style={{ width: `${(regularSends / totalSends) * 100}%` }}
                             title={`Sent: ${regularSends}`}
                           >
@@ -601,14 +570,14 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                           </div>
                         )}
                         {totalSends === 0 && (
-                          <div className="w-full bg-surface-elevated text-slate-500 flex items-center justify-center text-[10px] font-mono">
-                            {data.attempted} tries
+                          <div className="w-full bg-surface-elevated text-slate-400 flex items-center justify-center text-[10px] tabular-nums">
+                            {data.attempted}&nbsp;tries
                           </div>
                         )}
                       </div>
                     </div>
 
-                    <div className="w-20 font-mono text-right shrink-0 tabular-nums flex flex-col items-end justify-center">
+                    <div className="w-20 text-right shrink-0 tabular-nums flex flex-col items-end justify-center">
                       <span className="text-xs text-slate-200 font-bold">{totalSends} tops</span>
                       {data.attempted > 0 && (
                         <span className="text-[10px] text-emerald-400 font-medium">
@@ -622,28 +591,23 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
             </div>
           )}
 
-          <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between text-xs text-slate-400">
+          <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between text-xs text-slate-400 tabular-nums">
             <span>
-              Base: <strong className="text-white font-mono">{pyramidBaseVolume}</strong> climbs (V0–V3)
+              Base: <strong className="text-white">{pyramidBaseVolume}</strong> climbs (V0–V3)
             </span>
-            <span className="font-mono text-amber-300 font-bold">
+            <span className="text-amber-300 font-bold">
               {activeStats.pyramidPoints} pts
             </span>
           </div>
         </div>
 
         {/* Graph 2: Attempt Efficiency */}
-        <div className="stats-section-deferred lg:col-span-5 bg-surface border border-white/[0.08] rounded-3xl p-5 flex flex-col justify-between gap-4 shadow-xs">
-          <div>
-            <div className="flex items-center gap-2">
-              <Target className="w-4 h-4 text-emerald-400" />
-              <h3 className="text-sm font-heading font-bold text-white">
-                Attempt Efficiency
-              </h3>
-            </div>
-            <p className="text-[11px] text-slate-400 mt-1">
-              Distribution of sends by attempts needed
-            </p>
+        <div className="stats-section-deferred lg:col-span-5 ds-card p-5 flex flex-col justify-between gap-4 shadow-xs">
+          <div className="flex items-center gap-2">
+            <Target className="w-4 h-4 text-emerald-400" />
+            <h3 className="text-sm font-bold text-white">
+              Attempt Efficiency
+            </h3>
           </div>
 
           {/* Segmented Distribution Bar */}
@@ -673,8 +637,8 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
             </div>
 
             {/* 3 Metrics Cards */}
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="bg-surface-elevated/70 border border-white/[0.06] rounded-xl p-2.5">
+            <div className="grid grid-cols-3 gap-2 text-center tabular-nums">
+              <div className="bg-surface-elevated/70 border border-white/[0.06] rounded-lg p-2.5">
                 <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">
                   Flash
                 </span>
@@ -686,7 +650,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                 </span>
               </div>
 
-              <div className="bg-surface-elevated/70 border border-white/[0.06] rounded-xl p-2.5">
+              <div className="bg-surface-elevated/70 border border-white/[0.06] rounded-lg p-2.5">
                 <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">
                   2–3 Tries
                 </span>
@@ -698,7 +662,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                 </span>
               </div>
 
-              <div className="bg-surface-elevated/70 border border-white/[0.06] rounded-xl p-2.5">
+              <div className="bg-surface-elevated/70 border border-white/[0.06] rounded-lg p-2.5">
                 <span className="text-[10px] font-bold text-sky-400 uppercase tracking-wider block">
                   4+ Tries
                 </span>
@@ -711,42 +675,19 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
               </div>
             </div>
           </div>
-
-          <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between text-xs text-slate-400">
-            <span>
-              Average Tries / Send
-            </span>
-            <span className="font-mono text-emerald-400 font-bold">
-              {activeStats.averageAttemptsOnSend} tries
-            </span>
-          </div>
         </div>
       </div>
 
       {/* SECTION: Send % and Flash % Conversion Rates by Grade */}
-      <div className="stats-section-deferred bg-surface border border-white/[0.08] rounded-3xl p-5 flex flex-col gap-4 shadow-xs">
+      <div className="stats-section-deferred ds-card p-5 flex flex-col gap-4 shadow-xs">
         <div className="flex items-center justify-between flex-wrap gap-2.5">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400">
               <Percent className="w-4 h-4 stroke-[2.5]" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-heading font-bold text-white">
-                  Send &amp; Flash % per Grade
-                </h3>
-                {conversionGradesList.length > 0 && (
-                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-surface-elevated border border-white/[0.08] text-slate-300">
-                    {conversionGradesList.length} {conversionGradesList.length === 1 ? 'grade' : 'grades'}
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-slate-400">
-                {viewMode === 'my'
-                  ? `Success and first-try rates by grade for ${climberName}`
-                  : 'Crew-wide send and flash conversion rates by grade'}
-              </p>
-            </div>
+            <h3 className="text-sm font-bold text-white">
+              Send &amp; Flash % per Grade
+            </h3>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -755,7 +696,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
               <button
                 type="button"
                 onClick={() => setGradeSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
-                className="flex items-center gap-1.5 text-[11px] font-mono font-bold px-3 py-1 rounded-full bg-surface-elevated hover:bg-surface-elevated/80 border border-white/[0.08] text-slate-300 hover:text-white transition-colors active-press"
+                className="flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1 rounded-full bg-surface-elevated hover:bg-surface-high border border-white/[0.08] text-slate-300 hover:text-white transition-colors active-press"
                 title={`Sort ${gradeSortOrder === 'asc' ? 'Lowest to Highest' : 'Highest to Lowest'}`}
               >
                 <ArrowUpDown className="w-3 h-3 text-amber-400" />
@@ -776,7 +717,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
         </div>
 
         {conversionGradesList.length === 0 ? (
-          <div className="p-6 text-center text-xs text-slate-500 font-mono bg-surface-elevated/40 rounded-2xl border border-white/[0.06]">
+          <div className="p-6 text-center text-xs text-slate-400 bg-surface-elevated/40 rounded-lg border border-white/[0.06]">
             No boulder attempts logged yet to calculate grade conversion rates.
           </div>
         ) : (
@@ -791,14 +732,14 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
               return (
                 <div
                   key={g}
-                  className="p-3.5 rounded-2xl bg-surface-elevated/40 border border-white/[0.06] flex flex-col justify-between gap-3 hover:border-white/[0.12] transition-colors"
+                  className="p-3.5 rounded-lg bg-surface-elevated/40 border border-white/[0.06] flex flex-col justify-between gap-3 hover:border-white/[0.12] transition-colors"
                 >
                   {/* Top row: Grade pill & Attempts count */}
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-black text-white px-2.5 py-1 rounded-lg bg-surface border border-white/[0.08] shadow-xs">
+                    <span className="font-mono tabular-nums text-xs font-black text-white px-2.5 py-1 rounded-md bg-surface border border-white/[0.08]">
                       {g}
                     </span>
-                    <span className="text-[11px] font-mono text-slate-400">
+                    <span className="text-[11px] tabular-nums text-slate-400">
                       <strong className="text-emerald-400">{data.sent}</strong>/{data.attempted} topped • <strong className="text-amber-400">{data.flashed}</strong> flashed
                     </span>
                   </div>
@@ -812,7 +753,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                           <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
                           <span>Send %</span>
                         </span>
-                        <span className="font-mono font-bold text-emerald-400">
+                        <span className="font-mono tabular-nums font-bold text-emerald-400">
                           {sendPct}%
                         </span>
                       </div>
@@ -832,7 +773,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                           <Zap className="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />
                           <span>Flash %</span>
                         </span>
-                        <span className="font-mono font-bold text-amber-400">
+                        <span className="font-mono tabular-nums font-bold text-amber-400">
                           {flashPct}%
                         </span>
                       </div>
@@ -853,12 +794,12 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
       </div>
 
       {/* SECTION: Progress Over Time (Progression Chart & Session Log) */}
-      <div className="stats-section-deferred bg-surface border border-white/[0.08] rounded-3xl p-5 flex flex-col gap-5 shadow-xs">
+      <div className="stats-section-deferred ds-card p-5 flex flex-col gap-5 shadow-xs">
         {/* Section Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-2.5">
             <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center border"
+              className="w-8 h-8 rounded-lg flex items-center justify-center border"
               style={{
                 backgroundColor: `${activeColor}15`,
                 borderColor: `${activeColor}30`,
@@ -867,23 +808,9 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
             >
               <TrendingUp className="w-4 h-4" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-heading font-bold text-white">
-                  Progress Over Time
-                </h3>
-                {timelineData.sessions.length > 0 && (
-                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-surface-elevated border border-white/[0.08] text-slate-300">
-                    {timelineData.sessions.length} {timelineData.sessions.length === 1 ? 'session' : 'sessions'}
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-slate-400">
-                {viewMode === 'my'
-                  ? `Session trajectory and grade progression for ${climberName}`
-                  : 'Crew progression and milestone trajectory across gym visits'}
-              </p>
-            </div>
+            <h3 className="text-sm font-bold text-white">
+              Progress Over Time
+            </h3>
           </div>
 
           {/* Mode Switcher Pills */}
@@ -928,8 +855,8 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
 
         {/* Chart View */}
         {timelineData.sessions.length === 0 ? (
-          <div className="p-8 rounded-2xl bg-surface-elevated/40 border border-white/[0.06] text-center flex flex-col items-center gap-2">
-            <Calendar className="w-6 h-6 text-slate-500 mb-1" />
+          <div className="p-8 rounded-lg bg-surface-elevated/40 border border-white/[0.06] text-center flex flex-col items-center gap-2">
+            <Calendar className="w-6 h-6 text-slate-400 mb-1" />
             <p className="text-xs font-bold text-slate-300">No session history recorded yet</p>
             <p className="text-[11px] text-slate-400 max-w-xs">
               Log boulder attempts and sends to automatically map out your progression over time.
@@ -938,7 +865,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
         ) : (
           <div className="space-y-4">
             {/* SVG Visual Progression Chart */}
-            <div className="w-full bg-surface-elevated/30 rounded-2xl border border-white/[0.06] p-4 flex flex-col gap-2">
+            <div className="w-full bg-surface-elevated/30 rounded-lg border border-white/[0.06] p-4 flex flex-col gap-2">
               <div className="flex items-center justify-between text-xs text-slate-400 px-1">
                 <span className="font-medium text-slate-300">
                   {timelineMode === 'grade' && 'Peak Grade Sent per Session'}
@@ -980,16 +907,6 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                   return (
                     <div style={{ minWidth: `${Math.min(chartWidth, 680)}px`, height: `${chartHeight}px` }} className="relative w-full">
                       <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="w-full h-full block">
-                        <defs>
-                          <linearGradient id="progressionGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor={activeColor} stopOpacity="0.3" />
-                            <stop offset="100%" stopColor={activeColor} stopOpacity="0.0" />
-                          </linearGradient>
-                          <linearGradient id="cumulativeGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#34D399" stopOpacity="0.3" />
-                            <stop offset="100%" stopColor="#34D399" stopOpacity="0.0" />
-                          </linearGradient>
-                        </defs>
 
                         {/* MODE 1: MAX GRADE PROGRESSION */}
                         {timelineMode === 'grade' && (() => {
@@ -1070,7 +987,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                                           cy={pt.y}
                                           r="4"
                                           fill={series.color}
-                                          stroke="#0F172A"
+                                          stroke="#11141D"
                                           strokeWidth="1.5"
                                         />
                                       ))}
@@ -1090,7 +1007,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
 
                                 if (validPoints.length === 0) {
                                   return (
-                                    <text x={plotLeft + plotWidth / 2} y={plotTop + plotHeight / 2} fill="#64748B" fontSize="11" textAnchor="middle">
+                                    <text x={plotLeft + plotWidth / 2} y={plotTop + plotHeight / 2} fill="#94A3B8" fontSize="11" textAnchor="middle">
                                       No topped boulders in this period
                                     </text>
                                   );
@@ -1100,11 +1017,8 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                                   .map((pt, i) => `${i === 0 ? 'M' : 'L'} ${pt.x} ${pt.y}`)
                                   .join(' ');
 
-                                const areaPath = `${linePath} L ${validPoints[validPoints.length - 1].x} ${plotBottom} L ${validPoints[0].x} ${plotBottom} Z`;
-
                                 return (
                                   <>
-                                    <path d={areaPath} fill="url(#progressionGradient)" />
                                     <path
                                       d={linePath}
                                       fill="none"
@@ -1120,7 +1034,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                                           cy={pt.y}
                                           r="5"
                                           fill={activeColor}
-                                          stroke="#0B0F19"
+                                          stroke="#11141D"
                                           strokeWidth="2"
                                         />
                                         <text
@@ -1163,7 +1077,6 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                           }));
 
                           const linePath = pts.map((pt, i) => `${i === 0 ? 'M' : 'L'} ${pt.x} ${pt.y}`).join(' ');
-                          const areaPath = `${linePath} L ${pts[pts.length - 1].x} ${plotBottom} L ${pts[0].x} ${plotBottom} Z`;
 
                           return (
                             <>
@@ -1227,7 +1140,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                                           cy={pt.y}
                                           r="4"
                                           fill={series.color}
-                                          stroke="#0F172A"
+                                          stroke="#11141D"
                                           strokeWidth="1.5"
                                         />
                                       ))}
@@ -1236,7 +1149,6 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                                 })
                               ) : (
                                 <>
-                                  <path d={areaPath} fill="url(#cumulativeGradient)" />
                                   <path
                                     d={linePath}
                                     fill="none"
@@ -1252,7 +1164,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                                         cy={pt.y}
                                         r="4.5"
                                         fill="#34D399"
-                                        stroke="#0B0F19"
+                                        stroke="#11141D"
                                         strokeWidth="2"
                                       />
                                       <text
@@ -1401,28 +1313,28 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                   return (
                     <div
                       key={s.date}
-                      className="p-3 rounded-2xl bg-surface-elevated/40 border border-white/[0.06] flex flex-col justify-between gap-2.5 hover:border-white/[0.12] transition-colors"
+                      className="p-3 rounded-lg bg-surface-elevated/40 border border-white/[0.06] flex flex-col justify-between gap-2.5 hover:border-white/[0.12] transition-colors"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-mono text-xs font-bold text-slate-200">
+                        <span className="text-xs font-bold text-slate-200 tabular-nums">
                           {formatFullDate(s.date)}
                         </span>
                         {s.sessionMaxGrade && (
                           <span
                             style={{ backgroundColor: `${activeColor}20`, borderColor: `${activeColor}40`, color: activeColor }}
-                            className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full border"
+                            className="font-mono tabular-nums text-[10px] font-bold px-2 py-0.5 rounded-full border"
                           >
-                            Top: {s.sessionMaxGrade}
+                            {s.sessionMaxGrade}
                           </span>
                         )}
                       </div>
 
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-emerald-400 font-mono font-bold">
+                      <div className="flex items-center justify-between text-xs tabular-nums">
+                        <span className="text-emerald-400 font-bold">
                           {s.totalSends} {s.totalSends === 1 ? 'send' : 'sends'}
                         </span>
                         {s.totalFlashes > 0 && (
-                          <span className="text-amber-400 font-mono font-bold flex items-center gap-1">
+                          <span className="text-amber-400 font-bold flex items-center gap-1">
                             <Zap className="w-3 h-3 fill-amber-400" />
                             <span>{s.totalFlashes} flashed</span>
                           </span>
@@ -1433,7 +1345,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                         <button
                           type="button"
                           onClick={() => setExpandedSessionDate(isExpanded ? null : s.date)}
-                          className="flex items-center justify-between pt-1 border-t border-white/[0.04] text-[10px] text-slate-400 hover:text-white transition-colors"
+                          className="flex items-center justify-between pt-1 border-t border-white/[0.04] text-[10px] text-slate-400 hover:text-white transition-colors tabular-nums"
                         >
                           <span>{isExpanded ? 'Hide climbed problems' : `View ${s.sendsList.length} problems`}</span>
                           {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
@@ -1447,7 +1359,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                             <div
                               key={idx}
                               onClick={() => onSelectBoulder && onSelectBoulder(item.boulder!)}
-                              className="flex items-center justify-between p-1.5 rounded-lg bg-surface hover:bg-surface-elevated cursor-pointer transition-colors"
+                              className="flex items-center justify-between p-1.5 rounded-md bg-surface hover:bg-surface-elevated cursor-pointer transition-colors"
                             >
                               <div className="flex items-center gap-1.5">
                                 <HoldBadge
@@ -1463,7 +1375,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                                   </span>
                                 )}
                               </div>
-                              <span className="text-[10px] font-mono text-slate-400">
+                              <span className="text-[10px] tabular-nums text-slate-400">
                                 {item.attempt.status === 'flashed' ? 'Flash' : `${item.attempt.attempt_count}t`}
                               </span>
                             </div>
@@ -1482,20 +1394,16 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
       {/* Active Gym Coverage & Sector Breakdown */}
       <div className="stats-section-deferred grid grid-cols-1 md:grid-cols-3 gap-3">
         {/* Donut Chart: Gym Topped Percentage */}
-        <div className="bg-surface border border-white/[0.08] rounded-3xl p-5 flex flex-col items-center justify-between gap-4 shadow-xs">
+        <div className="ds-card p-5 flex flex-col items-center justify-between gap-4">
           <div className="flex items-center justify-between w-full">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
               {viewMode === 'group' ? 'Crew Gym Coverage' : 'Gym Completion Rate'}
-            </span>
-            <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-surface-elevated border border-white/[0.08] text-slate-300">
-              <MapPin className="w-2.5 h-2.5 text-amber-400" />
-              <span>{selectedGymId === 'all' ? 'All Gyms' : gyms.find((g) => g.id === selectedGymId)?.name || 'Gym'}</span>
             </span>
           </div>
 
           <div className="relative flex items-center justify-center">
             <svg className="w-36 h-36 -rotate-90 transform" viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="40" fill="transparent" stroke="#1E293B" strokeWidth="10" />
+              <circle cx="50" cy="50" r="40" fill="transparent" stroke="var(--color-surface-high)" strokeWidth="10" />
               <circle
                 cx="50"
                 cy="50"
@@ -1510,19 +1418,19 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
               />
             </svg>
             <div className="absolute flex flex-col items-center">
-              <span className="font-mono text-2xl font-black text-white">{completionPct}%</span>
-              <span className="text-[10px] font-medium text-slate-400">
+              <span className="font-mono tabular-nums text-2xl font-bold leading-none text-white">{completionPct}%</span>
+              <span className="font-mono tabular-nums text-[11px] font-medium text-slate-400 mt-1">
                 {userSentActiveBouldersCount} / {activeGymBoulders.length}
               </span>
             </div>
           </div>
 
-          <p className="text-center text-xs text-slate-400">
+          <p className="text-center text-xs text-slate-400 tabular-nums">
             {viewMode === 'group'
-              ? `${userSentActiveBouldersCount} of ${activeGymBoulders.length} active boulders topped by the crew (${
+              ? `${userSentActiveBouldersCount} of ${activeGymBoulders.length} active climbs topped by the crew (${
                   activeGymBoulders.length - userSentActiveBouldersCount
                 } unclimbed)`
-              : `${activeGymBoulders.length - userSentActiveBouldersCount} active boulders left to send across ${
+              : `${activeGymBoulders.length - userSentActiveBouldersCount} active climbs left across ${
                   selectedGymId === 'all'
                     ? 'all gyms'
                     : gyms.find((g) => g.id === selectedGymId)?.name || 'the gym'
@@ -1531,17 +1439,12 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
         </div>
 
         {/* Breakdown of Active Climbs Remaining Per Area */}
-        <div className="md:col-span-2 bg-surface border border-white/[0.08] rounded-3xl p-5 flex flex-col justify-between gap-4 shadow-xs">
+        <div className="md:col-span-2 ds-card p-5 flex flex-col justify-between gap-4">
           <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
-            <div className="flex flex-col">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                {viewMode === 'group' ? 'Crew Area Coverage' : 'Area Completion & Remaining Climbs'}
-              </span>
-              <span className="text-[11px] text-slate-400">
-                Clockwise sector ticklists organized by climbing gym
-              </span>
-            </div>
-            <span className="text-[11px] font-mono font-bold" style={{ color: activeColor }}>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
+              {viewMode === 'group' ? 'Crew Area Coverage' : 'Area Completion & Remaining Climbs'}
+            </span>
+            <span className="text-[11px] tabular-nums font-bold" style={{ color: activeColor }}>
               {selectedGymId && selectedGymId !== 'all'
                 ? `${gyms.find((g) => g.id === selectedGymId)?.name || 'Selected Gym'} Sectors`
                 : `${gymGroups.length} ${gymGroups.length === 1 ? 'Gym' : 'Gyms'} • All Sectors`}
@@ -1549,7 +1452,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
           </div>
 
           {areaBreakdown.length === 0 ? (
-            <div className="p-6 text-center text-xs text-slate-500 font-mono bg-surface-elevated/40 rounded-2xl border border-white/[0.06]">
+            <div className="p-6 text-center text-xs text-slate-400 bg-surface-elevated/40 rounded-lg border border-white/[0.06]">
               No active boulders or wall sectors found.
             </div>
           ) : (
@@ -1563,16 +1466,16 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                 return (
                   <div key={group.gym?.id || groupIdx} className="space-y-3">
                     {/* Gym Section Header */}
-                    <div className="flex items-center justify-between gap-2 pt-2 first:pt-0 pb-1.5 border-b border-slate-800">
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-300 shadow-xs">
+                    <div className="flex items-center justify-between gap-2 pt-2 first:pt-0 pb-1.5 border-b border-white/[0.08]">
+                      <div className="flex items-center gap-1.5 text-amber-300">
                         <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                        <span className="font-mono text-xs font-bold uppercase tracking-wider">
+                        <span className="text-xs font-bold uppercase tracking-wider">
                           {gymName}
                         </span>
                       </div>
-                      <span className="font-mono text-[11px] text-slate-400">
+                      <span className="tabular-nums text-[11px] text-slate-400">
                         <strong className="text-slate-200">{group.items.length}</strong> {group.items.length === 1 ? 'sector' : 'sectors'} •{' '}
-                        <strong className="text-emerald-400">{totalGymSent}</strong>/{totalGymTotal} ({gymPct}%)
+                        <span><strong className="text-emerald-400">{totalGymSent}</strong>/{totalGymTotal} ({gymPct}%)</span>
                       </span>
                     </div>
 
@@ -1581,20 +1484,15 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                       {group.items.map((item) => (
                         <div key={item.area.id} className="space-y-1">
                           <div className="flex items-center justify-between text-xs gap-2">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="font-medium text-slate-200 truncate">
-                                {item.area.name}
-                              </span>
-                              <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-800 text-amber-400/90 border border-slate-700/60 shrink-0 uppercase tracking-wider">
-                                {gymName}
-                              </span>
-                            </div>
-                            <span className="font-mono text-[11px] text-slate-400 shrink-0">
-                              <strong className="text-emerald-400">{item.sent}</strong> / {item.total}{' '}
-                              {viewMode === 'group' ? 'topped by crew' : 'sent'} ({item.remaining} left)
+                            <span className="font-medium text-slate-200 truncate">
+                              {item.area.name}
+                            </span>
+                            <span className="tabular-nums text-[11px] text-slate-400 shrink-0">
+                              <span><strong className="text-emerald-400">{item.sent}</strong> / {item.total}</span>{' '}
+                              {viewMode === 'group' ? 'topped' : 'sent'} ({item.remaining} left)
                             </span>
                           </div>
-                          <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden flex">
+                          <div className="w-full h-2 bg-surface-high rounded-full overflow-hidden flex">
                             <div
                               className="h-full rounded-full transition-all duration-500"
                               style={{ width: `${item.pct}%`, backgroundColor: activeColor }}
@@ -1612,12 +1510,12 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
       </div>
 
       {/* Community Reviews & Grade Consensus Section */}
-      <div className="stats-section-deferred bg-surface border border-white/[0.08] rounded-3xl p-5 flex flex-col gap-5 shadow-xs">
+      <div className="stats-section-deferred ds-card p-5 flex flex-col gap-5 shadow-xs">
         {/* Section Header */}
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2.5">
             <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center border"
+              className="w-8 h-8 rounded-lg flex items-center justify-center border"
               style={{
                 backgroundColor: `${activeColor}15`,
                 borderColor: `${activeColor}30`,
@@ -1626,62 +1524,48 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
             >
               <MessageSquareHeart className="w-4 h-4" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-white">Reviews & Grade Consensus</h3>
-                {reviewStats.totalReviews > 0 && (
-                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-surface-elevated border border-white/[0.08] text-slate-300">
-                    {reviewStats.totalReviews} {reviewStats.totalReviews === 1 ? 'review' : 'reviews'}
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-slate-400">
-                {viewMode === 'my'
-                  ? `Quality kaomoji ratings and grade feel logged by ${climberName}`
-                  : 'Crew-wide kaomoji vibe ratings and collective grade calibration'}
-              </p>
-            </div>
+            <h3 className="text-sm font-bold text-white">Reviews &amp; Grade Consensus</h3>
           </div>
 
-          {/* Right badge: Tendency / Consensus Pill */}
+          {/* Right badge: Tendency / Consensus */}
           {reviewStats.totalGradeOpinions >= 2 ? (
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-surface-elevated border border-white/[0.08] text-xs font-semibold">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-surface-elevated border border-white/[0.08] text-xs font-semibold tabular-nums">
               {reviewStats.tendency === 'tough' && (
                 <>
                   <Flame className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="text-amber-300 font-mono text-[11px]">{reviewStats.tendencyLabel}</span>
+                  <span className="text-amber-300 text-[11px]">{reviewStats.tendencyLabel}</span>
                 </>
               )}
               {reviewStats.tendency === 'generous' && (
                 <>
                   <Feather className="w-3.5 h-3.5 text-teal-400" />
-                  <span className="text-teal-300 font-mono text-[11px]">{reviewStats.tendencyLabel}</span>
+                  <span className="text-teal-300 text-[11px]">{reviewStats.tendencyLabel}</span>
                 </>
               )}
               {reviewStats.tendency === 'spot-on' && (
                 <>
                   <Scale className="w-3.5 h-3.5 text-sky-400" />
-                  <span className="text-sky-300 font-mono text-[11px]">{reviewStats.tendencyLabel}</span>
+                  <span className="text-sky-300 text-[11px]">{reviewStats.tendencyLabel}</span>
                 </>
               )}
               {reviewStats.tendency === 'balanced' && (
                 <>
                   <Scale className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="text-slate-300 font-mono text-[11px]">{reviewStats.tendencyLabel}</span>
+                  <span className="text-slate-300 text-[11px]">{reviewStats.tendencyLabel}</span>
                 </>
               )}
             </div>
           ) : (
-            <span className="text-[11px] font-mono text-slate-500">
-              {reviewStats.totalReviews} logged
+            <span className="text-[11px] tabular-nums text-slate-400">
+              <strong className="text-slate-200">{reviewStats.totalReviews}</strong> logged
             </span>
           )}
         </div>
 
         {/* Content or Empty State */}
         {reviewStats.totalReviews === 0 ? (
-          <div className="p-6 rounded-2xl bg-surface-elevated/40 border border-white/[0.06] text-center flex flex-col items-center gap-2">
-            <div className="flex items-center gap-3 font-mono text-base font-black text-slate-400">
+          <div className="p-6 rounded-lg bg-surface-elevated/40 border border-white/[0.06] text-center flex flex-col items-center gap-2">
+            <div className="flex items-center gap-3 text-base font-black text-slate-400">
               <span className="text-emerald-400">(•‿•)</span>
               <span className="text-slate-400">(•_•)</span>
               <span className="text-rose-400">(&gt;_&lt;)</span>
@@ -1692,7 +1576,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                 : 'No climb reviews logged yet'}
             </p>
             <p className="text-[11px] text-slate-400 max-w-sm">
-              Log sends or inspect any boulder card to rate its quality with kaomoji and calibrate whether the grade feels soft, fair, or hard.
+              Log sends or inspect any boulder card to rate its quality and calibrate whether the grade feels soft, fair, or hard.
             </p>
           </div>
         ) : (
@@ -1700,14 +1584,14 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
             {/* Dual Grid: Quality (Kaomoji) & Grade Consensus */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Column 1: Climb Quality (Kaomoji) */}
-              <div className="p-4 rounded-2xl bg-surface-elevated/40 border border-white/[0.06] flex flex-col justify-between gap-3">
+              <div className="p-3.5 rounded-lg bg-surface-elevated/40 border border-white/[0.06] flex flex-col justify-between gap-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                    <span>Climb Quality</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                    Climb Quality
                   </span>
-                  <span className="text-[11px] font-mono text-slate-400">
+                  <span className="text-[11px] tabular-nums text-slate-400">
                     {reviewStats.positivePercentage !== null
-                      ? `${reviewStats.positivePercentage}% positive reception`
+                      ? `${reviewStats.positivePercentage}% positive`
                       : `${reviewStats.totalRatings} ratings`}
                   </span>
                 </div>
@@ -1715,49 +1599,49 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                 {/* 3 Kaomoji Cards */}
                 <div className="grid grid-cols-3 gap-2">
                   {/* Good */}
-                  <div className="p-2.5 rounded-xl bg-emerald-950/20 border border-emerald-500/25 flex flex-col items-center justify-center text-center">
-                    <span className="font-mono text-base font-black text-emerald-400 leading-tight">
+                  <div className="p-2.5 rounded-md bg-emerald-950/20 border border-emerald-500/25 flex flex-col items-center justify-center text-center">
+                    <span className="text-base font-black text-emerald-400 leading-tight">
                       (•‿•)
                     </span>
-                    <span className="text-[10px] font-bold text-emerald-300/90 mt-1 uppercase tracking-wider">
+                    <span className="text-[10px] font-bold text-emerald-300 mt-1 uppercase tracking-wider">
                       Good
                     </span>
-                    <span className="font-mono text-xs font-black text-white mt-0.5">
+                    <span className="font-mono tabular-nums text-xs font-black text-white mt-0.5">
                       {reviewStats.ratingCounts.good}
                     </span>
-                    <span className="text-[10px] font-mono text-slate-400">
+                    <span className="text-[10px] font-mono tabular-nums text-slate-400">
                       {reviewStats.ratingPercentages.good}%
                     </span>
                   </div>
 
                   {/* Okay */}
-                  <div className="p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/60 flex flex-col items-center justify-center text-center">
-                    <span className="font-mono text-base font-black text-slate-300 leading-tight">
+                  <div className="p-2.5 rounded-md bg-surface-elevated/60 border border-white/[0.08] flex flex-col items-center justify-center text-center">
+                    <span className="text-base font-black text-slate-300 leading-tight">
                       (•_•)
                     </span>
-                    <span className="text-[10px] font-bold text-slate-300/90 mt-1 uppercase tracking-wider">
+                    <span className="text-[10px] font-bold text-slate-300 mt-1 uppercase tracking-wider">
                       Okay
                     </span>
-                    <span className="font-mono text-xs font-black text-white mt-0.5">
+                    <span className="font-mono tabular-nums text-xs font-black text-white mt-0.5">
                       {reviewStats.ratingCounts.ok}
                     </span>
-                    <span className="text-[10px] font-mono text-slate-400">
+                    <span className="text-[10px] font-mono tabular-nums text-slate-400">
                       {reviewStats.ratingPercentages.ok}%
                     </span>
                   </div>
 
                   {/* Rough */}
-                  <div className="p-2.5 rounded-xl bg-rose-950/20 border border-rose-500/25 flex flex-col items-center justify-center text-center">
-                    <span className="font-mono text-base font-black text-rose-400 leading-tight">
+                  <div className="p-2.5 rounded-md bg-rose-950/20 border border-rose-500/25 flex flex-col items-center justify-center text-center">
+                    <span className="text-base font-black text-rose-400 leading-tight">
                       (&gt;_&lt;)
                     </span>
-                    <span className="text-[10px] font-bold text-rose-300/90 mt-1 uppercase tracking-wider">
+                    <span className="text-[10px] font-bold text-rose-300 mt-1 uppercase tracking-wider">
                       Rough
                     </span>
-                    <span className="font-mono text-xs font-black text-white mt-0.5">
+                    <span className="font-mono tabular-nums text-xs font-black text-white mt-0.5">
                       {reviewStats.ratingCounts.rough}
                     </span>
-                    <span className="text-[10px] font-mono text-slate-400">
+                    <span className="text-[10px] font-mono tabular-nums text-slate-400">
                       {reviewStats.ratingPercentages.rough}%
                     </span>
                   </div>
@@ -1765,7 +1649,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
 
                 {/* Multi-segment distribution bar */}
                 <div className="space-y-1">
-                  <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden flex">
+                  <div className="w-full h-2 bg-surface-high rounded-full overflow-hidden flex">
                     <div
                       className="h-full bg-emerald-400 transition-all duration-500"
                       style={{ width: `${reviewStats.ratingPercentages.good}%` }}
@@ -1786,56 +1670,56 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
               </div>
 
               {/* Column 2: Grade Consensus */}
-              <div className="p-4 rounded-2xl bg-surface-elevated/40 border border-white/[0.06] flex flex-col justify-between gap-3">
+              <div className="p-3.5 rounded-lg bg-surface-elevated/40 border border-white/[0.06] flex flex-col justify-between gap-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                    <span>Grade Consensus</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                    Grade Consensus
                   </span>
-                  <span className="text-[11px] font-mono text-slate-400">
-                    {reviewStats.totalGradeOpinions} votes
+                  <span className="text-[11px] tabular-nums text-slate-400">
+                    <strong className="text-slate-200">{reviewStats.totalGradeOpinions}</strong> votes
                   </span>
                 </div>
 
                 {/* 3 Grade Opinion Cards */}
                 <div className="grid grid-cols-3 gap-2">
                   {/* Soft */}
-                  <div className="p-2.5 rounded-xl bg-teal-950/20 border border-teal-500/25 flex flex-col items-center justify-center text-center">
+                  <div className="p-2.5 rounded-md bg-teal-950/20 border border-teal-500/25 flex flex-col items-center justify-center text-center">
                     <Feather className="w-4 h-4 text-teal-400 mb-0.5" />
-                    <span className="text-[10px] font-bold text-teal-300/90 mt-1 uppercase tracking-wider">
+                    <span className="text-[10px] font-bold text-teal-300 mt-1 uppercase tracking-wider">
                       Soft
                     </span>
-                    <span className="font-mono text-xs font-black text-white mt-0.5">
+                    <span className="font-mono tabular-nums text-xs font-black text-white mt-0.5">
                       {reviewStats.gradeOpinionCounts.soft}
                     </span>
-                    <span className="text-[10px] font-mono text-slate-400">
+                    <span className="text-[10px] font-mono tabular-nums text-slate-400">
                       {reviewStats.gradePercentages.soft}%
                     </span>
                   </div>
 
                   {/* Fair */}
-                  <div className="p-2.5 rounded-xl bg-sky-950/20 border border-sky-500/25 flex flex-col items-center justify-center text-center">
+                  <div className="p-2.5 rounded-md bg-sky-950/20 border border-sky-500/25 flex flex-col items-center justify-center text-center">
                     <Scale className="w-4 h-4 text-sky-400 mb-0.5" />
-                    <span className="text-[10px] font-bold text-sky-300/90 mt-1 uppercase tracking-wider">
+                    <span className="text-[10px] font-bold text-sky-300 mt-1 uppercase tracking-wider">
                       Fair
                     </span>
-                    <span className="font-mono text-xs font-black text-white mt-0.5">
+                    <span className="font-mono tabular-nums text-xs font-black text-white mt-0.5">
                       {reviewStats.gradeOpinionCounts.fair}
                     </span>
-                    <span className="text-[10px] font-mono text-slate-400">
+                    <span className="text-[10px] font-mono tabular-nums text-slate-400">
                       {reviewStats.gradePercentages.fair}%
                     </span>
                   </div>
 
                   {/* Hard */}
-                  <div className="p-2.5 rounded-xl bg-amber-950/20 border border-amber-500/25 flex flex-col items-center justify-center text-center">
+                  <div className="p-2.5 rounded-md bg-amber-950/20 border border-amber-500/25 flex flex-col items-center justify-center text-center">
                     <Flame className="w-4 h-4 text-amber-400 mb-0.5" />
-                    <span className="text-[10px] font-bold text-amber-300/90 mt-1 uppercase tracking-wider">
+                    <span className="text-[10px] font-bold text-amber-300 mt-1 uppercase tracking-wider">
                       Hard
                     </span>
-                    <span className="font-mono text-xs font-black text-white mt-0.5">
+                    <span className="font-mono tabular-nums text-xs font-black text-white mt-0.5">
                       {reviewStats.gradeOpinionCounts.hard}
                     </span>
-                    <span className="text-[10px] font-mono text-slate-400">
+                    <span className="text-[10px] font-mono tabular-nums text-slate-400">
                       {reviewStats.gradePercentages.hard}%
                     </span>
                   </div>
@@ -1843,7 +1727,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
 
                 {/* Multi-segment distribution bar */}
                 <div className="space-y-1">
-                  <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden flex">
+                  <div className="w-full h-2 bg-surface-high rounded-full overflow-hidden flex">
                     <div
                       className="h-full bg-teal-400 transition-all duration-500"
                       style={{ width: `${reviewStats.gradePercentages.soft}%` }}
@@ -1875,7 +1759,6 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                     <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                     <span>Consensus Standouts</span>
                   </span>
-                  <span className="text-[10px] text-slate-400">Tap to inspect boulder</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
@@ -1884,13 +1767,13 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                     <button
                       type="button"
                       onClick={() => onSelectBoulder && onSelectBoulder(reviewStats.topCrowdPleasers[0].boulder)}
-                      className="p-3 rounded-2xl bg-surface-elevated/40 hover:bg-surface-elevated/70 border border-white/[0.06] hover:border-emerald-500/40 transition-all text-left flex flex-col justify-between gap-2.5 group"
+                      className="p-3 rounded-lg bg-surface-elevated/40 hover:bg-surface-elevated/70 border border-white/[0.06] hover:border-emerald-500/40 transition-colors text-left flex flex-col justify-between gap-2.5 group"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-300">
+                        <span className="text-[11px] font-semibold text-emerald-300">
                           (•‿•) Crowd Pleaser
                         </span>
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-400 transition-colors" />
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-400 transition-colors" />
                       </div>
                       <div className="flex items-center gap-2">
                         <HoldBadge
@@ -1904,7 +1787,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                           {areaNameMap.get(reviewStats.topCrowdPleasers[0].boulder.area_id) || 'Wall'}
                         </span>
                       </div>
-                      <span className="text-[11px] font-mono text-emerald-400 font-bold">
+                      <span className="text-[11px] tabular-nums text-emerald-400 font-bold">
                         {reviewStats.topCrowdPleasers[0].goodCount} good {reviewStats.topCrowdPleasers[0].goodCount === 1 ? 'rating' : 'ratings'}
                       </span>
                     </button>
@@ -1915,14 +1798,14 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                     <button
                       type="button"
                       onClick={() => onSelectBoulder && onSelectBoulder(reviewStats.topSpicyBoulders[0].boulder)}
-                      className="p-3 rounded-2xl bg-surface-elevated/40 hover:bg-surface-elevated/70 border border-white/[0.06] hover:border-amber-500/40 transition-all text-left flex flex-col justify-between gap-2.5 group"
+                      className="p-3 rounded-lg bg-surface-elevated/40 hover:bg-surface-elevated/70 border border-white/[0.06] hover:border-amber-500/40 transition-colors text-left flex flex-col justify-between gap-2.5 group"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-950/60 border border-amber-500/30 text-amber-300 flex items-center gap-1">
-                          <Flame className="w-2.5 h-2.5 text-amber-400" />
+                        <span className="text-[11px] font-semibold text-amber-300 flex items-center gap-1">
+                          <Flame className="w-3 h-3 text-amber-400" />
                           <span>Spiciest Grade</span>
                         </span>
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-amber-400 transition-colors" />
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-400 transition-colors" />
                       </div>
                       <div className="flex items-center gap-2">
                         <HoldBadge
@@ -1936,7 +1819,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                           {areaNameMap.get(reviewStats.topSpicyBoulders[0].boulder.area_id) || 'Wall'}
                         </span>
                       </div>
-                      <span className="text-[11px] font-mono text-amber-400 font-bold">
+                      <span className="text-[11px] tabular-nums text-amber-400 font-bold">
                         {reviewStats.topSpicyBoulders[0].hardCount} voted Hard
                       </span>
                     </button>
@@ -1947,14 +1830,14 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                     <button
                       type="button"
                       onClick={() => onSelectBoulder && onSelectBoulder(reviewStats.topSoftBoulders[0].boulder)}
-                      className="p-3 rounded-2xl bg-surface-elevated/40 hover:bg-surface-elevated/70 border border-white/[0.06] hover:border-teal-500/40 transition-all text-left flex flex-col justify-between gap-2.5 group"
+                      className="p-3 rounded-lg bg-surface-elevated/40 hover:bg-surface-elevated/70 border border-white/[0.06] hover:border-teal-500/40 transition-colors text-left flex flex-col justify-between gap-2.5 group"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-teal-950/60 border border-teal-500/30 text-teal-300 flex items-center gap-1">
-                          <Feather className="w-2.5 h-2.5 text-teal-400" />
+                        <span className="text-[11px] font-semibold text-teal-300 flex items-center gap-1">
+                          <Feather className="w-3 h-3 text-teal-400" />
                           <span>Softest Tick</span>
                         </span>
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-teal-400 transition-colors" />
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-teal-400 transition-colors" />
                       </div>
                       <div className="flex items-center gap-2">
                         <HoldBadge
@@ -1968,7 +1851,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                           {areaNameMap.get(reviewStats.topSoftBoulders[0].boulder.area_id) || 'Wall'}
                         </span>
                       </div>
-                      <span className="text-[11px] font-mono text-teal-400 font-bold">
+                      <span className="text-[11px] tabular-nums text-teal-400 font-bold">
                         {reviewStats.topSoftBoulders[0].softCount} voted Soft
                       </span>
                     </button>
@@ -1979,13 +1862,13 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                     <button
                       type="button"
                       onClick={() => onSelectBoulder && onSelectBoulder(reviewStats.topRoughBoulders[0].boulder)}
-                      className="p-3 rounded-2xl bg-surface-elevated/40 hover:bg-surface-elevated/70 border border-white/[0.06] hover:border-rose-500/40 transition-all text-left flex flex-col justify-between gap-2.5 group"
+                      className="p-3 rounded-lg bg-surface-elevated/40 hover:bg-surface-elevated/70 border border-white/[0.06] hover:border-rose-500/40 transition-colors text-left flex flex-col justify-between gap-2.5 group"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-rose-950/60 border border-rose-500/30 text-rose-300">
+                        <span className="text-[11px] font-semibold text-rose-300">
                           (&gt;_&lt;) Rough &amp; Sharp
                         </span>
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-rose-400 transition-colors" />
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-rose-400 transition-colors" />
                       </div>
                       <div className="flex items-center gap-2">
                         <HoldBadge
@@ -1999,7 +1882,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                           {areaNameMap.get(reviewStats.topRoughBoulders[0].boulder.area_id) || 'Wall'}
                         </span>
                       </div>
-                      <span className="text-[11px] font-mono text-rose-400 font-bold">
+                      <span className="text-[11px] tabular-nums text-rose-400 font-bold">
                         {reviewStats.topRoughBoulders[0].roughCount} rough {reviewStats.topRoughBoulders[0].roughCount === 1 ? 'vote' : 'votes'}
                       </span>
                     </button>
@@ -2007,13 +1890,13 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                     <button
                       type="button"
                       onClick={() => onSelectBoulder && onSelectBoulder(reviewStats.topCrowdPleasers[1].boulder)}
-                      className="p-3 rounded-2xl bg-surface-elevated/40 hover:bg-surface-elevated/70 border border-white/[0.06] hover:border-emerald-500/40 transition-all text-left flex flex-col justify-between gap-2.5 group"
+                      className="p-3 rounded-lg bg-surface-elevated/40 hover:bg-surface-elevated/70 border border-white/[0.06] hover:border-emerald-500/40 transition-colors text-left flex flex-col justify-between gap-2.5 group"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-300">
+                        <span className="text-[11px] font-semibold text-emerald-300">
                           (•‿•) Highly Rated
                         </span>
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-400 transition-colors" />
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-400 transition-colors" />
                       </div>
                       <div className="flex items-center gap-2">
                         <HoldBadge
@@ -2027,7 +1910,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                           {areaNameMap.get(reviewStats.topCrowdPleasers[1].boulder.area_id) || 'Wall'}
                         </span>
                       </div>
-                      <span className="text-[11px] font-mono text-emerald-400 font-bold">
+                      <span className="text-[11px] tabular-nums text-emerald-400 font-bold">
                         {reviewStats.topCrowdPleasers[1].goodCount} good ratings
                       </span>
                     </button>
@@ -2042,14 +1925,11 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
       {/* Hall of Fame & Superlatives Cards */}
       {accoladesList.length > 0 &&
         (showAccolades ? (
-          <div className="bg-surface border border-white/[0.08] rounded-3xl p-5 flex flex-col gap-4 shadow-xs animate-in fade-in">
+          <div className="ds-card p-5 flex flex-col gap-4 shadow-xs animate-in fade-in">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Trophy className="w-5 h-5" style={{ color: activeColor }} />
-                <div>
-                  <h3 className="text-sm font-bold text-white">Crew Superlatives & Accolades</h3>
-                  <p className="text-[11px] text-slate-400">Unique standout achievements across your crew</p>
-                </div>
+                <h3 className="text-sm font-bold text-white">Crew Superlatives &amp; Accolades</h3>
               </div>
               <button
                 type="button"
@@ -2065,9 +1945,9 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
               {accoladesList.map((item) => (
                 <div
                   key={item.id}
-                  className="p-3 rounded-2xl bg-surface-elevated/40 border border-white/[0.06] flex flex-col items-center text-center gap-1.5 hover:border-white/[0.15] transition-colors"
+                  className="p-3 rounded-lg bg-surface-elevated/40 border border-white/[0.06] flex flex-col items-center text-center gap-1.5 hover:border-white/[0.15] transition-colors"
                 >
-                  <div className="w-8 h-8 rounded-xl bg-surface-elevated border border-white/[0.08] flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-md bg-surface-elevated border border-white/[0.08] flex items-center justify-center">
                     {getAccoladeIcon(item.id, item.climber.accent_color || activeColor)}
                   </div>
                   <span
@@ -2080,7 +1960,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                     <ClimberAvatar profile={item.climber} size="xs" />
                     <strong className="text-xs text-white truncate max-w-[85px]">{item.climber.display_name}</strong>
                   </div>
-                  <span className="text-[11px] font-mono font-bold text-emerald-400">{item.value}</span>
+                  <span className="text-[11px] tabular-nums font-bold text-emerald-400">{item.value}</span>
                   <span className="text-[10px] text-slate-400 leading-tight">{item.subtitle}</span>
                 </div>
               ))}
@@ -2091,7 +1971,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
             <button
               type="button"
               onClick={() => onToggleAccolades(true)}
-              className="text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface border border-white/[0.08] hover:bg-surface-elevated transition-colors shadow-xs"
+              className="text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-surface border border-white/[0.08] hover:bg-surface-elevated transition-colors shadow-xs"
             >
               <Trophy className="w-3.5 h-3.5" style={{ color: activeColor }} />
               <span>Show Crew Accolades</span>

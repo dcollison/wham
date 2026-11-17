@@ -16,7 +16,10 @@ import {
   Sparkles,
   Zap,
   Palette,
-  Bug
+  Bug,
+  Monitor,
+  Loader2,
+  ArrowUpRight
 } from 'lucide-react';
 
 interface RoadmapTabProps {
@@ -81,6 +84,9 @@ export const RoadmapTab: React.FC<RoadmapTabProps> = ({
 }) => {
   const [filter, setFilter] = useState<'open' | 'done' | 'all'>('open');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [pendingStatusId, setPendingStatusId] = useState<string | null>(null);
+  const [pendingVoteId, setPendingVoteId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const openCount = featureRequests.filter((r) => r.status !== 'shipped').length;
   const doneCount = featureRequests.filter((r) => r.status === 'shipped').length;
@@ -135,18 +141,18 @@ export const RoadmapTab: React.FC<RoadmapTabProps> = ({
   return (
     <div className="flex flex-col gap-4 animate-in fade-in duration-150">
       {/* Top Banner & Submit CTA */}
-      <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div className="p-4 rounded-lg bg-carbon border border-white/[0.07] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div
-            className="p-2.5 rounded-xl shrink-0"
+            className="p-2.5 rounded-md shrink-0"
             style={{ backgroundColor: `${activeColor}20`, color: activeColor }}
           >
             <Lightbulb className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-white font-heading">Ideas & Crew Roadmap</h3>
+            <h3 className="text-sm font-bold text-white">Ideas &amp; Crew Roadmap</h3>
             <p className="text-xs text-slate-400">
-              Suggest new features, vote on priorities, and copy AI prompts to code them.
+              Suggest features, vote on priorities, and copy AI prompts.
             </p>
           </div>
         </div>
@@ -154,10 +160,10 @@ export const RoadmapTab: React.FC<RoadmapTabProps> = ({
         <button
           type="button"
           onClick={onOpenSubmitModal}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black shadow-md transition-all active-press shrink-0 font-heading"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-black transition-all active-press shrink-0"
           style={{ backgroundColor: activeColor, color: '#000000' }}
         >
-          <Plus className="w-4 h-4 stroke-[3]" />
+          <Plus className="w-4 h-4 stroke-[2.5]" />
           <span>Suggest Idea</span>
         </button>
       </div>
@@ -167,22 +173,22 @@ export const RoadmapTab: React.FC<RoadmapTabProps> = ({
         href="./retro-themes.html"
         target="_blank"
         rel="noopener noreferrer"
-        className="p-3.5 rounded-2xl bg-slate-900 border border-amber-500/30 flex items-center justify-between gap-3 text-xs hover:border-amber-400/60 transition-all active-press"
+        className="p-3.5 rounded-lg bg-carbon border border-amber-500/30 flex items-center justify-between gap-3 text-xs hover:border-amber-400/60 transition-colors active-press"
       >
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">🕹️</span>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-heading font-black text-amber-300">80s & 90s CRT Retheming Lab</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">4 PROPOSALS</span>
-            </div>
-            <p className="text-slate-400 text-[11px] mt-0.5">
-              Explore 4 bold designs: Arcade '84, Studio Rack '93, Trinitron '97, and Rad VHS '91 with subtle scanlines & refined glow.
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-9 h-9 rounded-md bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0 text-amber-400">
+            <Monitor className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <span className="font-bold text-amber-300 block">80s &amp; 90s CRT Retheming Lab</span>
+            <p className="text-slate-400 text-[11px] mt-0.5 truncate sm:whitespace-normal">
+              Explore 4 bold retro designs: Arcade &apos;84, Studio Rack &apos;93, Trinitron &apos;97, and Rad VHS &apos;91.
             </p>
           </div>
         </div>
-        <span className="px-3 py-1.5 rounded-xl bg-amber-400 text-slate-950 font-bold font-heading text-[11px] shrink-0">
-          Launch Lab ↗
+        <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-amber-400 text-slate-950 font-bold text-[11px] shrink-0">
+          <span>Launch</span>
+          <ArrowUpRight className="w-3.5 h-3.5" />
         </span>
       </a>
 
@@ -201,16 +207,16 @@ export const RoadmapTab: React.FC<RoadmapTabProps> = ({
               key={key}
               type="button"
               onClick={() => setFilter(key)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all active-press flex items-center gap-1.5 border ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors active-press flex items-center gap-1.5 border ${
                 isSelected
-                  ? 'bg-slate-800 border-slate-700 text-white shadow-sm ring-1 ring-slate-600'
-                  : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                  ? 'bg-surface-high border-white/[0.18] text-white'
+                  : 'bg-carbon border-white/[0.07] text-slate-400 hover:text-slate-200'
               }`}
             >
               <span>{label}</span>
               <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                  isSelected ? 'bg-slate-700 text-slate-200' : 'bg-slate-900 text-slate-500'
+                className={`text-[11px] font-mono tabular-nums ${
+                  isSelected ? 'text-amber-300' : 'text-slate-400'
                 }`}
               >
                 {count}
@@ -223,11 +229,11 @@ export const RoadmapTab: React.FC<RoadmapTabProps> = ({
       {/* Requests List */}
       <div className="flex flex-col gap-2.5">
         {sortedRequests.length === 0 ? (
-          <div className="p-8 rounded-2xl bg-slate-950/40 border border-dashed border-slate-800 text-center flex flex-col items-center gap-2">
-            <Lightbulb className="w-8 h-8 text-slate-600" />
-            <p className="text-xs text-slate-400 font-medium">
+          <div className="p-8 rounded-lg bg-carbon border border-dashed border-white/[0.08] text-center flex flex-col items-center gap-2">
+            <Lightbulb className="w-8 h-8 text-slate-400" />
+            <p className="text-xs text-slate-300 font-medium">
               {filter === 'open'
-                ? 'All caught up! No open ideas right now.'
+                ? 'All caught up — no open ideas right now.'
                 : filter === 'done'
                 ? 'No completed ideas yet.'
                 : 'No feature requests yet. Got an idea to make Wham faster?'}
@@ -252,31 +258,34 @@ export const RoadmapTab: React.FC<RoadmapTabProps> = ({
             const hasVoted = currentUser ? req.upvotes?.includes(currentUser.id) : false;
             const upvoteCount = req.upvotes?.length || 0;
             const isCopied = copiedId === req.id;
+            const isUpdatingStatus = pendingStatusId === req.id;
+            const isUpdatingVote = pendingVoteId === req.id;
+            const isDeleting = deletingId === req.id;
 
             return (
               <div
                 key={req.id}
-                className={`p-4 rounded-2xl border transition-all flex flex-col gap-3 group ${
+                className={`p-4 rounded-lg border transition-colors flex flex-col gap-3 group ${
                   isDone
-                    ? 'bg-slate-950/40 border-slate-800/60 opacity-80 hover:opacity-100'
-                    : 'bg-slate-950/70 border-slate-800/90 hover:border-slate-700/80'
+                    ? 'bg-carbon/60 border-white/[0.05]'
+                    : 'bg-carbon border-white/[0.08] hover:border-white/[0.15]'
                 }`}
               >
                 {/* Card Top: Submitter + Category Badge + Date + Done Tick Button */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <ClimberAvatar profile={requester} size="sm" />
-                    <span className="text-xs font-bold text-slate-300 truncate">
+                    <span className="text-xs font-bold text-slate-200 truncate">
                       {requester?.display_name || 'Climber'}
                     </span>
-                    <span className="text-[11px] text-slate-500 font-mono">
-                      • {formatTimeAgo(req.created_at)}
+                    <span className="text-[11px] text-slate-400 tabular-nums shrink-0">
+                      · {formatTimeAgo(req.created_at)}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
                     <span
-                      className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${cat.bg} ${cat.border} ${cat.color}`}
+                      className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${cat.bg} ${cat.border} ${cat.color}`}
                     >
                       <CatIcon className="w-3 h-3" />
                       <span>{cat.label}</span>
@@ -285,18 +294,31 @@ export const RoadmapTab: React.FC<RoadmapTabProps> = ({
                     {/* Tick button for done */}
                     <button
                       type="button"
-                      onClick={() => {
-                        onUpdateStatus(req.id, isDone ? 'backlog' : 'shipped');
-                        onShowSuccess(isDone ? 'Marked as open' : 'Marked as done!');
+                      disabled={isUpdatingStatus || isDeleting}
+                      onClick={async () => {
+                        setPendingStatusId(req.id);
+                        try {
+                          await onUpdateStatus(req.id, isDone ? 'backlog' : 'shipped');
+                          onShowSuccess(isDone ? 'Marked as open' : 'Marked as done');
+                        } catch (err: any) {
+                          if (onShowError) onShowError(err?.message || 'Failed to update status');
+                        } finally {
+                          setPendingStatusId(null);
+                        }
                       }}
-                      className={`w-7 h-7 rounded-xl border flex items-center justify-center transition-all active-press ${
+                      aria-label={isDone ? 'Mark idea as open' : 'Mark idea as done'}
+                      className={`w-7 h-7 rounded-md border flex items-center justify-center transition-colors active-press disabled:opacity-60 ${
                         isDone
-                          ? 'bg-emerald-500 border-emerald-400 text-slate-950 shadow-sm shadow-emerald-500/20'
-                          : 'border-slate-700 bg-slate-900 text-slate-600 hover:border-emerald-500 hover:text-emerald-400'
+                          ? 'bg-emerald-500 border-emerald-400 text-slate-950 animate-pop'
+                          : 'border-white/[0.12] bg-surface-elevated text-slate-400 hover:border-emerald-500 hover:text-emerald-400'
                       }`}
                       title={isDone ? 'Click to uncheck (mark open)' : 'Click to mark as done'}
                     >
-                      <Check className={`w-4 h-4 stroke-[3] transition-opacity ${isDone ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'}`} />
+                      {isUpdatingStatus ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Check className="w-4 h-4 stroke-[2.5]" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -304,7 +326,7 @@ export const RoadmapTab: React.FC<RoadmapTabProps> = ({
                 {/* Card Body: Title + Description */}
                 <div>
                   <h4
-                    className={`text-sm font-bold font-heading tracking-tight leading-snug transition-colors ${
+                    className={`text-sm font-bold tracking-tight leading-snug transition-colors ${
                       isDone ? 'line-through text-slate-400' : 'text-white'
                     }`}
                   >
@@ -313,7 +335,7 @@ export const RoadmapTab: React.FC<RoadmapTabProps> = ({
                   {req.description && (
                     <p
                       className={`text-xs mt-1 leading-relaxed whitespace-pre-wrap ${
-                        isDone ? 'text-slate-500' : 'text-slate-400'
+                        isDone ? 'text-slate-400' : 'text-slate-300'
                       }`}
                     >
                       {req.description}
@@ -322,24 +344,33 @@ export const RoadmapTab: React.FC<RoadmapTabProps> = ({
                 </div>
 
                 {/* Card Bottom: Upvotes + AI Prompt Copy + Delete */}
-                <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-850">
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/[0.06]">
                   {/* Upvote Button */}
                   <button
                     type="button"
-                    onClick={() => {
-                      if (currentUser) {
-                        onToggleUpvote(req.id, currentUser.id);
+                    disabled={isUpdatingVote || !currentUser}
+                    onClick={async () => {
+                      if (!currentUser) return;
+                      setPendingVoteId(req.id);
+                      try {
+                        await onToggleUpvote(req.id, currentUser.id);
+                      } finally {
+                        setPendingVoteId(null);
                       }
                     }}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold transition-all active-press border ${
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold transition-colors active-press border disabled:opacity-60 ${
                       hasVoted
-                        ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 shadow-sm'
-                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-850'
+                        ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 animate-pop'
+                        : 'bg-surface-elevated border-white/[0.08] text-slate-300 hover:text-white hover:bg-surface-high'
                     }`}
                     title={hasVoted ? 'Remove your vote' : 'Upvote this idea'}
                   >
-                    <ThumbsUp className={`w-3.5 h-3.5 ${hasVoted ? 'fill-current' : ''}`} />
-                    <span className="font-mono">{upvoteCount}</span>
+                    {isUpdatingVote ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <ThumbsUp className={`w-3.5 h-3.5 ${hasVoted ? 'fill-current' : ''}`} />
+                    )}
+                    <span className="font-mono tabular-nums">{upvoteCount}</span>
                   </button>
 
                   <div className="flex items-center gap-1.5">
@@ -347,16 +378,16 @@ export const RoadmapTab: React.FC<RoadmapTabProps> = ({
                     <button
                       type="button"
                       onClick={() => handleCopyAIPrompt(req)}
-                      className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-colors active-press ${
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold border transition-colors active-press ${
                         isCopied
-                          ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
-                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-850'
+                          ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 animate-pop'
+                          : 'bg-surface-elevated border-white/[0.08] text-slate-300 hover:text-white hover:bg-surface-high'
                       }`}
                       title="Copy formatted prompt for Antigravity / Gemini to implement this"
                     >
                       {isCopied ? (
                         <>
-                          <Check className="w-3 h-3 text-emerald-400 stroke-[3]" />
+                          <Check className="w-3 h-3 text-emerald-400 stroke-[2.5]" />
                           <span className="hidden sm:inline">Copied</span>
                         </>
                       ) : (
@@ -370,20 +401,25 @@ export const RoadmapTab: React.FC<RoadmapTabProps> = ({
                     {/* Delete Request */}
                     <button
                       type="button"
+                      disabled={isDeleting}
                       onClick={async () => {
                         if (window.confirm(`Delete feature request "${req.title}"?`)) {
+                          setDeletingId(req.id);
                           try {
                             await onDeleteRequest(req.id);
                             onShowSuccess('Feature request deleted');
                           } catch (err: any) {
                             if (onShowError) onShowError(err?.message || 'Failed to delete request');
+                          } finally {
+                            setDeletingId(null);
                           }
                         }
                       }}
-                      className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/30 transition-colors"
+                      aria-label="Delete request"
+                      className="p-1.5 rounded-md text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 transition-colors disabled:opacity-50"
                       title="Delete request"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                     </button>
                   </div>
                 </div>

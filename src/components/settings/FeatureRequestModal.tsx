@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Profile, FeatureCategory } from '../../types';
 import { ClimberAvatar } from '../ClimberAvatar';
-import { X, Lightbulb, Sparkles, Zap, Palette, Bug, Check } from 'lucide-react';
+import { X, Lightbulb, Sparkles, Zap, Palette, Bug, Check, Loader2 } from 'lucide-react';
 
 interface FeatureRequestModalProps {
   isOpen: boolean;
@@ -87,7 +87,7 @@ export const FeatureRequestModal: React.FC<FeatureRequestModalProps> = ({
   if (!isOpen) return null;
 
   const activeClimber = climbers.find((c) => c.id === selectedUserId) || currentUser || climbers[0];
-  const activeColor = activeClimber?.accent_color || '#3B82F6';
+  const activeColor = activeClimber?.accent_color || '#F59E0B';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,36 +120,37 @@ export const FeatureRequestModal: React.FC<FeatureRequestModalProps> = ({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg bg-surface border border-slate-700/80 rounded-t-[32px] sm:rounded-4xl p-5 sm:p-6 sheet-elevated flex flex-col gap-4 max-h-[90vh] overflow-y-auto overscroll-contain animate-in slide-in-from-bottom-6 sm:zoom-in-95 duration-200"
+        className="w-full max-w-lg ds-sheet rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 flex flex-col gap-4 max-h-[90vh] overflow-y-auto overscroll-contain animate-in slide-in-from-bottom-6 duration-200"
       >
         {/* Mobile Pull Handle */}
-        <div className="w-12 h-1.5 bg-slate-700/60 rounded-full mx-auto sm:hidden -mt-1 mb-1 shrink-0" />
+        <div className="w-12 h-1.5 bg-surface-higher rounded-full mx-auto sm:hidden -mt-1 mb-1 shrink-0" />
 
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
           <div className="flex items-center gap-2.5">
             <div
-              className="p-2.5 rounded-2xl"
+              className="p-2.5 rounded-lg"
               style={{ backgroundColor: `${activeColor}20`, color: activeColor }}
             >
               <Lightbulb className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white font-heading">Suggest a Feature</h2>
+              <h2 className="text-base font-bold text-white">Suggest a Feature</h2>
               <p className="text-xs text-slate-400">Add an idea, QoL improvement, or report a bug</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-2.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800/80 active:scale-95 transition-all"
+            aria-label="Close"
+            className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-surface-high active-press transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {error && (
-          <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold animate-in fade-in">
+          <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold animate-in fade-in">
             {error}
           </div>
         )}
@@ -157,22 +158,22 @@ export const FeatureRequestModal: React.FC<FeatureRequestModalProps> = ({
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Submitter Selector */}
           <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5 font-heading">
+            <label className="ds-label block mb-1.5">
               Proposed By
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {climbers.map((climber) => {
                 const isSelected = climber.id === selectedUserId;
-                const cColor = climber.accent_color || '#3B82F6';
+                const cColor = climber.accent_color || '#F59E0B';
                 return (
                   <button
                     key={climber.id}
                     type="button"
                     onClick={() => setSelectedUserId(climber.id)}
-                    className={`flex items-center gap-2 p-2.5 rounded-2xl border transition-all active-press text-left ${
+                    className={`flex items-center gap-2 p-2.5 rounded-lg border transition-colors active-press text-left ${
                       isSelected
-                        ? 'bg-slate-800 shadow-sm ring-1'
-                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                        ? 'bg-surface-high'
+                        : 'bg-carbon border-white/[0.07] text-slate-400 hover:text-slate-200'
                     }`}
                     style={
                       isSelected
@@ -196,7 +197,7 @@ export const FeatureRequestModal: React.FC<FeatureRequestModalProps> = ({
 
           {/* Category Selector */}
           <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5 font-heading">
+            <label className="ds-label block mb-1.5">
               Category
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -208,10 +209,10 @@ export const FeatureRequestModal: React.FC<FeatureRequestModalProps> = ({
                     key={cat.id}
                     type="button"
                     onClick={() => setCategory(cat.id)}
-                    className={`flex items-center gap-2 p-3 rounded-2xl border text-xs font-bold transition-all active-press ${
+                    className={`flex items-center gap-2 p-3 rounded-lg border text-xs font-bold transition-colors active-press ${
                       isSelected
-                        ? `${cat.bg} ${cat.border} ${cat.color} shadow-sm ring-1 ring-current`
-                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                        ? `${cat.bg} ${cat.border} ${cat.color}`
+                        : 'bg-carbon border-white/[0.07] text-slate-400 hover:text-slate-200'
                     }`}
                   >
                     <Icon className="w-4 h-4 shrink-0" />
@@ -226,9 +227,9 @@ export const FeatureRequestModal: React.FC<FeatureRequestModalProps> = ({
           <div>
             <label
               htmlFor="feature-title"
-              className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5 font-heading"
+              className="ds-label block mb-1.5"
             >
-              Title / Summary <span className="text-amber-400">*</span>
+              Summary <span className="text-amber-400">*</span>
             </label>
             <input
               id="feature-title"
@@ -237,7 +238,7 @@ export const FeatureRequestModal: React.FC<FeatureRequestModalProps> = ({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Rest timer countdown on boulder card"
-              className="w-full bg-slate-950 border border-slate-700/80 rounded-2xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-amber-400/80 focus:ring-1 focus:ring-amber-400/80 font-mono transition-colors"
+              className="ds-input rounded-lg text-sm"
             />
           </div>
 
@@ -245,40 +246,43 @@ export const FeatureRequestModal: React.FC<FeatureRequestModalProps> = ({
           <div>
             <label
               htmlFor="feature-desc"
-              className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5 font-heading"
+              className="ds-label block mb-1.5"
             >
-              Details / Beta <span className="text-slate-500 font-normal normal-case">(optional)</span>
+              Details
             </label>
             <textarea
               id="feature-desc"
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="How should it work? What problem does it solve for the crew at the gym?"
-              className="w-full bg-slate-950 border border-slate-700/80 rounded-2xl p-3.5 text-white text-xs leading-relaxed focus:outline-none focus:border-amber-400/80 focus:ring-1 focus:ring-amber-400/80 transition-colors"
+              placeholder="How should it work? What problem does it solve for the crew?"
+              className="ds-input rounded-lg p-3 text-xs leading-relaxed"
             />
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/[0.06]">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-full text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              className="px-4 py-2.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white hover:bg-surface-high transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting || !title.trim()}
-              className="flex items-center gap-1.5 px-6 py-2.5 rounded-full text-xs font-black shadow-md transition-all active-press disabled:opacity-50 disabled:cursor-not-allowed font-heading"
+              className="flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-xs font-bold transition-colors active-press disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ backgroundColor: activeColor, color: '#000000' }}
             >
               {submitting ? (
-                <span>Submitting...</span>
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Submitting…</span>
+                </>
               ) : (
                 <>
-                  <Check className="w-4 h-4 stroke-[3]" />
+                  <Check className="w-4 h-4 stroke-[2.5]" />
                   <span>Post Idea</span>
                 </>
               )}

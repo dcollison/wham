@@ -7,6 +7,7 @@ import { HoldSwatch } from './HoldSwatch';
 import {
   X,
   Plus,
+  Minus,
   Trash2,
   ArrowUp,
   ArrowDown,
@@ -19,7 +20,9 @@ import {
   Copy,
   Calendar,
   RotateCcw,
-  Trophy
+  Trophy,
+  Loader2,
+  Grid
 } from 'lucide-react';
 
 interface DraftBoulder extends BulkAddBoulderItem {
@@ -50,7 +53,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
   onSwitchToSingle
 }) => {
   const { currentUser } = useAuth();
-  const activeColor = currentUser?.accent_color || '#3B82F6';
+  const activeColor = currentUser?.accent_color || '#F59E0B';
 
   const gymAreas = useMemo(() => {
     return areas.filter((a) => a.gym_id === gymId).sort((a, b) => a.sort_order - b.sort_order);
@@ -76,6 +79,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
   // Queued draft climbs list
   const [draftQueue, setDraftQueue] = useState<DraftBoulder[]>([]);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [compressingDraftId, setCompressingDraftId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Paste mode text
@@ -204,6 +208,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
   const handlePhotoUpload = async (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setCompressingDraftId(id);
     try {
       const compressed = await compressImage(file, 1200, 0.75);
       setDraftQueue((prev) =>
@@ -216,6 +221,8 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
     } catch (err) {
       console.error('Failed to compress image:', err);
       alert('Failed to compress photo.');
+    } finally {
+      setCompressingDraftId(null);
     }
   };
 
@@ -365,17 +372,17 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
       <div
-        className="w-full max-w-2xl bg-surface border-t sm:border border-slate-700/80 rounded-t-[32px] sm:rounded-4xl p-4 sm:p-6 sheet-elevated flex flex-col gap-4 max-h-[92vh] overflow-y-auto animate-in slide-in-from-bottom-6 sm:zoom-in-95 duration-200"
+        className="w-full max-w-2xl ds-sheet p-4 sm:p-6 flex flex-col gap-4 max-h-[92vh] overflow-y-auto animate-in slide-in-from-bottom-6"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Mobile Pull Handle */}
-        <div className="w-12 h-1.5 bg-slate-700/60 rounded-full mx-auto sm:hidden -mt-1 mb-1 shrink-0" />
+        <div className="w-12 h-1.5 bg-surface-higher rounded-full mx-auto sm:hidden -mt-1 mb-1 shrink-0" />
 
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
           <div className="flex items-center gap-2.5">
             <div
-              className="p-2.5 rounded-2xl"
+              className="p-2.5 rounded-lg"
               style={{
                 backgroundColor: `${activeColor}15`,
                 border: `1px solid ${activeColor}30`,
@@ -385,21 +392,9 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
               <Layers className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-bold text-white font-heading">Bulk Log Wall Set</h2>
-                <span
-                  style={{
-                    backgroundColor: `${activeColor}20`,
-                    color: activeColor,
-                    borderColor: `${activeColor}40`
-                  }}
-                  className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border"
-                >
-                  Clockwise Sequence
-                </span>
-              </div>
+              <h2 className="text-base sm:text-lg font-bold text-white">Bulk Log Wall Set</h2>
               <p className="text-xs text-slate-400">
-                Log multiple problems in sequential order for {displayAreaName}
+                {displayAreaName}
               </p>
             </div>
           </div>
@@ -408,7 +403,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
               <button
                 type="button"
                 onClick={onSwitchToSingle}
-                className="hidden sm:inline-block text-xs font-semibold text-slate-400 hover:text-white px-3 py-1.5 rounded-full hover:bg-slate-800 transition-colors"
+                className="hidden sm:inline-block text-xs font-semibold text-slate-300 hover:text-white px-3 py-1.5 rounded-full hover:bg-surface-high transition-colors"
               >
                 Single Add
               </button>
@@ -416,7 +411,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800/80 active:scale-95 transition-all"
+              className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-surface-high active:scale-95 transition-all"
             >
               <X className="w-5 h-5" />
             </button>
@@ -424,26 +419,26 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
         </div>
 
         {errorMessage && (
-          <div className="p-3.5 rounded-2xl bg-rose-950/70 border border-rose-500/40 text-xs text-rose-200 flex items-start gap-2.5 animate-in fade-in duration-200">
+          <div className="p-3.5 rounded-lg bg-rose-950/70 border border-rose-500/40 text-xs text-rose-200 flex items-start gap-2.5 animate-fadeIn">
             <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
             <div className="flex flex-col gap-1">
               <span className="font-bold text-white">Database Sync Blocked</span>
-              <span className="leading-relaxed text-[11px] text-rose-300">{errorMessage}</span>
+              <span className="leading-relaxed text-xs text-rose-200">{errorMessage}</span>
             </div>
           </div>
         )}
 
         {/* Configuration Row: Area Selector, Date & Wall Reset Option */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-slate-950/60 border border-slate-800 rounded-2xl">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-surface-elevated border border-white/[0.08] rounded-lg">
           {/* Target Sector */}
           <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">
-              Wall Sector / Area
+            <label className="ds-label">
+              Sector
             </label>
             <select
               value={effectiveAreaId}
               onChange={(e) => setSelectedAreaId(e.target.value)}
-              className="bg-slate-900 border border-slate-700 text-slate-100 text-xs rounded-xl p-2.5 outline-none focus:border-slate-500 font-semibold"
+              className="ds-input text-xs rounded-md p-2.5 font-semibold"
             >
               {gymAreas.map((a) => (
                 <option key={a.id} value={a.id}>
@@ -455,7 +450,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
 
           {/* Date Added */}
           <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1">
+            <label className="ds-label flex items-center gap-1">
               <Calendar className="w-3.5 h-3.5 text-slate-400" />
               <span>Date Set</span>
             </label>
@@ -463,68 +458,68 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
               type="date"
               value={dateAdded}
               onChange={(e) => setDateAdded(e.target.value)}
-              className="bg-slate-900 border border-slate-700 text-slate-100 text-xs rounded-xl p-2 outline-none focus:border-slate-500 font-mono"
+              className="ds-input text-xs rounded-md p-2 font-mono tabular-nums"
             />
           </div>
 
           {/* Wall Reset / Archive Toggle Banner */}
-          <div className="sm:col-span-2 pt-1 border-t border-slate-800/80">
+          <div className="sm:col-span-2 pt-2 border-t border-white/[0.06]">
             <label className="flex items-center gap-2.5 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={archiveExisting}
                 onChange={(e) => setArchiveExisting(e.target.checked)}
-                className="w-4 h-4 rounded bg-slate-900 border-slate-700"
+                className="w-4 h-4 rounded bg-carbon border-white/[0.2]"
                 style={{ accentColor: activeColor }}
               />
               <div className="text-xs">
-                <span className="font-bold text-slate-200">
-                  Complete Wall Reset (Archive existing climbs first)
+                <span className="font-bold text-slate-100">
+                  Archive existing climbs first (Wall Reset)
                 </span>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-slate-400 tabular-nums">
                   {archiveExisting
-                    ? `All ${existingActiveInArea.length} current climbs in ${displayAreaName} will be archived. New set starts at #1.`
+                    ? `${existingActiveInArea.length} current climbs in ${displayAreaName} will be archived. New set starts at #1.`
                     : existingActiveInArea.length > 0
-                    ? `Will append after current ${existingActiveInArea.length} climbs (starting at #${existingActiveInArea.length + 1}).`
-                    : `Area is currently empty. New climbs start at #1.`}
+                    ? `Appends after current ${existingActiveInArea.length} climbs (starting at #${existingActiveInArea.length + 1}).`
+                    : `Area is empty. New climbs start at #1.`}
                 </p>
               </div>
             </label>
           </div>
 
           {/* Comp Wall Toggle Banner */}
-          <div className="sm:col-span-2 pt-2 border-t border-slate-800/80 flex items-center justify-between gap-3">
+          <div className="sm:col-span-2 pt-2 border-t border-white/[0.06] flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               <Trophy className={`w-4 h-4 shrink-0 ${isCompClimbs ? 'text-amber-400' : 'text-slate-400'}`} />
               <div className="min-w-0">
-                <span className="text-xs font-bold text-slate-200 block truncate">
-                  Numbered Comp Wall Climbs (#1–#N)
+                <span className="text-xs font-bold text-slate-100 block truncate">
+                  Numbered Comp Wall (#1–#N)
                 </span>
                 <p className="text-[11px] text-slate-400 truncate">
                   {isCompClimbs
                     ? isWinterSeriesAreaId(effectiveAreaId)
-                      ? 'Switch from V-grades to numbered comp problems (3 / 2 / 1 comp points).'
-                      : 'Switch from V-grades to numbered comp problems (10 / 7 / 4 festival points).'
-                    : 'Standard V-graded set. Climbs appear in career grade charts.'}
+                      ? '3 / 2 / 1 comp points (Flash / Top / Zone)'
+                      : '10 / 7 / 4 festival points'
+                    : 'Standard V-graded set'}
                 </p>
               </div>
             </div>
             <button
               type="button"
               onClick={() => setIsCompClimbs((prev) => !prev)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-bold font-mono transition-all active-press shrink-0 ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all active-press shrink-0 ${
                 isCompClimbs
-                  ? 'bg-amber-400 text-black shadow-md'
-                  : 'bg-slate-900 text-slate-300 hover:text-white border border-slate-700'
+                  ? 'bg-amber-400 text-black'
+                  : 'bg-carbon text-slate-200 hover:text-white border border-white/[0.1]'
               }`}
             >
-              {isCompClimbs ? 'Comp Mode ON' : 'Comp Mode OFF'}
+              {isCompClimbs ? 'On' : 'Off'}
             </button>
           </div>
         </div>
 
         {/* Entry Tabs: Visual Builder vs Quick Paste */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-950/80 rounded-full border border-slate-800/80 w-fit">
+        <div className="flex items-center gap-1 p-1 bg-carbon rounded-full border border-white/[0.08] w-fit">
           <button
             type="button"
             onClick={() => setActiveTab('visual')}
@@ -532,11 +527,11 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all active-press ${
               activeTab === 'visual'
                 ? 'shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
+                : 'text-slate-300 hover:text-white'
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Interactive Wall Logger</span>
+            <Grid className="w-3.5 h-3.5" />
+            <span>Wall Builder</span>
           </button>
           <button
             type="button"
@@ -545,11 +540,11 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all active-press ${
               activeTab === 'paste'
                 ? 'shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
+                : 'text-slate-300 hover:text-white'
             }`}
           >
             <FileText className="w-3.5 h-3.5" />
-            <span>Quick Text / Batch Paste</span>
+            <span>Batch Paste</span>
           </button>
         </div>
 
@@ -557,18 +552,18 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
         {activeTab === 'visual' && (
           <div className="flex flex-col gap-4">
             {/* Quick-Input Control Pad */}
-            <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 flex flex-col gap-3">
+            <div className="p-3.5 rounded-lg bg-surface-elevated border border-white/[0.08] flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">
-                  Select Hold Colour:
+                <span className="ds-label">
+                  Hold Colour
                 </span>
-                <label className="flex items-center gap-1.5 text-[11px] text-slate-400 cursor-pointer">
+                <label className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={autoAddOnGrade}
                     onChange={(e) => setAutoAddOnGrade(e.target.checked)}
                     style={{ accentColor: isCompClimbs ? '#F59E0B' : activeColor }}
-                    className="w-3.5 h-3.5 rounded bg-slate-900 border-slate-700"
+                    className="w-3.5 h-3.5 rounded bg-carbon border-white/[0.2]"
                   />
                   <span>{isCompClimbs ? '1-Tap Add on #' : '1-Tap Add on Grade'}</span>
                 </label>
@@ -583,10 +578,10 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                       key={cName}
                       type="button"
                       onClick={() => setCurHoldColour(cName)}
-                      className={`flex items-center gap-1.5 px-2.5 py-2 rounded-2xl border text-xs font-semibold transition-all active-press ${
+                      className={`flex items-center gap-1.5 px-2.5 py-2 rounded-md border text-xs font-semibold transition-all active-press ${
                         isSelected
-                          ? 'bg-slate-800 text-white ring-2 ring-white/60 shadow'
-                          : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:border-slate-700'
+                          ? 'bg-surface-high text-white'
+                          : 'bg-carbon border-white/[0.08] text-slate-300 hover:border-white/[0.16]'
                       }`}
                       style={isSelected ? { borderColor: cfg.hex } : undefined}
                     >
@@ -602,27 +597,23 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
               {/* Grade Selector Pills OR Comp Problem Number Stepper & Quick Pills */}
               {isCompClimbs ? (
                 <div className="flex flex-col gap-2 pt-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-                      <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Comp Problem Number:</span>
-                    </span>
-                    <span className="text-[10px] font-mono text-amber-300/80 font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20">
-                      {isWinterSeriesAreaId(effectiveAreaId) ? '3 / 2 / 1 points' : '10 / 7 / 4 points'}
-                    </span>
-                  </div>
+                  <span className="text-[11px] font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Problem Number</span>
+                  </span>
 
                   {/* Direct Number Input + Stepper & Quick Pills */}
                   <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
                     {/* Stepper with number input */}
-                    <div className="flex items-center bg-slate-900 border border-amber-500/40 focus-within:border-amber-400 rounded-full p-1 shadow-sm shrink-0">
+                    <div className="flex items-center bg-carbon border border-amber-500/40 focus-within:border-amber-400 rounded-full p-1 shrink-0">
                       <button
                         type="button"
                         onClick={() => setCurCompNumber((prev) => Math.max(1, prev - 1))}
-                        className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center font-bold text-base active-press transition-colors"
+                        className="w-8 h-8 rounded-full bg-surface-elevated hover:bg-surface-high text-slate-100 flex items-center justify-center active-press transition-colors"
                         title="Previous problem number"
+                        aria-label="Previous problem number"
                       >
-                        -
+                        <Minus className="w-3.5 h-3.5 stroke-[2.5]" />
                       </button>
                       <div className="flex items-center px-2">
                         <span className="font-mono font-bold text-amber-400 text-sm mr-1">#</span>
@@ -641,16 +632,17 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                               handleAddDraft();
                             }
                           }}
-                          className="w-14 bg-transparent text-center font-mono font-black text-amber-300 text-base outline-none"
+                          className="w-14 bg-transparent text-center font-mono tabular-nums font-black text-amber-300 text-base outline-none"
                         />
                       </div>
                       <button
                         type="button"
                         onClick={() => setCurCompNumber((prev) => prev + 1)}
-                        className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center font-bold text-base active-press transition-colors"
+                        className="w-8 h-8 rounded-full bg-surface-elevated hover:bg-surface-high text-slate-100 flex items-center justify-center active-press transition-colors"
                         title="Next problem number"
+                        aria-label="Next problem number"
                       >
-                        +
+                        <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
                       </button>
                     </div>
 
@@ -668,10 +660,10 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                                 handleAddDraft(curHoldColour, 'VB', curNotes, num);
                               }
                             }}
-                            className={`h-8 min-w-[2.25rem] px-2.5 rounded-full font-mono text-xs font-bold transition-all shrink-0 active-press ${
+                            className={`h-8 min-w-[2.25rem] px-2.5 rounded-full font-mono tabular-nums text-xs font-bold transition-all shrink-0 active-press ${
                               isSelected
-                                ? 'bg-amber-400 text-slate-950 font-black shadow-md ring-1 ring-amber-300'
-                                : 'bg-slate-900 border border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white'
+                                ? 'bg-amber-400 text-slate-950 font-black shadow-md'
+                                : 'bg-carbon border border-white/[0.08] text-slate-300 hover:border-white/[0.16] hover:text-white'
                             }`}
                           >
                             #{num}
@@ -683,8 +675,8 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                 </div>
               ) : (
                 <div className="flex flex-col gap-1.5 pt-1">
-                  <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">
-                    Select Grade:
+                  <span className="ds-label">
+                    Grade
                   </span>
                   <div className="grid grid-cols-6 sm:grid-cols-12 gap-1.5">
                     {GRADES.map((gr) => {
@@ -695,10 +687,10 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                           type="button"
                           onClick={() => handleSelectGrade(gr)}
                           style={isSelected ? { backgroundColor: activeColor, color: '#000000' } : undefined}
-                          className={`py-1.5 rounded-full text-xs font-bold font-mono transition-all active-press ${
+                          className={`py-1.5 rounded-full text-xs font-bold font-mono tabular-nums transition-all active-press ${
                             isSelected
-                              ? 'shadow-md ring-1'
-                              : 'bg-slate-900 border border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white'
+                              ? 'shadow-md'
+                              : 'bg-carbon border border-white/[0.08] text-slate-200 hover:border-white/[0.16] hover:text-white'
                           }`}
                         >
                           {gr}
@@ -721,8 +713,8 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                       handleAddDraft();
                     }
                   }}
-                  placeholder="Optional notes (e.g. dyno, crimpy, slab volume)..."
-                  className="flex-1 bg-slate-900 border border-slate-700 text-slate-100 text-xs rounded-full px-4 py-2.5 outline-none focus:border-slate-500"
+                  placeholder="Optional beta note..."
+                  className="flex-1 ds-input text-xs rounded-full px-4 py-2.5"
                 />
                 <button
                   type="button"
@@ -731,9 +723,9 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                     backgroundColor: isCompClimbs ? '#F59E0B' : activeColor,
                     color: '#000000'
                   }}
-                  className="px-5 py-2.5 rounded-full font-bold text-xs flex items-center gap-1.5 active-press transition-colors shadow shrink-0"
+                  className="px-5 py-2.5 rounded-full font-bold text-xs flex items-center gap-1.5 active-press transition-colors shadow shrink-0 tabular-nums"
                 >
-                  <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
                   <span>
                     {isCompClimbs ? `Add #${curCompNumber}` : `Add #${draftQueue.length + 1}`}
                   </span>
@@ -746,13 +738,13 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
         {/* TAB 2: Quick Text / Batch Paste Mode */}
         {activeTab === 'paste' && (
           <div className="flex flex-col gap-3">
-            <div className="p-3.5 bg-slate-950/60 rounded-2xl border border-slate-800 text-xs text-slate-300 space-y-1">
-              <p className="font-bold text-white flex items-center gap-1">
+            <div className="p-3.5 bg-surface-elevated rounded-lg border border-white/[0.08] text-xs text-slate-300 space-y-1">
+              <p className="font-bold text-white flex items-center gap-1.5">
                 <FileText className="w-4 h-4" style={{ color: activeColor }} />
-                <span>Paste Route Setter Notes or CSV</span>
+                <span>Paste Setter Notes</span>
               </p>
-              <p className="text-slate-400 text-[11px]">
-                Enter one boulder per line. Specify colour and grade in any order. Any extra words become climb notes.
+              <p className="text-slate-400 text-xs">
+                One boulder per line (e.g. Yellow V2 dyno). Extra words become beta notes.
               </p>
             </div>
 
@@ -761,11 +753,11 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
               value={pasteText}
               onChange={(e) => setPasteText(e.target.value)}
               placeholder={`Yellow V2\nBlue V3 Dyno\nGreen V1 Slab\nRed V4 Pinch problem\nBlack V6\nPurple V3 Heel hook`}
-              className="w-full bg-slate-950 border border-slate-700 text-slate-100 text-xs rounded-2xl p-3.5 font-mono outline-none focus:border-slate-500 placeholder:text-slate-600"
+              className="w-full ds-input text-xs rounded-lg p-3.5 font-mono"
             />
 
             <div className="flex items-center justify-between">
-              <span className="text-[11px] text-slate-400 font-mono">
+              <span className="text-xs text-slate-400 tabular-nums">
                 {pasteText.split('\n').filter((l) => l.trim()).length} lines detected
               </span>
               <button
@@ -776,13 +768,13 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                 className="px-5 py-2.5 rounded-full font-bold text-xs flex items-center gap-1.5 active-press transition-colors disabled:opacity-40"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Parse & Add to Queue</span>
+                <span>Parse &amp; Add to Queue</span>
               </button>
             </div>
 
             {pasteFeedback && (
               <div
-                className={`p-3.5 rounded-2xl border text-xs ${
+                className={`p-3.5 rounded-lg border text-xs ${
                   pasteFeedback.success > 0
                     ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
                     : 'bg-rose-500/10 border-rose-500/20 text-rose-300'
@@ -790,14 +782,14 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
               >
                 {pasteFeedback.success > 0 && (
                   <p className="font-bold flex items-center gap-1.5">
-                    <Check className="w-4 h-4 text-emerald-400 stroke-[3]" />
+                    <Check className="w-4 h-4 text-emerald-400 stroke-[2.5]" />
                     <span>Successfully parsed and added {pasteFeedback.success} climb{pasteFeedback.success === 1 ? '' : 's'} to the queue!</span>
                   </p>
                 )}
                 {pasteFeedback.warnings.length > 0 && (
-                  <div className="mt-1 text-[11px] text-slate-400">
+                  <div className="mt-1 text-[11px] text-slate-300">
                     <span className="font-semibold text-rose-400">Warnings:</span>
-                    <ul className="list-disc list-inside mt-0.5 space-y-0.5 font-mono">
+                    <ul className="list-disc list-inside mt-0.5 space-y-0.5">
                       {pasteFeedback.warnings.slice(0, 3).map((w, idx) => (
                         <li key={idx}>{w}</li>
                       ))}
@@ -813,18 +805,11 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
         )}
 
         {/* Queued Climbs Wall Sequence List */}
-        <div className="flex flex-col gap-2 pt-2 border-t border-slate-800">
+        <div className="flex flex-col gap-2 pt-2 border-t border-white/[0.08]">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-                Wall Sequence ({draftQueue.length} {draftQueue.length === 1 ? 'Climb' : 'Climbs'})
-              </span>
-              {draftQueue.length > 0 && (
-                <span className="text-[10px] font-mono text-slate-400">
-                  Numbered clockwise 1 → {draftQueue.length}
-                </span>
-              )}
-            </div>
+            <span className="text-xs font-bold text-slate-200 uppercase tracking-wider tabular-nums">
+              Wall Sequence ({draftQueue.length} {draftQueue.length === 1 ? 'Climb' : 'Climbs'})
+            </span>
 
             {draftQueue.length > 0 && (
               <button
@@ -834,7 +819,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                     setDraftQueue([]);
                   }
                 }}
-                className="text-[11px] text-slate-400 hover:text-rose-400 flex items-center gap-1 transition-colors"
+                className="text-xs text-slate-400 hover:text-rose-400 flex items-center gap-1 transition-colors"
               >
                 <RotateCcw className="w-3 h-3" />
                 <span>Clear List</span>
@@ -843,27 +828,20 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
           </div>
 
           {/* Grade Distribution or Comp Summary */}
-          {draftQueue.length > 0 && (
+          {draftQueue.length > 0 && !isCompClimbs && (
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
-              {isCompClimbs ? (
-                <span className="shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1.5">
-                  <Trophy className="w-3 h-3 text-amber-400" />
-                  <span>{draftQueue.length} comp problems • 10 / 7 / 4 festival points</span>
-                </span>
-              ) : (
-                GRADES.map((gr) => {
-                  const count = gradeBreakdown[gr];
-                  if (!count) return null;
-                  return (
-                    <span
-                      key={gr}
-                      className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-800 text-slate-200 border border-slate-700"
-                    >
-                      {count}x {gr}
-                    </span>
-                  );
-                })
-              )}
+              {GRADES.map((gr) => {
+                const count = gradeBreakdown[gr];
+                if (!count) return null;
+                return (
+                  <span
+                    key={gr}
+                    className="shrink-0 px-2 py-0.5 rounded-full text-[11px] font-mono tabular-nums font-bold bg-surface-elevated text-slate-200 border border-white/[0.08]"
+                  >
+                    {count}× {gr}
+                  </span>
+                );
+              })}
             </div>
           )}
 
@@ -878,11 +856,11 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                 return (
                   <div
                     key={item.id}
-                    className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-slate-700 flex items-center justify-between gap-2.5 transition-all"
+                    className="p-2.5 rounded-lg bg-carbon border border-white/[0.08] hover:border-white/[0.16] flex items-center justify-between gap-2.5 transition-all"
                   >
                     {/* Position Number & Hold Swatch */}
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="w-6 text-center font-mono text-xs font-bold text-slate-400 shrink-0">
+                      <span className="w-6 text-center font-mono tabular-nums text-xs font-bold text-slate-400 shrink-0">
                         #{idx + 1}
                       </span>
                       <div className="flex items-center gap-2 shrink-0">
@@ -895,7 +873,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                         />
                         <span className="text-xs font-semibold text-slate-200">{item.holdColour}</span>
                         {isCompClimbs || item.isComp || item.compNumber !== undefined ? (
-                          <div className="flex items-center gap-0.5 bg-amber-950/80 text-amber-300 rounded border border-amber-500/50 px-1 py-0.5 shadow-inner">
+                          <div className="flex items-center gap-0.5 bg-amber-950/80 text-amber-300 rounded-md border border-amber-500/50 px-1 py-0.5">
                             <span className="text-[10px] font-mono font-bold text-amber-400">#</span>
                             <input
                               type="number"
@@ -903,12 +881,12 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                               max="200"
                               value={item.compNumber ?? (startNum + idx)}
                               onChange={(e) => handleUpdateCompNumber(item.id, parseInt(e.target.value, 10))}
-                              className="w-8 bg-transparent text-amber-300 font-mono font-bold text-xs text-center outline-none"
+                              className="w-8 bg-transparent text-amber-300 font-mono tabular-nums font-bold text-xs text-center outline-none"
                               title="Edit problem number"
                             />
                           </div>
                         ) : (
-                          <span className="px-1.5 py-0.5 rounded bg-slate-800 text-white font-mono font-bold text-xs border border-slate-700">
+                          <span className="px-1.5 py-0.5 rounded-md bg-surface-elevated text-white font-mono tabular-nums font-bold text-xs border border-white/[0.08]">
                             {item.grade}
                           </span>
                         )}
@@ -920,7 +898,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                         value={item.notes || ''}
                         onChange={(e) => handleUpdateNotes(item.id, e.target.value)}
                         placeholder="Add note..."
-                        className="bg-transparent text-xs text-slate-300 placeholder:text-slate-600 outline-none flex-1 min-w-[90px] border-b border-transparent focus:border-slate-600 px-1"
+                        className="bg-transparent text-xs text-slate-200 placeholder:text-slate-400/75 outline-none flex-1 min-w-[90px] border-b border-transparent focus:border-white/[0.2] px-1"
                       />
                     </div>
 
@@ -932,24 +910,29 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                           <img
                             src={item.imageDataUrl}
                             alt="Preview"
-                            className="w-7 h-7 rounded-lg object-cover border border-slate-700"
+                            className="w-7 h-7 rounded-md object-cover border border-white/[0.12]"
                           />
                           <button
                             type="button"
                             onClick={() => handleRemovePhoto(item.id)}
-                            className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-rose-600 text-white flex items-center justify-center text-[9px] font-bold"
+                            className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-rose-600 text-white flex items-center justify-center"
                             title="Remove photo"
+                            aria-label="Remove photo"
                           >
-                            ×
+                            <X className="w-2.5 h-2.5 stroke-[2.5]" />
                           </button>
                         </div>
                       ) : (
                         <label
                           htmlFor={fileInputId}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-slate-800 cursor-pointer transition-colors"
+                          className="p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-surface-high cursor-pointer transition-colors"
                           title="Attach photo"
                         >
-                          <Camera className="w-3.5 h-3.5" />
+                          {compressingDraftId === item.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                          ) : (
+                            <Camera className="w-3.5 h-3.5" />
+                          )}
                           <input
                             id={fileInputId}
                             type="file"
@@ -966,7 +949,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                         type="button"
                         onClick={() => handleMove(idx, 'up')}
                         disabled={idx === 0}
-                        className="p-1 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-slate-800 disabled:opacity-20 transition-colors"
+                        className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-surface-high disabled:opacity-25 transition-colors"
                         title="Move clockwise earlier"
                       >
                         <ArrowUp className="w-3.5 h-3.5" />
@@ -977,7 +960,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                         type="button"
                         onClick={() => handleMove(idx, 'down')}
                         disabled={idx === draftQueue.length - 1}
-                        className="p-1 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-slate-800 disabled:opacity-20 transition-colors"
+                        className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-surface-high disabled:opacity-25 transition-colors"
                         title="Move clockwise later"
                       >
                         <ArrowDown className="w-3.5 h-3.5" />
@@ -987,7 +970,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                       <button
                         type="button"
                         onClick={() => handleDuplicate(item, idx)}
-                        className="p-1 rounded-lg text-slate-500 hover:text-amber-300 hover:bg-slate-800 transition-colors"
+                        className="p-1 rounded-md text-slate-400 hover:text-amber-300 hover:bg-surface-high transition-colors"
                         title="Duplicate climb"
                       >
                         <Copy className="w-3.5 h-3.5" />
@@ -997,7 +980,7 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
                       <button
                         type="button"
                         onClick={() => handleRemove(item.id)}
-                        className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors"
+                        className="p-1 rounded-md text-slate-400 hover:text-rose-400 hover:bg-surface-high transition-colors"
                         title="Remove climb"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -1008,25 +991,25 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
               })}
             </div>
           ) : (
-            <div className="p-6 rounded-2xl bg-slate-950/40 border border-dashed border-slate-800 flex flex-col items-center justify-center text-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center">
+            <div className="p-6 rounded-lg bg-carbon border border-dashed border-white/[0.12] flex flex-col items-center justify-center text-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-surface-elevated text-slate-300 flex items-center justify-center">
                 <Layers className="w-4 h-4" />
               </div>
-              <p className="text-xs font-semibold text-slate-300">Wall sequence is empty</p>
-              <p className="text-[11px] text-slate-500 max-w-xs">
-                Pick hold colours and grades above, or paste your setter notes to rapidly build the clockwise sequence.
+              <p className="text-xs font-semibold text-slate-200">Queue is empty</p>
+              <p className="text-xs text-slate-400 max-w-xs">
+                Pick hold colours and grades above, or paste setter notes.
               </p>
             </div>
           )}
         </div>
 
         {/* Modal Footer / Save Action: Larger & More Prominent */}
-        <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-800">
+        <div className="flex items-center justify-between gap-3 pt-3 border-t border-white/[0.08]">
           <button
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="min-h-[48px] py-3 px-6 rounded-full text-xs sm:text-sm font-semibold bg-slate-800 hover:bg-slate-750 text-slate-200 active-press transition-colors"
+            className="min-h-[48px] py-3 px-6 rounded-full text-xs sm:text-sm font-semibold bg-surface-elevated hover:bg-surface-high text-slate-200 border border-white/[0.08] active-press transition-colors"
           >
             Cancel
           </button>
@@ -1036,9 +1019,9 @@ export const BulkAddBouldersModal: React.FC<BulkAddBouldersModalProps> = ({
             onClick={handleSaveAll}
             disabled={isSubmitting || draftQueue.length === 0}
             style={{ backgroundColor: activeColor, color: '#000000' }}
-            className="min-h-[50px] py-3.5 px-7 rounded-full text-xs sm:text-sm font-heading font-black flex items-center justify-center gap-2 active-press transition-all shadow-xl disabled:opacity-40"
+            className="min-h-[50px] py-3.5 px-7 rounded-full text-xs sm:text-sm font-black flex items-center justify-center gap-2 active-press transition-all shadow-xl disabled:opacity-40 tabular-nums"
           >
-            <Check className="w-4 h-4 stroke-[3]" />
+            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4 stroke-[2.5]" />}
             <span>
               {isSubmitting
                 ? 'Saving Wall Set...'
