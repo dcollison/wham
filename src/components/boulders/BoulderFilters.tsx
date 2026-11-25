@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Grade, GRADES, Profile, getHoldSwatchStyle } from '../../types';
 import {
   Filter,
@@ -57,6 +58,17 @@ const BoulderFiltersComponent: React.FC<BoulderFiltersProps> = ({
   filteredBouldersCount
 }) => {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!isModalOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModalOpen]);
 
   const activeClimber = climbers.find((c) => c.id === currentUserId);
   const activeColor = activeClimber?.accent_color || '#F59E0B';
@@ -345,10 +357,16 @@ const BoulderFiltersComponent: React.FC<BoulderFiltersProps> = ({
       )}
 
       {/* DEDICATED FILTER MODAL / SHEET */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+      {isModalOpen && typeof document !== 'undefined' && createPortal(
+        <div
+          onClick={() => setIsModalOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Filter and Sort"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+        >
           <div
-            className="w-full max-w-lg ds-sheet p-5 sm:p-6 flex flex-col gap-5 max-h-[88vh] overflow-y-auto"
+            className="w-full max-w-lg ds-sheet p-5 sm:p-6 flex flex-col gap-5 max-h-[88vh] overflow-y-auto animate-in slide-in-from-bottom-6"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Tactile drag handle for mobile */}
@@ -645,7 +663,8 @@ const BoulderFiltersComponent: React.FC<BoulderFiltersProps> = ({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

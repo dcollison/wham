@@ -111,7 +111,12 @@
   to { opacity: 1; transform: translateY(0); }
 }
 .animate-fadeIn {
-  animation: fadeIn 0.18s cubic-bezier(0.2, 0, 0, 1) forwards;
+  animation: fadeIn 0.18s cubic-bezier(0.2, 0, 0, 1) backwards;
+}
+
+@keyframes opacityFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes sheetSlideUp {
@@ -134,13 +139,13 @@
   to { opacity: 1; transform: scale(1); }
 }
 .animate-in.fade-in {
-  animation: fadeIn 0.18s cubic-bezier(0.2, 0, 0, 1) both;
+  animation: opacityFadeIn 0.18s cubic-bezier(0.2, 0, 0, 1) backwards;
 }
 .animate-in.slide-in-from-bottom-6 {
-  animation: sheetSlideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: sheetSlideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 .animate-in.zoom-in-95 {
-  animation: zoomIn95 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: zoomIn95 0.18s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
