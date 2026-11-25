@@ -138,7 +138,7 @@ assert(at2850.levelProgress === 100, `Apex should have 100% levelProgress`);
 console.log('✓ Edge cases (0, -50, NaN, 1000, 2160 V10+, 2200, 2850) verified');
 
 console.log('--- 4. Testing Real Seed Data & Crew Ladder Distribution ---');
-const crewRatings = computeCrewRatings(INITIAL_PROFILES, INITIAL_ATTEMPTS, INITIAL_BOULDERS);
+const crewRatings = computeCrewRatings(INITIAL_PROFILES, INITIAL_ATTEMPTS, INITIAL_BOULDERS, new Date('2026-10-22T12:00:00Z'));
 assert(crewRatings.length === INITIAL_PROFILES.length, `Expected ${INITIAL_PROFILES.length} ratings`);
 
 for (const r of crewRatings) {
@@ -342,7 +342,7 @@ const provAttempts = [
   makeTestAttempt('p-att-v6', 'prov-user', 'p-v6', 'flashed', 1),
   makeTestAttempt('p-att-v5', 'prov-user', 'p-v5', 'flashed', 1)
 ];
-const provRating = computeClimberRating('prov-user', provAttempts, provBoulders);
+const provRating = computeClimberRating('prov-user', provAttempts, provBoulders, undefined, new Date('2026-10-22T12:00:00Z'));
 
 assert(provRating.isProvisional === true, 'Climber with 2 sends must be provisional');
 assert(provRating.currentLevel.id !== 'v7', 'Must not be V7');
@@ -414,7 +414,7 @@ const prov3Attempts = [
   makeTestAttempt('p3-att-v5', 'prov3-user', 'p3-v5', 'flashed', 1),
   makeTestAttempt('p3-att-v4', 'prov3-user', 'p3-v4', 'flashed', 1)
 ];
-const prov3Rating = computeClimberRating('prov3-user', prov3Attempts, prov3Boulders);
+const prov3Rating = computeClimberRating('prov3-user', prov3Attempts, prov3Boulders, undefined, new Date('2026-10-22T12:00:00Z'));
 
 assert(prov3Rating.isProvisional === true, 'Climber with 3 sends must be provisional');
 assert(prov3Rating.currentLevel.id === 'v4', `Expected V4 tier for 3 sends at V4+, got ${prov3Rating.currentLevel.id}`);
@@ -424,5 +424,201 @@ assert(prov3Rating.depthNeededForNextLevel === 1, `Expected 1 send needed at V5+
 assert(prov3Rating.rawElo !== undefined && prov3Rating.rawElo > 1650, `Expected rawElo > 1650, got ${prov3Rating.rawElo}`);
 assert(prov3Rating.elo <= 1549, `Elo must be capped at 1549, got ${prov3Rating.elo}`);
 console.log(`✓ 5H Verified: Provisional climber with 3 sends (1x V6, 1x V5, 1x V4) achieves Solid V4 Climber at 1549 pts (raw: ${prov3Rating.rawElo}, 1 send needed to unlock V5)`);
+
+console.log('--- 6. Testing Peak Elo Tracking & Edge Cases ---');
+
+// 6A: Zero sends ever -> null peak fields
+assert(zeroSendRating.peakElo === null, `0-send peakElo must be null, got ${zeroSendRating.peakElo}`);
+assert(zeroSendRating.peakRawElo === undefined, '0-send peakRawElo must be undefined');
+assert(zeroSendRating.peakDate === null, `0-send peakDate must be null, got ${zeroSendRating.peakDate}`);
+assert(zeroSendRating.peakLevel === null, '0-send peakLevel must be null');
+assert(zeroSendRating.peakTitle === null, '0-send peakTitle must be null');
+assert(zeroSendRating.peakGradeEquivalent === null, '0-send peakGradeEquivalent must be null');
+assert(zeroSendRating.peakIsProvisional === false, '0-send peakIsProvisional must be false');
+assert(zeroSendRating.peakSendsCount === 0, '0-send peakSendsCount must be 0');
+assert(zeroSendRating.isAtPeak === false, '0-send isAtPeak must be false');
+assert(zeroSendRating.eloDropFromPeak === 0, '0-send eloDropFromPeak must be 0');
+console.log('✓ 6A Verified: 0-send climber has null peak fields and isAtPeak === false');
+
+// 6B: Provisional climber (< 6 sends) currently at peak
+assert(prov3Rating.isProvisional === true, 'prov3Rating must be provisional');
+assert(prov3Rating.peakElo === prov3Rating.elo, `Provisional peakElo (${prov3Rating.peakElo}) must equal current elo (${prov3Rating.elo})`);
+assert(prov3Rating.peakRawElo === prov3Rating.rawElo, 'Provisional peakRawElo must match rawElo');
+assert(prov3Rating.peakLevel?.id === 'v4', `Provisional peakLevel must be v4, got ${prov3Rating.peakLevel?.id}`);
+assert(prov3Rating.peakTitle === 'Solid V4 Climber', `Provisional peakTitle mismatch: ${prov3Rating.peakTitle}`);
+assert(prov3Rating.peakGradeEquivalent === 'V4+', `Provisional peakGradeEquivalent mismatch: ${prov3Rating.peakGradeEquivalent}`);
+assert(prov3Rating.peakIsProvisional === true, 'Provisional peakIsProvisional must be true');
+assert(prov3Rating.peakSendsCount === 3, `Provisional peakSendsCount must be 3, got ${prov3Rating.peakSendsCount}`);
+assert(prov3Rating.isAtPeak === true, 'Provisional active climber must be at peak');
+assert(prov3Rating.eloDropFromPeak === 0, 'Provisional climber at peak must have 0 drop');
+assert(prov3Rating.peakDate === '2026-10-10T19:00:00.000Z', `Expected peakDate 2026-10-10T19:00:00.000Z, got ${prov3Rating.peakDate}`);
+console.log('✓ 6B Verified: Provisional climber (< 6 sends) tracks peakElo and peakIsProvisional accurately');
+
+// 6C: Climber currently at all-time peak (Alex on 2026-10-22)
+const alexOct22 = crewRatings.find((r) => r.profile?.display_name === 'Alex')!;
+assert(alexOct22.elo === 1525, `Expected Alex Oct 22 elo 1525, got ${alexOct22.elo}`);
+assert(alexOct22.peakElo === 1525, `Expected Alex Oct 22 peakElo 1525, got ${alexOct22.peakElo}`);
+assert(alexOct22.isAtPeak === true, 'Alex on Oct 22 must be at all-time peak');
+assert(alexOct22.eloDropFromPeak === 0, 'Alex on Oct 22 must have 0 eloDropFromPeak');
+assert(alexOct22.peakLevel?.id === 'v4', 'Alex peakLevel must be v4');
+assert(alexOct22.peakTitle === 'Solid V4 Climber', 'Alex peakTitle must be Solid V4 Climber');
+assert(alexOct22.peakGradeEquivalent === 'V4+', 'Alex peakGradeEquivalent must be V4+');
+assert(alexOct22.peakIsProvisional === false, 'Alex peakIsProvisional must be false');
+assert(alexOct22.peakSendsCount === 15, `Alex peakSendsCount must be 15, got ${alexOct22.peakSendsCount}`);
+assert(alexOct22.peakDate === '2026-09-15T19:00:00.000Z', `Expected Alex earliest peakDate 2026-09-15T19:00:00.000Z, got ${alexOct22.peakDate}`);
+console.log('✓ 6C Verified: Climber at peak retains earliest peak achievement date across plateau');
+
+// 6D: Seed data evaluated after 60-day expiration (2026-11-25) -> dormant current Elo, preserved Peak Elo
+// Note: As Alex's older sends expired on 2026-11-01 (14 sends -> 1531) and 2026-11-07 (3 hardest sends -> 1549 provisional),
+// the true historical maximum across rolling 60-day windows is 1549.
+const alexNov05 = computeClimberRating(
+  alexOct22.userId,
+  INITIAL_ATTEMPTS,
+  INITIAL_BOULDERS,
+  alexOct22.profile,
+  new Date('2026-11-05T12:00:00Z')
+);
+assert(alexNov05.elo === 1531 && alexNov05.peakElo === 1531, `Alex on Nov 05 should be 1531/1531, got ${alexNov05.elo}/${alexNov05.peakElo}`);
+assert(alexNov05.peakIsProvisional === false, 'Alex on Nov 05 peakIsProvisional must be false');
+assert(alexNov05.isAtPeak === true, 'Alex on Nov 05 must be at peak');
+
+const alexNov25 = computeClimberRating(
+  alexOct22.userId,
+  INITIAL_ATTEMPTS,
+  INITIAL_BOULDERS,
+  alexOct22.profile,
+  new Date('2026-11-25T12:00:00Z')
+);
+assert(alexNov25.sendsCount === 0, 'Alex on Nov 25 should have 0 active sends');
+assert(alexNov25.elo === 999, `Alex on Nov 25 should have dormant floor 999, got ${alexNov25.elo}`);
+assert(alexNov25.currentLevel.id === 'vb', 'Alex on Nov 25 should be Base Builder');
+assert(alexNov25.peakElo === 1549, `Alex on Nov 25 must retain peakElo 1549, got ${alexNov25.peakElo}`);
+assert(alexNov25.peakTitle === 'Solid V4 Climber', 'Alex on Nov 25 must retain peakTitle Solid V4 Climber');
+assert(alexNov25.peakGradeEquivalent === 'V4+', 'Alex on Nov 25 must retain peakGradeEquivalent V4+');
+assert(alexNov25.peakIsProvisional === true, 'Alex Nov 25 peak of 1549 occurred on 3-send provisional window');
+assert(alexNov25.peakSendsCount === 3, `Expected peakSendsCount 3, got ${alexNov25.peakSendsCount}`);
+assert(alexNov25.peakDate === '2026-11-07T19:00:00.001Z', `Unexpected peakDate: ${alexNov25.peakDate}`);
+assert(alexNov25.isAtPeak === false, 'Dormant Alex must have isAtPeak === false');
+assert(alexNov25.eloDropFromPeak === 550, `Expected eloDropFromPeak 550, got ${alexNov25.eloDropFromPeak}`);
+console.log('✓ 6D Verified: Dormant climber retains full historical Peak Elo after 60-day expiration');
+
+// 6E: Climber whose peak happened on archived boulders in an earlier 60-day window, now climbing easier grades
+const archivedPeakBoulders: Boulder[] = [
+  { ...makeTestBoulder('hist-v5-1', 'V5', 'Red'), is_archived: true, date_added: '2026-07-20' },
+  { ...makeTestBoulder('hist-v5-2', 'V5', 'Red'), is_archived: true, date_added: '2026-07-20' },
+  { ...makeTestBoulder('hist-v5-3', 'V5', 'Red'), is_archived: true, date_added: '2026-07-20' },
+  { ...makeTestBoulder('hist-v5-4', 'V5', 'Red'), is_archived: true, date_added: '2026-07-20' },
+  { ...makeTestBoulder('hist-v5-5', 'V5', 'Red'), is_archived: true, date_added: '2026-07-20' },
+  { ...makeTestBoulder('hist-v5-6', 'V5', 'Red'), is_archived: true, date_added: '2026-07-20' },
+  { ...makeTestBoulder('curr-v3-1', 'V3', 'Green'), is_archived: false, date_added: '2026-11-01' },
+  { ...makeTestBoulder('curr-v3-2', 'V3', 'Green'), is_archived: false, date_added: '2026-11-01' },
+  { ...makeTestBoulder('curr-v3-3', 'V3', 'Green'), is_archived: false, date_added: '2026-11-01' },
+  { ...makeTestBoulder('curr-v3-4', 'V3', 'Green'), is_archived: false, date_added: '2026-11-01' },
+  { ...makeTestBoulder('curr-v3-5', 'V3', 'Green'), is_archived: false, date_added: '2026-11-01' },
+  { ...makeTestBoulder('curr-v3-6', 'V3', 'Green'), is_archived: false, date_added: '2026-11-01' }
+];
+const archivedPeakAttempts: Attempt[] = [
+  ...['hist-v5-1', 'hist-v5-2', 'hist-v5-3', 'hist-v5-4', 'hist-v5-5', 'hist-v5-6'].map((bId, i) => ({
+    id: `att-hist-${i}`,
+    user_id: 'comeback-user',
+    boulder_id: bId,
+    status: 'sent' as const,
+    attempt_count: 4,
+    logged_at: '2026-08-01T19:00:00Z'
+  })),
+  ...['curr-v3-1', 'curr-v3-2', 'curr-v3-3', 'curr-v3-4', 'curr-v3-5', 'curr-v3-6'].map((bId, i) => ({
+    id: `att-curr-${i}`,
+    user_id: 'comeback-user',
+    boulder_id: bId,
+    status: 'sent' as const,
+    attempt_count: 4,
+    logged_at: '2026-11-15T19:00:00Z'
+  }))
+];
+const comebackRating = computeClimberRating(
+  'comeback-user',
+  archivedPeakAttempts,
+  archivedPeakBoulders,
+  undefined,
+  new Date('2026-11-25T12:00:00Z')
+);
+assert(comebackRating.elo === 1350, `Expected current elo 1350 (V3), got ${comebackRating.elo}`);
+assert(comebackRating.currentLevel.id === 'v3', `Expected currentLevel v3, got ${comebackRating.currentLevel.id}`);
+assert(comebackRating.peakElo === 1649, `Expected peakElo 1649 (V5 capped without V6 depth) from archived boulders, got ${comebackRating.peakElo}`);
+assert(comebackRating.peakRawElo === 1650, `Expected peakRawElo 1650, got ${comebackRating.peakRawElo}`);
+assert(comebackRating.peakLevel?.id === 'v5', `Expected peakLevel v5, got ${comebackRating.peakLevel?.id}`);
+assert(comebackRating.peakTitle === 'Solid V5 Climber', `Expected peakTitle Solid V5 Climber, got ${comebackRating.peakTitle}`);
+assert(comebackRating.peakGradeEquivalent === 'V5+', `Expected peakGradeEquivalent V5+, got ${comebackRating.peakGradeEquivalent}`);
+assert(comebackRating.peakDate === '2026-08-01T19:00:00.000Z', `Expected peakDate 2026-08-01T19:00:00.000Z, got ${comebackRating.peakDate}`);
+assert(comebackRating.peakIsProvisional === false, 'Expected peakIsProvisional false');
+assert(comebackRating.isAtPeak === false, 'Expected isAtPeak false');
+assert(comebackRating.eloDropFromPeak === 299, `Expected eloDropFromPeak 299, got ${comebackRating.eloDropFromPeak}`);
+console.log('✓ 6E Verified: Earlier 60-day peak on archived boulders preserved when current window drops');
+
+// 6F: Monotonicity over expiration boundaries & VB dormant floor check
+const euanProfile = INITIAL_PROFILES.find((p) => p.display_name === 'Euan')!;
+const euanCheckDates = [
+  '2026-08-18T20:00:00Z',
+  '2026-09-08T20:00:00Z',
+  '2026-10-22T12:00:00Z',
+  '2026-10-26T12:00:00Z',
+  '2026-11-25T12:00:00Z'
+];
+let prevPeak = 0;
+for (const d of euanCheckDates) {
+  const r = computeClimberRating(euanProfile.id, INITIAL_ATTEMPTS, INITIAL_BOULDERS, euanProfile, new Date(d));
+  assert(r.peakElo !== null, `Euan peakElo must not be null at ${d}`);
+  assert(r.peakElo! >= prevPeak, `peakElo must be monotonically non-decreasing (${prevPeak} -> ${r.peakElo} at ${d})`);
+  if (r.sendsCount > 0) {
+    assert(r.peakElo! >= r.elo, `peakElo (${r.peakElo}) must always be >= current elo (${r.elo}) at ${d}`);
+  }
+  prevPeak = r.peakElo!;
+}
+
+// Single VB send (750 Elo) expiring to dormant (999 floor) must NOT inflate peakElo to 999
+const vbOnlyBoulders = [makeTestBoulder('vb-only', 'VB', 'Yellow')];
+const vbOnlyAttempts: Attempt[] = [
+  { id: 'att-vb-only', user_id: 'vb-user', boulder_id: 'vb-only', status: 'sent', attempt_count: 4, logged_at: '2026-08-01T12:00:00Z' }
+];
+const vbActive = computeClimberRating('vb-user', vbOnlyAttempts, vbOnlyBoulders, undefined, new Date('2026-08-10T12:00:00Z'));
+assert(vbActive.elo === 750 && vbActive.peakElo === 750 && vbActive.isAtPeak === true, 'Active VB climber should have elo=750, peakElo=750, isAtPeak=true');
+const vbDormant = computeClimberRating('vb-user', vbOnlyAttempts, vbOnlyBoulders, undefined, new Date('2026-11-01T12:00:00Z'));
+assert(vbDormant.sendsCount === 0 && vbDormant.elo === 999, 'Dormant VB climber should have 0 sends and floor 999');
+assert(vbDormant.peakElo === 750, `Dormant VB peakElo must remain 750 (not 999 floor), got ${vbDormant.peakElo}`);
+assert(vbDormant.isAtPeak === false && vbDormant.eloDropFromPeak === 0, 'Dormant VB climber must have isAtPeak=false, eloDropFromPeak=0');
+console.log('✓ 6F Verified: Monotonicity across expiration boundaries & empty-window floor exclusion');
+
+// 6G: Comp boulders (is_comp: true) excluded from peak Elo
+const compOnlyBoulders: Boulder[] = [{ ...makeTestBoulder('comp-1', 'V8', 'Black'), is_comp: true, comp_number: 1 }];
+const compOnlyAttempts: Attempt[] = [
+  { id: 'att-comp-1', user_id: 'comp-user', boulder_id: 'comp-1', status: 'flashed', attempt_count: 1, logged_at: '2026-10-10T12:00:00Z' }
+];
+const compRating = computeClimberRating('comp-user', compOnlyAttempts, compOnlyBoulders, undefined, new Date('2026-10-22T12:00:00Z'));
+assert(compRating.peakElo === null && compRating.sendsCount === 0, 'Comp boulders must be excluded from Elo and Peak Elo');
+console.log('✓ 6G Verified: Comp boulders excluded from Peak Elo');
+
+// 6H: Performance check (500 sends over ~2 years)
+const perfBoulders: Boulder[] = [];
+const perfAttempts: Attempt[] = [];
+const baseMs = new Date('2025-01-01T12:00:00Z').getTime();
+for (let i = 0; i < 500; i++) {
+  const bId = `perf-b-${i}`;
+  const grade = i < 200 ? 'V3' : i < 350 ? 'V5' : 'V4';
+  perfBoulders.push(makeTestBoulder(bId, grade, 'Blue'));
+  perfAttempts.push({
+    id: `perf-a-${i}`,
+    user_id: 'perf-user',
+    boulder_id: bId,
+    status: i % 3 === 0 ? 'flashed' : 'sent',
+    attempt_count: i % 3 === 0 ? 1 : 2,
+    logged_at: new Date(baseMs + i * 24 * 60 * 60 * 1000).toISOString()
+  });
+}
+const perfStart = performance.now();
+const perfRating = computeClimberRating('perf-user', perfAttempts, perfBoulders, undefined, new Date(baseMs + 520 * 24 * 60 * 60 * 1000));
+const perfElapsedMs = performance.now() - perfStart;
+assert(perfRating.peakElo !== null && perfRating.peakElo > perfRating.elo, 'Perf user should have higher V5 peak than later V4 current');
+assert(perfElapsedMs < 150, `Expected 500-send peak computation < 150ms, took ${perfElapsedMs.toFixed(1)}ms`);
+console.log(`✓ 6H Verified: 500-send historical Peak Elo computed in ${perfElapsedMs.toFixed(2)}ms (peak ${perfRating.peakElo}, current ${perfRating.elo})`);
 
 console.log('✓ All verification tests PASSED cleanly!');

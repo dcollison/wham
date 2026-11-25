@@ -226,8 +226,8 @@ export interface ClimberRating {
   subGradeDescription: string;
   percentile: number; // Estimated % of regular boulderers they climb better than
   topPercentile: number; // Estimated top % of regular boulderers (e.g. 26.6% -> Top 26.6%)
-  isProvisional: boolean; // True if fewer than 5 sends in last 60 days
-  sendsCount: number; // Number of sends in last 60 days (up to 10 used)
+  isProvisional: boolean; // True if fewer than 6 sends in last 60 days
+  sendsCount: number; // Number of sends in last 60 days (up to 15 used)
   totalSendsInWindow: number;
   topSends: ScorecardSendItem[];
   hardestSendGrade: Grade | null;
@@ -238,6 +238,17 @@ export interface ClimberRating {
   pointsToNextLevel: number;
   levelProgress: number; // 0 to 100 percentage
   depthNeededForNextLevel?: number; // Sends needed at nextLevel grade to prove pyramid depth
+  // All-Time Peak Elo (highest rolling 60-day window rating across full send history)
+  peakElo: number | null; // Highest rolling 60-day Elo ever achieved (null if 0 valid non-comp sends ever)
+  peakRawElo?: number; // Uncapped tournament score at peak if peak was capped by pyramid depth
+  peakDate: string | null; // ISO timestamp when peakElo was first achieved (null if peakElo is null)
+  peakLevel: EloDemarcation | null; // Qualified demarcation tier at peak (null if peakElo is null)
+  peakTitle: string | null; // Level title at peak (null if peakElo is null)
+  peakGradeEquivalent: string | null; // Grade equivalent at peak, e.g. 'V4' or 'V4+' (null if peakElo is null)
+  peakIsProvisional: boolean; // True if the peak 60-day window had fewer than 6 sends
+  peakSendsCount: number; // Number of top sends (up to 15) in the peak 60-day window (0 if no sends ever)
+  isAtPeak: boolean; // True if climber has active sends and current elo >= peakElo
+  eloDropFromPeak: number; // Points below peakElo (0 when at peak, dormant above peak, or no sends ever)
 }
 
 /**
@@ -267,7 +278,7 @@ export function getRequiredPyramidDepth(demarcationId: string): number {
  */
 export function hasPyramidDepthForDemarcation(
   demarcation: EloDemarcation,
-  topSends?: ScorecardSendItem[]
+  topSends?: Pick<ScorecardSendItem, 'grade'>[]
 ): boolean {
   if (topSends === undefined) return true;
   const requiredCount = getRequiredPyramidDepth(demarcation.id);
@@ -288,7 +299,10 @@ export function hasPyramidDepthForDemarcation(
  * Finds the level demarcation corresponding to a given Elo rating,
  * gated by consistent pyramid volume and depth when top sends are provided.
  */
-export function getLevelDemarcation(elo: number, topSends?: ScorecardSendItem[]): EloDemarcation {
+export function getLevelDemarcation(
+  elo: number,
+  topSends?: Pick<ScorecardSendItem, 'grade'>[]
+): EloDemarcation {
   const safeElo = Number.isFinite(elo) ? Math.max(0, elo) : 1000;
   const nominal = ELO_DEMARCATIONS.find((d) => {
     if (d.maxElo === Infinity) {
@@ -322,7 +336,10 @@ export function getLevelDemarcation(elo: number, topSends?: ScorecardSendItem[])
  * Gets the next level demarcation above the current rating (or null if max tier),
  * taking into account pyramid depth.
  */
-export function getNextLevelDemarcation(elo: number, topSends?: ScorecardSendItem[]): EloDemarcation | null {
+export function getNextLevelDemarcation(
+  elo: number,
+  topSends?: Pick<ScorecardSendItem, 'grade'>[]
+): EloDemarcation | null {
   const current = getLevelDemarcation(elo, topSends);
   const currentIndex = ELO_DEMARCATIONS.findIndex((d) => d.id === current.id);
   if (currentIndex >= 0 && currentIndex < ELO_DEMARCATIONS.length - 1) {
@@ -336,7 +353,7 @@ export function getNextLevelDemarcation(elo: number, topSends?: ScorecardSendIte
  */
 export function getDemarcationProgress(
   elo: number,
-  topSends?: ScorecardSendItem[]
+  topSends?: Pick<ScorecardSendItem, 'grade'>[]
 ): {
   currentLevel: EloDemarcation;
   nextLevel: EloDemarcation | null;
@@ -386,7 +403,7 @@ export function getDemarcationProgress(
  */
 export function getClimberTitleFromElo(
   elo: number,
-  topSends?: ScorecardSendItem[],
+  topSends?: Pick<ScorecardSendItem, 'grade'>[],
   rawElo?: number
 ): {
   title: string;
@@ -464,8 +481,196 @@ export function calculateClimberPercentile(elo: number): number {
   return Math.min(99.9, Math.max(1.0, Math.round(percentile * 10) / 10));
 }
 
+const WINDOW_DAYS = 60;
+const WINDOW_MS = WINDOW_DAYS * 24 * 60 * 60 * 1000;
+
+interface CompactSend {
+  boulder: Boulder;
+  attempt: Attempt;
+  grade: Grade;
+  sendElo: number;
+  sendTime: number;
+  loggedAt: string;
+}
+
+interface WindowScoreResult {
+  elo: number;
+  rawElo: number | undefined;
+  top15: CompactSend[];
+  isProvisional: boolean;
+}
+
 /**
- * Computes a climber's tournament-style Elo rating over a rolling 60-day window.
+ * Scores a set of sends inside a 60-day rolling window using Top-15 weighted
+ * averaging and consistent pyramid depth gating.
+ */
+function scoreWindowSends(windowSends: CompactSend[]): WindowScoreResult {
+  if (windowSends.length === 0) {
+    const qualifiedDemarcation = getLevelDemarcation(1000, []);
+    const cappedElo =
+      qualifiedDemarcation.maxElo !== Infinity && 1000 >= qualifiedDemarcation.maxElo
+        ? qualifiedDemarcation.maxElo - 1
+        : 1000;
+    return {
+      elo: cappedElo,
+      rawElo: 1000 > cappedElo ? 1000 : undefined,
+      top15: [],
+      isProvisional: true
+    };
+  }
+
+  const sorted = [...windowSends].sort((a, b) => b.sendElo - a.sendElo);
+  const top15 = sorted.slice(0, 15);
+  const isProvisional = top15.length < 6;
+
+  // Normalize weights for the actual number of sends available
+  const weightsSlice = TOP_15_WEIGHTS.slice(0, top15.length);
+  const weightSum = weightsSlice.reduce((sum, w) => sum + w, 0);
+
+  const weightedScore = top15.reduce((acc, item, idx) => {
+    const normalizedWeight = weightsSlice[idx] / weightSum;
+    return acc + item.sendElo * normalizedWeight;
+  }, 0);
+
+  let calculatedElo = Math.round(weightedScore);
+
+  // Consistent Pyramid Volume & Depth Requirement:
+  // A climber cannot be crowned a solid/strong climber of a grade without demonstrating
+  // consistent pyramid volume and depth at that level (at least 3 sends at or above grade).
+  // If their raw Elo score would nominally place them in a higher tier than their proven
+  // pyramid depth qualifies for, cap their Elo at the upper boundary of their qualified tier
+  // (e.g. 1549 for V4) until consistent volume is proven.
+  const uncappedElo = calculatedElo;
+  const qualifiedDemarcation = getLevelDemarcation(calculatedElo, top15);
+  if (qualifiedDemarcation.maxElo !== Infinity && calculatedElo >= qualifiedDemarcation.maxElo) {
+    calculatedElo = qualifiedDemarcation.maxElo - 1;
+  }
+
+  return {
+    elo: calculatedElo,
+    rawElo: uncappedElo > calculatedElo ? uncappedElo : undefined,
+    top15,
+    isProvisional
+  };
+}
+
+interface PeakSummary {
+  peakElo: number | null;
+  peakRawElo?: number;
+  peakDate: string | null;
+  peakLevel: EloDemarcation | null;
+  peakTitle: string | null;
+  peakGradeEquivalent: string | null;
+  peakIsProvisional: boolean;
+  peakSendsCount: number;
+}
+
+/**
+ * Evaluates all rolling 60-day windows across the climber's chronological send history
+ * (at every send timestamp, every 60-day expiration boundary <= referenceTime, and referenceTime)
+ * to determine their all-time peak Elo without schema changes.
+ *
+ * Empty windows (0 sends) are excluded so dormant floors never create artificial peaks.
+ */
+function computeHistoricalPeakElo(
+  sortedSendsAsc: CompactSend[],
+  referenceTime: number
+): PeakSummary {
+  if (sortedSendsAsc.length === 0) {
+    return {
+      peakElo: null,
+      peakRawElo: undefined,
+      peakDate: null,
+      peakLevel: null,
+      peakTitle: null,
+      peakGradeEquivalent: null,
+      peakIsProvisional: false,
+      peakSendsCount: 0
+    };
+  }
+
+  // Collect all distinct event boundaries <= referenceTime where the active window set can change
+  const eventTimes: number[] = [referenceTime];
+  for (let i = 0; i < sortedSendsAsc.length; i++) {
+    const sendTime = sortedSendsAsc[i].sendTime;
+    eventTimes.push(sendTime);
+    const expiryTime = sendTime + WINDOW_MS + 1;
+    if (expiryTime <= referenceTime) {
+      eventTimes.push(expiryTime);
+    }
+  }
+  eventTimes.sort((a, b) => a - b);
+
+  let left = 0;
+  let right = 0;
+  let prevLeft = -1;
+  let prevRight = -1;
+  let prevTime = NaN;
+
+  let best: { time: number; score: WindowScoreResult } | null = null;
+
+  for (let i = 0; i < eventTimes.length; i++) {
+    const t = eventTimes[i];
+    if (t === prevTime) continue;
+    prevTime = t;
+
+    while (right < sortedSendsAsc.length && sortedSendsAsc[right].sendTime <= t) {
+      right++;
+    }
+    const windowCutoff = t - WINDOW_MS;
+    while (left < right && sortedSendsAsc[left].sendTime < windowCutoff) {
+      left++;
+    }
+
+    // Only re-score when the active window slice actually changed and has at least 1 send
+    if (left === prevLeft && right === prevRight) continue;
+    prevLeft = left;
+    prevRight = right;
+    if (right <= left) continue;
+
+    const score = scoreWindowSends(sortedSendsAsc.slice(left, right));
+
+    // Strict '>' preserves the earliest date the peak Elo was first reached,
+    // except when solidifying an identical provisional peak into an established (6+ send) one.
+    if (
+      best === null ||
+      score.elo > best.score.elo ||
+      (score.elo === best.score.elo && best.score.isProvisional && !score.isProvisional)
+    ) {
+      best = { time: t, score };
+    }
+  }
+
+  if (!best) {
+    return {
+      peakElo: null,
+      peakRawElo: undefined,
+      peakDate: null,
+      peakLevel: null,
+      peakTitle: null,
+      peakGradeEquivalent: null,
+      peakIsProvisional: false,
+      peakSendsCount: 0
+    };
+  }
+
+  const peakMeta = getClimberTitleFromElo(best.score.elo, best.score.top15, best.score.rawElo);
+
+  return {
+    peakElo: best.score.elo,
+    peakRawElo: best.score.rawElo,
+    peakDate: new Date(best.time).toISOString(),
+    peakLevel: peakMeta.levelDemarcation,
+    peakTitle: peakMeta.title,
+    peakGradeEquivalent: peakMeta.gradeEquivalent,
+    peakIsProvisional: best.score.isProvisional,
+    peakSendsCount: best.score.top15.length
+  };
+}
+
+/**
+ * Computes a climber's tournament-style Elo rating over a rolling 60-day window,
+ * along with their historical all-time Peak Elo across past 60-day windows.
  */
 export function computeClimberRating(
   userId: string,
@@ -474,16 +679,13 @@ export function computeClimberRating(
   profile?: Profile,
   referenceDate: Date = new Date()
 ): ClimberRating {
-  const windowDays = 60;
-  const cutoffTime = referenceDate.getTime() - windowDays * 24 * 60 * 60 * 1000;
+  const referenceTime = Number.isNaN(referenceDate.getTime()) ? Date.now() : referenceDate.getTime();
+  const cutoffTime = referenceTime - WINDOW_MS;
 
   const boulderMap = new Map<string, Boulder>();
   boulders.forEach((b) => boulderMap.set(b.id, b));
 
-  // Filter attempts for this user within the 60-day window that are sends/flashes
-  const userSendsInWindow: { attempt: Attempt; boulder: Boulder; sendDate: Date }[] = [];
-
-  // Group by boulder to keep only the best attempt per boulder in this window
+  // Deduplicate by boulder across all valid non-comp sends <= referenceTime
   const bestAttemptPerBoulder = new Map<string, Attempt>();
 
   attempts.forEach((a) => {
@@ -493,11 +695,11 @@ export function computeClimberRating(
     const b = boulderMap.get(a.boulder_id);
     if (!b || b.is_comp) return;
 
-    // Determine send date
     const dateStr = a.logged_at || b.date_added;
     if (!dateStr) return;
     const sendDate = new Date(dateStr);
-    if (isNaN(sendDate.getTime()) || sendDate.getTime() < cutoffTime) return;
+    const sendTime = sendDate.getTime();
+    if (isNaN(sendTime) || sendTime > referenceTime) return;
 
     const existing = bestAttemptPerBoulder.get(b.id);
     if (!existing) {
@@ -514,77 +716,60 @@ export function computeClimberRating(
     }
   });
 
+  const allUserSends: CompactSend[] = [];
   bestAttemptPerBoulder.forEach((attempt, boulderId) => {
     const boulder = boulderMap.get(boulderId);
     if (!boulder || boulder.is_comp) return;
     const dateStr = attempt.logged_at || boulder.date_added;
-    userSendsInWindow.push({
-      attempt,
-      boulder,
-      sendDate: new Date(dateStr)
-    });
-  });
-
-  // Score each send
-  const scoredSends: ScorecardSendItem[] = userSendsInWindow.map(({ attempt, boulder, sendDate }) => {
+    const sendTime = new Date(dateStr).getTime();
     const grade = boulder.grade;
     const baseElo = GRADE_ELO_BASE[grade] ?? 1000;
     const bonus = getAttemptBonus(attempt.status, attempt.attempt_count);
-    const sendElo = baseElo + bonus;
 
-    const daysAgo = Math.max(0, Math.floor((referenceDate.getTime() - sendDate.getTime()) / (24 * 60 * 60 * 1000)));
-    const daysRemaining = Math.max(0, windowDays - daysAgo);
-
-    return {
+    allUserSends.push({
       boulder,
       attempt,
       grade,
-      holdColour: boulder.hold_colour,
-      isFlash: attempt.status === 'flashed' || attempt.attempt_count === 1,
-      attemptCount: attempt.attempt_count,
-      sendElo,
-      loggedAt: attempt.logged_at || boulder.date_added,
+      sendElo: baseElo + bonus,
+      sendTime,
+      loggedAt: dateStr
+    });
+  });
+
+  // Sort chronologically for peak window sweep
+  allUserSends.sort((a, b) => a.sendTime - b.sendTime);
+
+  // Current 60-day window sends
+  const currentWindowSends = allUserSends.filter((s) => s.sendTime >= cutoffTime);
+  const currentScore = scoreWindowSends(currentWindowSends);
+  const calculatedElo = currentScore.elo;
+  const uncappedElo = currentScore.rawElo ?? calculatedElo;
+  const totalSendsInWindow = currentWindowSends.length;
+
+  const top15: ScorecardSendItem[] = currentScore.top15.map((s) => {
+    const daysAgo = Math.max(0, Math.floor((referenceTime - s.sendTime) / (24 * 60 * 60 * 1000)));
+    const daysRemaining = Math.max(0, WINDOW_DAYS - daysAgo);
+    return {
+      boulder: s.boulder,
+      attempt: s.attempt,
+      grade: s.grade,
+      holdColour: s.boulder.hold_colour,
+      isFlash: s.attempt.status === 'flashed' || s.attempt.attempt_count === 1,
+      attemptCount: s.attempt.attempt_count,
+      sendElo: s.sendElo,
+      loggedAt: s.loggedAt,
       daysAgo,
       daysRemaining
     };
   });
 
-  // Sort descending by send Elo (hardest/highest-scoring sends first)
-  scoredSends.sort((a, b) => b.sendElo - a.sendElo);
-
-  const top15 = scoredSends.slice(0, 15);
-  const totalSendsInWindow = scoredSends.length;
-
-  let calculatedElo = 1000; // Default floor
-  const isProvisional = top15.length < 6;
-
-  if (top15.length > 0) {
-    // Normalize weights for the actual number of sends available
-    const weightsSlice = TOP_15_WEIGHTS.slice(0, top15.length);
-    const weightSum = weightsSlice.reduce((sum, w) => sum + w, 0);
-
-    const weightedScore = top15.reduce((acc, item, idx) => {
-      const normalizedWeight = weightsSlice[idx] / weightSum;
-      return acc + item.sendElo * normalizedWeight;
-    }, 0);
-
-    calculatedElo = Math.round(weightedScore);
-  }
-
-  // Consistent Pyramid Volume & Depth Requirement:
-  // A climber cannot be crowned a solid/strong climber of a grade without demonstrating
-  // consistent pyramid volume and depth at that level (at least 3 sends at or above grade).
-  // If their raw Elo score would nominally place them in a higher tier than their proven
-  // pyramid depth qualifies for, cap their Elo at the upper boundary of their qualified tier
-  // (e.g. 1549 for V4) until consistent volume is proven.
-  const uncappedElo = calculatedElo;
-  const qualifiedDemarcation = getLevelDemarcation(calculatedElo, top15);
-  if (qualifiedDemarcation.maxElo !== Infinity && calculatedElo >= qualifiedDemarcation.maxElo) {
-    calculatedElo = qualifiedDemarcation.maxElo - 1;
-  }
-
-  const { title, gradeEquivalent, subGradeDescription } = getClimberTitleFromElo(calculatedElo, top15, uncappedElo);
-  const { currentLevel, nextLevel, pointsToNextLevel, levelProgress, depthNeededForNextLevel } = getDemarcationProgress(calculatedElo, top15);
+  const { title, gradeEquivalent, subGradeDescription } = getClimberTitleFromElo(
+    calculatedElo,
+    top15,
+    uncappedElo
+  );
+  const { currentLevel, nextLevel, pointsToNextLevel, levelProgress, depthNeededForNextLevel } =
+    getDemarcationProgress(calculatedElo, top15);
   const percentile = calculateClimberPercentile(uncappedElo > calculatedElo ? uncappedElo : calculatedElo);
   const topPercentile = Math.max(0.1, Math.round((100 - percentile) * 10) / 10);
 
@@ -599,17 +784,22 @@ export function computeClimberRating(
 
   const hardestSendGrade = top15.length > 0 ? top15[0].grade : null;
 
+  // Historical Peak Elo across rolling 60-day windows
+  const peak = computeHistoricalPeakElo(allUserSends, referenceTime);
+  const isAtPeak = totalSendsInWindow > 0 && peak.peakElo !== null && calculatedElo >= peak.peakElo;
+  const eloDropFromPeak = peak.peakElo !== null ? Math.max(0, peak.peakElo - calculatedElo) : 0;
+
   return {
     userId,
     profile,
     elo: calculatedElo,
-    rawElo: uncappedElo > calculatedElo ? uncappedElo : undefined,
+    rawElo: currentScore.rawElo,
     title,
     gradeEquivalent,
     subGradeDescription,
     percentile,
     topPercentile,
-    isProvisional,
+    isProvisional: currentScore.isProvisional,
     sendsCount: top15.length,
     totalSendsInWindow,
     topSends: top15,
@@ -619,7 +809,17 @@ export function computeClimberRating(
     nextLevel,
     pointsToNextLevel,
     levelProgress,
-    depthNeededForNextLevel
+    depthNeededForNextLevel,
+    peakElo: peak.peakElo,
+    peakRawElo: peak.peakRawElo,
+    peakDate: peak.peakDate,
+    peakLevel: peak.peakLevel,
+    peakTitle: peak.peakTitle,
+    peakGradeEquivalent: peak.peakGradeEquivalent,
+    peakIsProvisional: peak.peakIsProvisional,
+    peakSendsCount: peak.peakSendsCount,
+    isAtPeak,
+    eloDropFromPeak
   };
 }
 

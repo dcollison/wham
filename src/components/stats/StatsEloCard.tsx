@@ -13,7 +13,8 @@ import {
   TrendingUp,
   Milestone,
   Check,
-  Crown
+  Crown,
+  Award
 } from 'lucide-react';
 import { Boulder, Attempt, Profile, getClimberColor } from '../../types';
 import { ClimberAvatar } from '../ClimberAvatar';
@@ -69,6 +70,20 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
   }, [crewRatings, targetId, attempts, boulders, climbers]);
 
   const activeClimber = climbers.find((c) => c.id === targetId) || climbers[0];
+
+  const formatPeakDate = (isoDate: string | null): string | null => {
+    if (!isoDate) return null;
+    const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate.trim());
+    const d = dateOnlyMatch
+      ? new Date(Number(dateOnlyMatch[1]), Number(dateOnlyMatch[2]) - 1, Number(dateOnlyMatch[3]))
+      : new Date(isoDate);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
 
   const getFormBadge = (status: ClimberRating['formStatus'], sendsCount: number) => {
     switch (status) {
@@ -232,6 +247,7 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
 
           // Individual Mode ('my')
           const isCurrent = activeRating.currentLevel.id === demarcation.id;
+          const isPeakTier = activeRating.peakLevel?.id === demarcation.id && activeRating.peakElo !== null;
           const isAchieved = activeRating.elo >= demarcation.maxElo;
           const ptsNeeded = Math.max(0, demarcation.minElo - activeRating.elo);
 
@@ -241,6 +257,8 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
               className={`flex flex-col sm:flex-row sm:items-center justify-between p-2.5 rounded-md border transition-colors gap-2 ${
                 isCurrent
                   ? 'bg-amber-950/25 border-amber-500/50'
+                  : isPeakTier
+                  ? 'bg-sky-950/20 border-sky-500/35'
                   : isAchieved
                   ? 'bg-carbon/60 border-white/[0.05]'
                   : 'bg-carbon border-white/[0.07]'
@@ -251,6 +269,8 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
                   className={`w-11 h-7 rounded-md font-mono tabular-nums font-bold text-xs flex items-center justify-center shrink-0 border ${
                     isCurrent
                       ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                      : isPeakTier
+                      ? 'bg-sky-500/15 text-sky-300 border-sky-500/35'
                       : 'bg-surface-high text-slate-200 border-white/[0.08]'
                   }`}
                 >
@@ -272,34 +292,43 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-1.5 sm:pt-0 border-t sm:border-t-0 border-white/[0.04]">
+              <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-1.5 sm:pt-0 border-t sm:border-t-0 border-white/[0.04] flex-wrap">
                 <div className="font-mono tabular-nums text-xs font-bold text-slate-200">
                   {demarcation.minElo.toLocaleString()} –{' '}
                   {demarcation.maxElo === Infinity ? '∞' : demarcation.maxElo.toLocaleString()}{' '}
                   <span className="text-[10px] font-sans text-slate-400 font-normal">pts</span>
                 </div>
 
-                {isCurrent ? (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40 tabular-nums">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                    Current ({activeRating.elo.toLocaleString()} pts)
-                  </span>
-                ) : isAchieved ? (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-400">
-                    <Check className="w-3 h-3 stroke-[2.5]" />
-                    Achieved
-                  </span>
-                ) : demarcation.id === activeRating.nextLevel?.id &&
-                  activeRating.depthNeededForNextLevel &&
-                  activeRating.pointsToNextLevel <= 1 ? (
-                  <span className="tabular-nums text-[11px] font-semibold text-amber-300">
-                    {activeRating.depthNeededForNextLevel} {activeRating.depthNeededForNextLevel === 1 ? 'send' : 'sends'} needed
-                  </span>
-                ) : (
-                  <span className="tabular-nums text-[11px] font-semibold text-amber-300">
-                    +{ptsNeeded} pts needed
-                  </span>
-                )}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {isPeakTier && !isCurrent && activeRating.peakElo !== null && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-sky-500/15 text-sky-300 border border-sky-500/30 font-mono tabular-nums">
+                      <Award className="w-3 h-3 shrink-0" />
+                      Peak ({activeRating.peakElo.toLocaleString()})
+                    </span>
+                  )}
+
+                  {isCurrent ? (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40 tabular-nums">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                      Current ({activeRating.elo.toLocaleString()} pts)
+                    </span>
+                  ) : isAchieved ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-400">
+                      <Check className="w-3 h-3 stroke-[2.5]" />
+                      Achieved
+                    </span>
+                  ) : demarcation.id === activeRating.nextLevel?.id &&
+                    activeRating.depthNeededForNextLevel &&
+                    activeRating.pointsToNextLevel <= 1 ? (
+                    <span className="tabular-nums text-[11px] font-semibold text-amber-300">
+                      {activeRating.depthNeededForNextLevel} {activeRating.depthNeededForNextLevel === 1 ? 'send' : 'sends'} needed
+                    </span>
+                  ) : (
+                    <span className="tabular-nums text-[11px] font-semibold text-amber-300">
+                      +{ptsNeeded} pts needed
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           );
@@ -373,6 +402,9 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
             • <strong>Top 15 in 60 Days</strong>: Your score is the weighted average of your best 15 sends over the last 60 days.
           </p>
           <p className="text-[11px] leading-relaxed text-slate-300">
+            • <strong>All-Time Peak Elo</strong>: Tracks the highest rolling 60-day rating you have ever achieved across your send history (including archived sets), along with the date and tier reached—so gym resets or time off never erase your best form.
+          </p>
+          <p className="text-[11px] leading-relaxed text-slate-300">
             • <strong>Regular Climber Tier</strong>: Calibrated against worldwide gym community data. The median regular gym climber is ~1,350 Elo (V3).
           </p>
         </div>
@@ -382,36 +414,130 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
       {viewMode === 'my' ? (
         <div className="space-y-4">
           {/* Main Elo Banner */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-lg bg-carbon border border-white/[0.07]">
-            <div className="flex items-center gap-3.5 min-w-0">
-              <ClimberAvatar profile={activeClimber} size="lg" />
-              <div className="min-w-0">
-                <span className="font-bold text-white text-base block">{activeClimber.display_name}</span>
-                <div className="text-xs font-semibold text-slate-200 mt-0.5">
-                  {activeRating.title}
+          <div className="rounded-lg bg-carbon border border-white/[0.07] overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4">
+              <div className="flex items-center gap-3.5 min-w-0">
+                <ClimberAvatar profile={activeClimber} size="lg" />
+                <div className="min-w-0">
+                  <span className="font-bold text-white text-base block">{activeClimber.display_name}</span>
+                  <div className="text-xs font-semibold text-slate-200 mt-0.5">
+                    {activeRating.title}
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">
+                    {activeRating.subGradeDescription}
+                  </div>
                 </div>
-                <div className="text-[11px] text-slate-400 mt-0.5">
-                  {activeRating.subGradeDescription}
+              </div>
+
+              {/* Elo Score Metric */}
+              <div className="flex sm:flex-col items-baseline sm:items-end justify-between border-t sm:border-t-0 pt-2.5 sm:pt-0 border-white/[0.06] shrink-0">
+                <span className="text-[11px] uppercase font-semibold tracking-wider text-slate-400">Wham Elo</span>
+                <div className="flex items-baseline gap-1.5">
+                  <span
+                    className="font-mono tabular-nums text-3xl sm:text-4xl font-bold leading-none tracking-tight"
+                    style={{ color: activeColor }}
+                  >
+                    {activeRating.elo.toLocaleString()}
+                  </span>
+                  <span className="text-xs font-semibold text-slate-400">pts</span>
                 </div>
+                {activeRating.isProvisional && (
+                  <span className="text-[11px] text-amber-300 font-medium mt-0.5">Provisional rating</span>
+                )}
               </div>
             </div>
 
-            {/* Elo Score Metric */}
-            <div className="flex sm:flex-col items-baseline sm:items-end justify-between border-t sm:border-t-0 pt-2.5 sm:pt-0 border-white/[0.06] shrink-0">
-              <span className="text-[11px] uppercase font-semibold tracking-wider text-slate-400">Wham Elo</span>
-              <div className="flex items-baseline gap-1.5">
-                <span
-                  className="font-mono tabular-nums text-3xl sm:text-4xl font-bold leading-none tracking-tight"
-                  style={{ color: activeColor }}
-                >
-                  {activeRating.elo.toLocaleString()}
+            {/* All-Time Peak Elo Sub-bar */}
+            {activeRating.peakElo === null ? (
+              <div className="px-4 py-2.5 border-t border-white/[0.06] bg-surface-elevated/40 flex items-center justify-between gap-2 text-[11px] text-slate-400">
+                <span className="inline-flex items-center gap-1.5 font-semibold text-slate-300">
+                  <Award className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span>All-Time Peak</span>
                 </span>
-                <span className="text-xs font-semibold text-slate-400">pts</span>
+                <span>No sends logged yet</span>
               </div>
-              {activeRating.isProvisional && (
-                <span className="text-[11px] text-amber-300 font-medium mt-0.5">Provisional rating</span>
-              )}
-            </div>
+            ) : (
+              (() => {
+                const peakDateLabel = formatPeakDate(activeRating.peakDate);
+                const peakGradeLabel = activeRating.peakLevel?.shortGrade || activeRating.peakGradeEquivalent;
+                return (
+                  <div className="px-4 py-2.5 border-t border-white/[0.06] bg-surface-elevated/40 space-y-1">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-2 flex-wrap min-w-0">
+                        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-200">
+                          <Award
+                            className={`w-3.5 h-3.5 shrink-0 ${
+                              activeRating.isAtPeak ? 'text-emerald-400' : 'text-amber-400'
+                            }`}
+                          />
+                          <span>All-Time Peak</span>
+                        </span>
+
+                        {activeRating.isAtPeak ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                            Current Peak
+                          </span>
+                        ) : activeRating.eloDropFromPeak > 0 ? (
+                          <span className="font-mono tabular-nums text-[11px] font-semibold text-slate-400">
+                            -{activeRating.eloDropFromPeak.toLocaleString()} pts from peak
+                          </span>
+                        ) : activeRating.sendsCount === 0 ? (
+                          <span className="text-[10px] font-medium text-slate-400">
+                            Inactive 60d
+                          </span>
+                        ) : null}
+                      </div>
+
+                      <div className="flex items-baseline gap-1 shrink-0">
+                        <span
+                          className={`font-mono tabular-nums text-sm font-bold ${
+                            activeRating.isAtPeak ? 'text-emerald-300' : 'text-amber-300'
+                          }`}
+                        >
+                          {activeRating.peakElo.toLocaleString()}
+                        </span>
+                        <span className="text-[11px] text-slate-400">pts</span>
+                        {activeRating.peakRawElo !== undefined && (
+                          <span
+                            className="font-mono tabular-nums text-[10px] text-amber-300/80 ml-0.5"
+                            title="Uncapped tournament score at peak before pyramid depth gating"
+                          >
+                            (raw {activeRating.peakRawElo.toLocaleString()})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 flex-wrap text-[11px] text-slate-400">
+                      <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                        {peakGradeLabel && (
+                          <span className="font-mono tabular-nums text-[10px] font-bold px-1.5 py-0.5 rounded bg-surface-high text-slate-200 border border-white/[0.08]">
+                            {peakGradeLabel}
+                          </span>
+                        )}
+                        {activeRating.peakTitle && (
+                          <span className="text-slate-300 font-medium truncate">
+                            {activeRating.peakTitle}
+                          </span>
+                        )}
+                        {activeRating.peakIsProvisional && (
+                          <span className="text-[10px] text-amber-300/90 font-medium tabular-nums">
+                            · Provisional ({activeRating.peakSendsCount}{' '}
+                            {activeRating.peakSendsCount === 1 ? 'send' : 'sends'})
+                          </span>
+                        )}
+                      </div>
+
+                      {peakDateLabel && (
+                        <span className="font-mono tabular-nums text-[10px] text-slate-400 shrink-0">
+                          {peakDateLabel}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()
+            )}
           </div>
 
           {/* NEXT LEVEL PROGRESS */}
@@ -694,6 +820,32 @@ export const StatsEloCard: React.FC<StatsEloCardProps> = ({
                       <div className="text-[11px] text-slate-400 tabular-nums">
                         Top {rating.topPercentile}%
                       </div>
+                      {rating.peakElo !== null && (
+                        <div
+                          className={`text-[10px] font-mono tabular-nums font-semibold mt-0.5 ${
+                            rating.isAtPeak ? 'text-emerald-400' : 'text-amber-300/90'
+                          }`}
+                          title={
+                            rating.peakDate
+                              ? `All-Time Peak: ${rating.peakElo.toLocaleString()} pts (${rating.peakTitle || rating.peakGradeEquivalent}) on ${formatPeakDate(rating.peakDate)}`
+                              : undefined
+                          }
+                        >
+                          {rating.isAtPeak ? (
+                            <span className="inline-flex items-center justify-end gap-1">
+                              <Award className="w-2.5 h-2.5 shrink-0" />
+                              <span>At Peak</span>
+                            </span>
+                          ) : (
+                            <>
+                              Peak {rating.peakElo.toLocaleString()}
+                              {rating.peakLevel?.shortGrade && (
+                                <span className="hidden sm:inline text-slate-400"> · {rating.peakLevel.shortGrade}</span>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div className="hidden sm:block">
