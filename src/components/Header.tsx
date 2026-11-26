@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Gym, GymArea, Profile, Boulder } from '../types';
 import { ClimberAvatar } from './ClimberAvatar';
-import { ChevronDown, Plus, Archive, Layers, Trophy, MoreHorizontal, Eye, ShieldCheck, Clock, Lightbulb, Check, Monitor, Loader2 } from 'lucide-react';
+import { ChevronDown, Plus, Archive, Layers, Trophy, MoreHorizontal, Eye, ShieldCheck, Clock, Lightbulb, Check, Loader2 } from 'lucide-react';
 import { WhamBadge } from './WhamLogo';
 import { getAreaResetInfo } from '../lib/resetStatus';
 import { isWinterSeriesAreaId, isWinterRoundActiveForArea } from '../lib/winterSeries';
@@ -345,17 +345,6 @@ export const Header: React.FC<HeaderProps> = ({
                       <span>Backups & Safety</span>
                     </button>
                   )}
-
-                  <a
-                    href="./retro-themes.html"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setIsMoreMenuOpen(false)}
-                    className="flex items-center gap-2.5 w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-semibold text-amber-300 hover:bg-surface-high transition-colors"
-                  >
-                    <Monitor className="w-4 h-4 text-amber-400 shrink-0" />
-                    <span>80s/90s CRT Themes</span>
-                  </a>
 
                   <div className="h-px bg-white/[0.06] my-0.5 mx-2" />
 

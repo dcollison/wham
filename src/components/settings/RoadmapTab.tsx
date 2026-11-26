@@ -17,9 +17,7 @@ import {
   Zap,
   Palette,
   Bug,
-  Monitor,
-  Loader2,
-  ArrowUpRight
+  Loader2
 } from 'lucide-react';
 
 interface RoadmapTabProps {
@@ -167,30 +165,6 @@ export const RoadmapTab: React.FC<RoadmapTabProps> = ({
           <span>Suggest Idea</span>
         </button>
       </div>
-
-      {/* 80s / 90s CRT Retro Themes Exploration Banner */}
-      <a
-        href="./retro-themes.html"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="p-3.5 rounded-lg bg-carbon border border-amber-500/30 flex items-center justify-between gap-3 text-xs hover:border-amber-400/60 transition-colors active-press"
-      >
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-md bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0 text-amber-400">
-            <Monitor className="w-4 h-4" />
-          </div>
-          <div className="min-w-0">
-            <span className="font-bold text-amber-300 block">80s &amp; 90s CRT Retheming Lab</span>
-            <p className="text-slate-400 text-[11px] mt-0.5 truncate sm:whitespace-normal">
-              Explore 4 bold retro designs: Arcade &apos;84, Studio Rack &apos;93, Trinitron &apos;97, and Rad VHS &apos;91.
-            </p>
-          </div>
-        </div>
-        <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-amber-400 text-slate-950 font-bold text-[11px] shrink-0">
-          <span>Launch</span>
-          <ArrowUpRight className="w-3.5 h-3.5" />
-        </span>
-      </a>
 
       {/* Filter Tabs: Open, Done, All */}
       <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
